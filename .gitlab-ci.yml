@@ -4,6 +4,11 @@ stages:
   - Build
   - Test
 
+setPermissions: # Set gradlew as executable to avoid 'Permission denied' failures
+  stage: .pre
+  script:
+    - chmod -x gradlew
+
 staticAnalysis:
   stage: Build
   script:
