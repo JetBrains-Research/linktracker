@@ -1,0 +1,31 @@
+<!-- Copyright 2000-2020 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file. -->
+
+<idea-plugin>
+
+  <!--  Unique id for this plugin. Must stay constant for the life of the plugin.  -->
+  <id>org.intellij.plugin.tracker</id>
+
+  <!-- Text to display as name on Preferences/Settings | Plugin page -->
+  <name>Change Tracker</name>
+
+  <!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <!-- Text to display as description on Preferences/Settings | Plugin page  -->
+  <description>
+    <![CDATA[
+    Adds a <i>Change Tracker</i> menu group anchored last in the <b>Main Menu</b>
+    ]]>
+  </description>
+
+  <!-- Text to display as company information on Preferences/Settings | Plugin page -->
+  <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
+
+  <actions>
+    <group id="MyPlugin.TrackerMenu" text="Change Tracker" description="Change Tracker menu">
+      <add-to-group group-id="MainMenu" anchor="last"/>
+      <action id="MyPlugin.Hello" class="org.intellij.plugin.tracker.HelloAction" text="Hello" description="Says hello"/>
+    </group>
+  </actions>
+
+</idea-plugin>
