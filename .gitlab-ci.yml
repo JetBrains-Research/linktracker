@@ -1,0 +1,23 @@
+image: openjdk:8-jdk
+
+stages:
+  - Build
+  - Test
+
+staticAnalysis:
+  stage: Build
+  script:
+    - ./gradlew ktlintCheck
+  rules: # Only on merge requests and commits to master
+    - if: $CI_COMMIT_BRANCH == 'master'
+    - if: $CI_MERGE_REQUEST_ID
+
+build:
+  stage: Build
+  script:
+    - ./gradlew assemble
+
+test:
+  stage: Test
+  script:
+    - ./gradlew test
