@@ -1,28 +1,25 @@
-image: openjdk:8-jdk
+image: gradle:6.0.1-jdk8
 
 stages:
+  - Lint
   - Build
   - Test
 
-setPermissions: # Set gradlew as executable to avoid 'Permission denied' failures
-  stage: .pre
-  script:
-    - chmod -x gradlew
+default: # Set gradle user home
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
 
 staticAnalysis:
-  stage: Build
+  stage: Lint
   script:
-    - ./gradlew ktlintCheck
-  rules: # Only on merge requests and commits to master
-    - if: $CI_COMMIT_BRANCH == 'master'
-    - if: $CI_MERGE_REQUEST_ID
+    - gradle ktlintCheck
 
 build:
   stage: Build
   script:
-    - ./gradlew assemble
+    - gradle assemble
 
 test:
   stage: Test
   script:
-    - ./gradlew test
+    - gradle test
