@@ -9,8 +9,8 @@ import com.intellij.openapi.ui.Messages
 
 class HelloAction : DumbAwareAction() {
 
-  override fun actionPerformed(event: AnActionEvent) {
-    val project = event.getData(PlatformDataKeys.PROJECT)
-    Messages.showMessageDialog(project, "Hello from Kotlin!", "Greeting", Messages.getInformationIcon())
-  }
+    override fun actionPerformed(event: AnActionEvent) {
+        val project = event.getData(PlatformDataKeys.PROJECT)
+        Messages.showMessageDialog(project, "Hello from Kotlin!", "Greeting", Messages.getInformationIcon())
+    }
 }
