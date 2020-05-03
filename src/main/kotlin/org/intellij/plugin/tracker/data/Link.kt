@@ -1,3 +1,9 @@
 package org.intellij.plugin.tracker.data
 
-data class Link(var linkText: String, var linkPath: String)
+enum class LinkType(private val type: String){
+    FILE("FILE"),
+    LINE("LINE"),
+    DIRECTORY("DIRECTORY")
+}
+
+data class Link(val linkType: LinkType, var linkText: String, var linkPath: String)
