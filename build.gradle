@@ -28,6 +28,7 @@ sourceSets {
 intellij {
   version = '2020.1'
   sameSinceUntilBuild = true
+  plugins 'git4idea'
 }
 
 compileKotlin {
