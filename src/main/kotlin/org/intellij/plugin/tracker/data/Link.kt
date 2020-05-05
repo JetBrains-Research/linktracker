@@ -1,5 +1,7 @@
 package org.intellij.plugin.tracker.data
 
+import com.intellij.openapi.project.Project
+
 
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
@@ -38,15 +40,17 @@ data class WebLink(
     var relativePath: String,
     var referenceType: WebLinkReferenceType,
     var referenceName: String,
-    var correspondsToLocalProject: Boolean,
-    var isPermaLink: Boolean? = null,
     var lineReferenced: Int? = null,
     var startReferencedLine: Int? = null,
     var endReferencedLine: Int? = null
 ) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
-    init {
-        if (referenceType.toString() == "COMMIT") isPermaLink = true
-        isPermaLink = false
+
+    // TODO: Check whether the weblink corresponds to the currently open project
+    fun correspondsToLocalProject(project: Project): Boolean = throw NotImplementedError("")
+
+    fun isPermalink(): Boolean {
+        if (referenceType.toString() == "COMMIT") return true
+        return false
     }
 }
 
