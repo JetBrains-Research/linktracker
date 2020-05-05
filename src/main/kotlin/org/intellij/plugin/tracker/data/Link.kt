@@ -38,6 +38,7 @@ data class WebLink(
     var relativePath: String,
     var referenceType: WebLinkReferenceType,
     var referenceName: String,
+    var correspondsToLocalProject: Boolean,
     var isPermaLink: Boolean = false,
     var lineReferenced: Int? = null,
     var startReferencedLine: Int? = null,
