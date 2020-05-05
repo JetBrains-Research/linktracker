@@ -10,6 +10,8 @@
 
   <!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
   <depends>com.intellij.modules.platform</depends>
+  <depends>org.intellij.plugins.markdown</depends>
+  <depends>Git4Idea</depends>
 
   <!-- Text to display as description on Preferences/Settings | Plugin page  -->
   <description>
@@ -24,8 +26,9 @@
   <actions>
     <group id="MyPlugin.TrackerMenu" text="Change Tracker" description="Change Tracker menu">
       <add-to-group group-id="MainMenu" anchor="last"/>
-      <action id="MyPlugin.Hello" class="org.intellij.plugin.tracker.HelloAction" text="Hello" description="Says hello"/>
+      <action id="MyPlugin.Hello" class="org.intellij.plugin.tracker.actions.HelloAction" text="Hello" description="Says hello"/>
     </group>
+
   </actions>
 
 </idea-plugin>

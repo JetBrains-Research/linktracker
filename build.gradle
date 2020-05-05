@@ -27,7 +27,7 @@ sourceSets {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
   version = '2020.1'
-  sameSinceUntilBuild = true
+  plugins 'org.intellij.plugins.markdown:201.6668.27', 'git4idea'
 }
 
 compileKotlin {
