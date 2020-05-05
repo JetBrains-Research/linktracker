@@ -13,6 +13,8 @@ import java.io.File
 import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
+import org.intellij.plugin.tracker.data.RelativeLink
+import org.intellij.plugin.tracker.data.WebLink
 
 
 class ChangeTrackerService(private val project: Project) {
@@ -68,7 +70,7 @@ class ChangeTrackerService(private val project: Project) {
     }
 
     private fun extractSpecificFileChanges(link: Link, changeList: MutableCollection<Change>): FileChange {
-        val fullPath = "${project.basePath}/${link.linkPath}"
+        val fullPath = "${project.basePath}/${link.getPath()}"
         for (change in changeList) {
             if (change.affectsFile(File(fullPath))) return FileChange.changeToFileChange(project, change)
         }

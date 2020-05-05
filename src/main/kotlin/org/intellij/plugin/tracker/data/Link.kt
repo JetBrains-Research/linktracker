@@ -26,6 +26,11 @@ abstract class Link(
     fun getMarkDownSyntaxString(): String {
         return "[$linkText]($linkPath)"
     }
+
+    /**
+     * Returns the relative path at which the referenced element is located.
+     */
+    abstract fun getPath(): String
 }
 
 data class WebLink(
@@ -45,6 +50,10 @@ data class WebLink(
     var endReferencedLine: Int? = null
 ) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
 
+    override fun getPath(): String {
+        return relativePath
+    }
+
     // TODO: Check whether the weblink corresponds to the currently open project
     fun correspondsToLocalProject(project: Project): Boolean = throw NotImplementedError("")
 
@@ -60,4 +69,9 @@ data class RelativeLink(
     override var linkPath: String,
     override var proveniencePath: String,
     override var foundAtLineNumber: Int
-) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber)
+) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
+
+    override fun getPath(): String {
+        return linkPath
+    }
+}
