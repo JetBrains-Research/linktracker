@@ -39,11 +39,16 @@ data class WebLink(
     var referenceType: WebLinkReferenceType,
     var referenceName: String,
     var correspondsToLocalProject: Boolean,
-    var isPermaLink: Boolean = false,
+    var isPermaLink: Boolean? = null,
     var lineReferenced: Int? = null,
     var startReferencedLine: Int? = null,
     var endReferencedLine: Int? = null
-) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber)
+) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
+    init {
+        if (referenceType.toString() == "COMMIT") isPermaLink = true
+        isPermaLink = false
+    }
+}
 
 data class RelativeLink(
     override var linkType: LinkType,
