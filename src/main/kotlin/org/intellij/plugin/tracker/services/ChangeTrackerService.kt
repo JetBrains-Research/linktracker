@@ -16,11 +16,13 @@ import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.FileChange
 import org.intellij.plugin.tracker.data.Link
 import org.intellij.plugin.tracker.view.MDView
+import org.intellij.plugin.tracker.view.TreeView
 import java.io.File
 
 class ChangeTrackerService(private val project: Project) {
 
-    private val view: MDView = MDView()
+    private val mdView: MDView = MDView()
+    private val treeView: TreeView = TreeView()
 
     private fun processOutputLog(outputLog: String, link: Link): String {
 
@@ -164,8 +166,20 @@ class ChangeTrackerService(private val project: Project) {
      */
     fun updateView(project: Project?, fileChanges: MutableCollection<Pair<Link, FileChange>>) {
         val toolWindow =
+            ToolWindowManager.getInstance(project!!).getToolWindow("Markdown Files")
+        treeView.updateModel(fileChanges)
+        toolWindow!!.hide(null)
+    }
+
+    /**
+     * Update the view.
+     * @param project the currently open project
+     * @param changes changes in the currently open MD file
+     */
+    fun updateStatistics(project: Project?, statistics: MutableList<Any>) {
+        val toolWindow =
             ToolWindowManager.getInstance(project!!).getToolWindow("Statistics")
-        view.updateModel(fileChanges)
+        mdView.updateModel(statistics)
         toolWindow!!.hide(null)
     }
 
@@ -179,9 +193,14 @@ class ChangeTrackerService(private val project: Project) {
      */
     init {
         val toolWindowManager = ToolWindowManager.getInstance(project)
-        val toolWindow = toolWindowManager.registerToolWindow("Statistics", false, ToolWindowAnchor.BOTTOM)
         val contentFactory = ContentFactory.SERVICE.getInstance()
-        val content = contentFactory.createContent(view, null, true)
-        toolWindow.contentManager.addContent(content)
+
+        val treeWindow = toolWindowManager.registerToolWindow("Markdown Files", false, ToolWindowAnchor.BOTTOM)
+        val treeContent = contentFactory.createContent(treeView, null, true)
+        treeWindow.contentManager.addContent(treeContent)
+
+        val mdWindow = toolWindowManager.registerToolWindow("Statistics", false, ToolWindowAnchor.BOTTOM)
+        val mdContent = contentFactory.createContent(mdView, null, true)
+        mdWindow.contentManager.addContent(mdContent)
     }
 }
