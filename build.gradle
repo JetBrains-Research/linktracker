@@ -24,6 +24,7 @@ dependencies {
   testImplementation("io.mockk:mockk:1.10.0")
 }
 
+
 sourceSets {
   main.kotlin.srcDirs += 'src/main/kotlin'
 }
@@ -31,8 +32,7 @@ sourceSets {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
   version = '2020.1'
-  sameSinceUntilBuild = true
-  plugins 'git4idea'
+  plugins 'org.intellij.plugins.markdown:201.6668.27', 'git4idea'
 }
 
 compileKotlin {

@@ -12,14 +12,16 @@ enum class LinkType(private val type: String) {
     LINE("LINE"),
     LINES("LINES"),
     FILE("FILE"),
-    DIRECTORY("DIRECTORY")
+    DIRECTORY("DIRECTORY"),
+    USER("USER"),
+    URL("URL")
 }
 
 abstract class Link(
     open var linkType: LinkType,
     open var linkText: String,
     open var linkPath: String,
-    open var proveniencePath: String,
+    open var proveniencePath: String, // TODO what is proveniencePath
     open var foundAtLineNumber: Int
 ) {
     fun getMarkDownSyntaxString(): String {
