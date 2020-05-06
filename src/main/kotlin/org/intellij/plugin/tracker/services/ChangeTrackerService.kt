@@ -13,10 +13,10 @@ import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
 import org.intellij.plugin.tracker.data.FileChange
 import org.intellij.plugin.tracker.data.Link
 import org.intellij.plugin.tracker.view.MDView
+import java.io.File
 
 class ChangeTrackerService(private val project: Project) {
 
@@ -25,6 +25,7 @@ class ChangeTrackerService(private val project: Project) {
     private fun processOutputLog(outputLog: String, link: Link): String {
 
         val outputLogLines = outputLog.split("\n")
+
         /**
          * Necessary regex for matching
          */

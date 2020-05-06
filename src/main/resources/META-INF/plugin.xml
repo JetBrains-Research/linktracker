@@ -32,6 +32,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <!-- Add your extensions here -->
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
   </extensions>
 
 </idea-plugin>

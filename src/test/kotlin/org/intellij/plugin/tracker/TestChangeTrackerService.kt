@@ -1,26 +1,26 @@
 package org.intellij.plugin.tracker
 
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.vcs.FilePath
-import com.intellij.openapi.vcs.changes.Change
-import com.intellij.openapi.vcs.changes.ContentRevision
-import com.nhaarman.mockitokotlin2.doReturn
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
-import git4idea.changes.GitChangeUtils
-import git4idea.repo.GitRepository
-import git4idea.repo.GitRepositoryManager
-import io.mockk.every
-import io.mockk.mockkStatic
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import org.intellij.plugin.tracker.data.FileChange
-import org.intellij.plugin.tracker.data.Link
-import org.intellij.plugin.tracker.data.LinkType
-import org.intellij.plugin.tracker.data.RelativeLink
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.junit.Test
-import org.mockito.Mockito
+// import com.intellij.openapi.project.Project
+// import com.intellij.openapi.vcs.FilePath
+// import com.intellij.openapi.vcs.changes.Change
+// import com.intellij.openapi.vcs.changes.ContentRevision
+// import com.nhaarman.mockitokotlin2.doReturn
+// import com.nhaarman.mockitokotlin2.mock
+// import com.nhaarman.mockitokotlin2.whenever
+// import git4idea.changes.GitChangeUtils
+// import git4idea.repo.GitRepository
+// import git4idea.repo.GitRepositoryManager
+// import io.mockk.every
+// import io.mockk.mockkStatic
+// import kotlin.test.assertEquals
+// import kotlin.test.assertTrue
+// import org.intellij.plugin.tracker.data.FileChange
+// import org.intellij.plugin.tracker.data.Link
+// import org.intellij.plugin.tracker.data.LinkType
+// import org.intellij.plugin.tracker.data.RelativeLink
+// import org.intellij.plugin.tracker.services.ChangeTrackerService
+// import org.junit.Test
+// import org.mockito.Mockito
 
 class TestChangeTrackerService {
 
