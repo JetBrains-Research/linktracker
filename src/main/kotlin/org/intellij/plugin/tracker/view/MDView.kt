@@ -6,8 +6,6 @@ import java.awt.BorderLayout
 import java.util.Vector
 import javax.swing.JPanel
 import javax.swing.table.DefaultTableModel
-import org.intellij.plugin.tracker.data.FileChange
-import org.intellij.plugin.tracker.data.Link
 
 /**
  * Class creating summary method plugin view
@@ -20,32 +18,23 @@ class MDView : JPanel() {
     /**
      * Updating table view.
      */
-    fun updateModel(fileChanges: MutableCollection<Pair<Link, FileChange>>) {
+    fun updateModel(statistics: MutableList<Any>) {
         val noOfRows = model.rowCount
         for (i in 0 until noOfRows) {
             model.removeRow(0)
         }
-        for (change in fileChanges) {
-            addRowModel("Link path", change.first.linkPath)
-            addRowModel("Link text", change.first.linkText)
-            addRowModel("Provenience path", change.first.proveniencePath)
-            addRowModel("Found at line", change.first.foundAtLineNumber.toString())
-            addRowModel("Link type", change.first.linkType.name)
-            addRowModel("File name", change.second.fileName)
-            addRowModel("Before path", change.second.beforePath)
-            addRowModel("After path", change.second.afterPath)
-            addRowModel("Move relative path", change.second.moveRelativePath)
-            addRowModel("Change type", change.second.changeType)
-        }
+        addRowModel("Number of Files", statistics[0])
+        addRowModel("Number of Links", statistics[1])
+        addRowModel("Number of Files with Links", statistics[2])
     }
 
     /**
      * Adds new row to model table
      */
-    private fun addRowModel(name: String, value: String?) {
+    private fun addRowModel(name: String, value: Any?) {
         val row: Vector<String> = Vector<String>()
         row.add(name)
-        row.add(value)
+        row.add(value.toString())
         model.addRow(row)
     }
 
