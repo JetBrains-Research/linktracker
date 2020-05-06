@@ -1,6 +1,7 @@
 image: gradle:6.0.1-jdk8
 
 stages:
+  - Lint
   - Build
   - Test
 
