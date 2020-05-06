@@ -4,6 +4,12 @@
 
 [I'm an inline-style link 2](../../../README.md)
 
+[permalink github](https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55)
+
+[permalink multiple lines](https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L52-L71)
+
+[permalink gitlab](https://gitlab.ewi.tudelft.nl/cse2000-software-project/2019-2020-q4/cluster-0/tracking-changes-in-links-to-code/tracking-changes-in-links-to-code/-/blob/dev/src/main/kotlin/org/intellij/plugin/tracker/data/FileChange.kt#L26)
+
 [I'm an inline-style link with title](https://www.google.com "Google's Homepage")
 
 [I'm a reference-style link][Arbitrary case-insensitive reference text]

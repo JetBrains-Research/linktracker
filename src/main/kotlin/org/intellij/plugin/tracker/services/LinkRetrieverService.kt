@@ -42,7 +42,7 @@ class LinkRetrieverService(private val project: Project?) {
                 .selectedTextEditor
         )!!.document
         val virtualFiles =
-            FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
+            FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject))
         noOfLinks = 0
         noOfFiles = 0
         noOfFIlesWithLinks = 0
@@ -114,8 +114,23 @@ class LinkRetrieverService(private val project: Project?) {
 
     public fun createLink(linkText: String, linkPath: String, proveniencePath: String, lineNo: Int): Link {
         if (getLinkType(linkPath) == LinkType.URL) {
-            // TODO implement weblink functionality
-            return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
+            if (linkPath.contains("github") || linkPath.contains("gitlab")) {
+                val parts = linkPath.split("//").get(1).split("/blob/")
+                val projectName = parts.get(0).split("/").get(parts.get(0).split("/").lastIndex)
+                val platformName = parts.get(0).split("/").get(0)
+                val projectOwnerName = parts.get(0).split(platformName + "/").get(1).split("/" + projectName).get(0)
+                val relativePath = parts.get(1).split(parts.get(1).split("/").get(0) + "/").get(1).split("#L").get(0)
+                if (parts.get(1).split("#L").get(1).contains("-L")) {
+                    val start = parts.get(1).split("#L").get(1).split("-L").get(0).toInt()
+                    val end = parts.get(1).split("#L").get(1).split("-L").get(1).toInt()
+                    return WebLink(LinkType.LINES, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, end)
+                } else {
+                    val lineReferenced = parts.get(1).split("#L").get(1).toInt()
+                    return WebLink(LinkType.LINE, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, lineReferenced, lineReferenced, lineReferenced)
+                }
+            } else {
+                return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
+            }
         } else {
             return RelativeLink(getLinkType(linkPath), linkText, linkPath, proveniencePath, lineNo)
         }
