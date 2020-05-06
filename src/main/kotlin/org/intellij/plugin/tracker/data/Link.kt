@@ -13,6 +13,7 @@ enum class LinkType(private val type: String) {
     LINES("LINES"),
     FILE("FILE"),
     DIRECTORY("DIRECTORY"),
+    USER("USER"),
     URL("URL")
 }
 

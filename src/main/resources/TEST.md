@@ -4,6 +4,8 @@
 
 [I'm an inline-style link 2](../../../README.md)
 
+* [Irem Ugurlu](https://gitlab.ewi.tudelft.nl/iugurlu)
+
 [permalink github](https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55)
 
 [permalink multiple lines](https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L52-L71)
