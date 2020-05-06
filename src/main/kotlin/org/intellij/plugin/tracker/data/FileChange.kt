@@ -3,7 +3,6 @@ package org.intellij.plugin.tracker.data
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
 
-
 data class FileChange(
     val changeType: String = "NONE",
     val fileName: String? = null,
