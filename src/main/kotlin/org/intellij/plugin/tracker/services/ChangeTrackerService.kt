@@ -4,20 +4,23 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vcs.changes.Change
+import com.intellij.openapi.wm.ToolWindowAnchor
+import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.ui.content.ContentFactory
 import git4idea.changes.GitChangeUtils
 import git4idea.commands.Git
-import git4idea.repo.GitRepositoryManager
-import org.intellij.plugin.tracker.data.FileChange
-import org.intellij.plugin.tracker.data.Link
-import java.io.File
 import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
-import org.intellij.plugin.tracker.data.RelativeLink
-import org.intellij.plugin.tracker.data.WebLink
-
+import git4idea.repo.GitRepositoryManager
+import java.io.File
+import org.intellij.plugin.tracker.data.FileChange
+import org.intellij.plugin.tracker.data.Link
+import org.intellij.plugin.tracker.view.MDView
 
 class ChangeTrackerService(private val project: Project) {
+
+    private val view: MDView = MDView()
 
     private fun processOutputLog(outputLog: String, link: Link): String {
 
@@ -153,8 +156,31 @@ class ChangeTrackerService(private val project: Project) {
         return changes
     }
 
+    /**
+     * Update the view.
+     * @param project the currently open project
+     * @param changes changes in the currently open MD file
+     */
+    fun updateView(project: Project?, fileChanges: MutableCollection<Pair<Link, FileChange>>) {
+        val toolWindow =
+            ToolWindowManager.getInstance(project!!).getToolWindow("Statistics")
+        view.updateModel(fileChanges)
+        toolWindow!!.hide(null)
+    }
+
     companion object {
         fun getInstance(project: Project): ChangeTrackerService =
-            ServiceManager.getService(project, ChangeTrackerService(project).javaClass)
+            ServiceManager.getService(project, ChangeTrackerService::class.java)
+    }
+
+    /**
+     * Class constructor
+     */
+    init {
+        val toolWindowManager = ToolWindowManager.getInstance(project)
+        val toolWindow = toolWindowManager.registerToolWindow("Statistics", false, ToolWindowAnchor.BOTTOM)
+        val contentFactory = ContentFactory.SERVICE.getInstance()
+        val content = contentFactory.createContent(view, null, true)
+        toolWindow.contentManager.addContent(content)
     }
 }

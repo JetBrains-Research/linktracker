@@ -2,7 +2,6 @@ package org.intellij.plugin.tracker.data
 
 import com.intellij.openapi.project.Project
 
-
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
     BRANCH("BRANCH"),
