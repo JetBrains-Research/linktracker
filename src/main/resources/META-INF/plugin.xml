@@ -23,12 +23,9 @@
   <!-- Text to display as company information on Preferences/Settings | Plugin page -->
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
-  <actions>
-    <group id="MyPlugin.TrackerMenu" text="Change Tracker" description="Change Tracker menu">
-      <add-to-group group-id="MainMenu" anchor="last"/>
-      <action id="MyPlugin.Hello" class="org.intellij.plugin.tracker.actions.HelloAction" text="Hello" description="Says hello"/>
-    </group>
-
-  </actions>
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
+  </extensions>
 
 </idea-plugin>

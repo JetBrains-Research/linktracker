@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.services
 
 import com.intellij.extapi.psi.ASTWrapperPsiElement
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -32,7 +33,7 @@ class LinkRetrieverService(private val project: Project?) {
     var links: ArrayList<Link> = arrayListOf<Link>()
 
     /**
-     * function to get the list of links
+     * Function to get the list of links.
      */
     fun getLinks(): List<Link> {
         val currentProject = project
@@ -74,7 +75,7 @@ class LinkRetrieverService(private val project: Project?) {
     }
 
     /**
-     * function which gives the type of the link
+     * Function which gives the type of the link.
      */
     fun getLinkType(link: String): LinkType {
         if (link.contains("https") || link.contains("http") || link.contains("www")) {
@@ -86,6 +87,9 @@ class LinkRetrieverService(private val project: Project?) {
         }
     }
 
+    /**
+     * Function which creates the link according to its type.
+     */
     fun createLink(linkText: String, linkPath: String, proveniencePath: String, lineNo: Int): Link {
         if (getLinkType(linkPath) == LinkType.URL) {
             if (linkPath.contains("github") || linkPath.contains("gitlab")) {
@@ -117,6 +121,9 @@ class LinkRetrieverService(private val project: Project?) {
         }
     }
 
+    /**
+     * Function to add links to our list.
+     */
     fun addLink(element: PsiElement, document: Document, linkText: String, linkPath: String, fileName: String) {
         linkFound = true
         noOfLinks++
@@ -124,5 +131,13 @@ class LinkRetrieverService(private val project: Project?) {
         val lineNumber: Int = document.getLineNumber(textOffset) + 1
         val link = createLink(linkText, linkPath, fileName, lineNumber)
         links.add(link)
+    }
+
+    /**
+     * Used by IDEA to get a reference to the single instance of this class.
+     */
+    companion object {
+        fun getInstance(project: Project): LinkRetrieverService =
+            ServiceManager.getService(project, LinkRetrieverService::class.java)
     }
 }
