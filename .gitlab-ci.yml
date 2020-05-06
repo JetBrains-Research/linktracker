@@ -12,7 +12,7 @@ default: # Set gradle user home
 #staticAnalysis:
 #  stage: Lint
 #  script:
-#    - gradle ktlintCheck
+#    - gradle ktlintCheck --info
 
 build:
   stage: Build
