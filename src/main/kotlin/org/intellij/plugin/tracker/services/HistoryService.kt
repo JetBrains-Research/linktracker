@@ -21,16 +21,15 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      */
     companion object {
         fun getInstance(project: Project): HistoryService =
-                ServiceManager.getService(project, HistoryService::class.java)
-
+            ServiceManager.getService(project, HistoryService::class.java)
     }
 
     private var state = State()
 
     data class State(
-            // The listed results are ordered from most recent to last recent.
-            // New results are pushed to the front of the list.
-            var resultsList: ArrayList<RunResult> = ArrayList()
+        // The listed results are ordered from most recent to last recent.
+        // New results are pushed to the front of the list.
+        var resultsList: ArrayList<RunResult> = ArrayList()
     )
 
     /**
