@@ -1,7 +1,6 @@
 image: gradle:6.0.1-jdk8
 
 stages:
-  - Lint
   - Build
   - Test
 
@@ -12,7 +11,7 @@ default: # Set gradle user home
 staticAnalysis:
   stage: Lint
   script:
-    - gradle ktlintCheck
+    - gradle ktlintCheck --info
 
 build:
   stage: Build

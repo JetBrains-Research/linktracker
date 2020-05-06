@@ -4,6 +4,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.RunResult
 
 /**
@@ -12,21 +13,24 @@ import org.intellij.plugin.tracker.data.RunResult
  * Service that serves the purpose of storing data about previous runs of the plugin
  * on disk, in XML format.
  */
-@State(name="HistoryServiceData", storages=[Storage("historyServiceData.xml")])
-class HistoryService: PersistentStateComponent<HistoryService.State> {
+@State(name = "HistoryServiceData", storages = [Storage("historyServiceData.xml")])
+class HistoryService : PersistentStateComponent<HistoryService.State> {
 
     /**
      * Used by IDEA to get a reference to the single instance of this class.
      */
-    val instance: HistoryService
-        get() = ServiceManager.getService(HistoryService::class.java)
+    companion object {
+        fun getInstance(project: Project): HistoryService =
+                ServiceManager.getService(project, HistoryService::class.java)
+
+    }
 
     private var state = State()
 
     data class State(
-        // The listed results are ordered from most recent to last recent.
-        // New results are pushed to the front of the array.
-        var resultsList: ArrayList<RunResult> = ArrayList()
+            // The listed results are ordered from most recent to last recent.
+            // New results are pushed to the front of the list.
+            var resultsList: ArrayList<RunResult> = ArrayList()
     )
 
     /**

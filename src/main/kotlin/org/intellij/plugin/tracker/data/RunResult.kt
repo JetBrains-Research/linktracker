@@ -3,7 +3,7 @@ package org.intellij.plugin.tracker.data
 /**
  * @author Tommaso Brandirali
  *
- * A dat class to represents the results of a run of the plugin
+ * A data class to represents the results of a run of the plugin.
  */
 data class RunResult(
 
