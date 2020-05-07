@@ -77,12 +77,18 @@ class LinkRetrieverService(private val project: Project?) {
      * Function which gives the type of the link.
      */
     fun getLinkType(link: String): LinkType {
-        if (link.contains("https") || link.contains("http") || link.contains("www")) {
+        val patternFile = Pattern.compile("([a-zA-Z.-_/]+)[.]([a-zA-Z]+)")
+        val matcherFile: Matcher = patternFile.matcher(link)
+        val patternDirectory = Pattern.compile("(([a-zA-Z0-9]+)|(..))([/(([a-zA-Z0-9]+)|(..))]*)")
+        val matcherDirectory: Matcher = patternDirectory.matcher(link)
+        if(link.startsWith("https://") || link.startsWith("http://") || link.startsWith("www.")) {
             return LinkType.URL
-        } else if (link.contains(".")) {
+        } else if(matcherFile.matches()) {
             return LinkType.FILE
-        } else {
+        } else if(matcherDirectory.matches()) {
             return LinkType.DIRECTORY
+        } else {
+            return LinkType.URL // no match
         }
     }
 
