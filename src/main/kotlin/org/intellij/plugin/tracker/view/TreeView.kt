@@ -6,6 +6,8 @@ import org.intellij.plugin.tracker.data.FileChange
 import org.intellij.plugin.tracker.data.Link
 import org.intellij.plugin.tracker.data.WebLink
 import java.awt.BorderLayout
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -25,7 +27,7 @@ class TreeView : JPanel(BorderLayout()) {
 
         // Adds current links and their information
         val curr = DefaultMutableTreeNode("Current Files & Links")
-        val links = fileChanges.groupBy { it.first.proveniencePath }
+        val links = fileChanges.groupBy { getFileName(it.first.proveniencePath) }
 
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
@@ -77,6 +79,16 @@ class TreeView : JPanel(BorderLayout()) {
     private fun addNodeTree(name: String, value: String?, file: DefaultMutableTreeNode) {
         val tree = DefaultMutableTreeNode("$name: $value")
         file.add(tree)
+    }
+
+    fun getFileName(proveniencePath: String): String {
+        val pattern = Pattern.compile("([a-zA-Z-_/]+)/([a-zA-Z0-9-_.]+)")
+        val matcher: Matcher = pattern.matcher(proveniencePath)
+        if(matcher.matches()) {
+            return matcher.group(2)
+        } else {
+            return ""
+        }
     }
 
     /**
