@@ -35,6 +35,7 @@ class LinkRetrieverService(private val project: Project?) {
      */
     fun getLinks(): List<Link> {
         val currentProject = project
+        val basePath = project?.basePath
         val virtualFiles =
             FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
         val psiDocumentManager = PsiDocumentManager.getInstance(project!!)
@@ -44,23 +45,23 @@ class LinkRetrieverService(private val project: Project?) {
         for (virtualFile in virtualFiles) {
             linkFound = false
             noOfFiles++
+            val proveniencePath = virtualFile.path.replace(basePath!!+"/", "")
             val psiFile: MarkdownFile = PsiManager.getInstance(currentProject).findFile(virtualFile!!) as MarkdownFile
             val document = psiDocumentManager.getDocument(psiFile)!!
-            val fileName = psiFile.name
             psiFile.accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
                     val elemType = element.node.elementType
                     if (element.javaClass == LeafPsiElement::class.java && (elemType === MarkdownElementType.platformType(GFM_AUTOLINK) &&
                                 element.parent.node.elementType !== LINK_DESTINATION)) {
                         val linkText = element.node.text
-                        addLink(element, document, linkText, linkText, fileName)
+                        addLink(element, document, linkText, linkText, proveniencePath)
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         val linkPath = element.node.text
                         val linkText = element.parent.firstChild.text.substring(1, element.parent.firstChild.text.length-1)
-                        addLink(element, document, linkText, linkPath, fileName)
+                        addLink(element, document, linkText, linkPath, proveniencePath)
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
                         val linkText = element.node.text.substring(1, element.node.text.length-1)
-                        addLink(element, document, linkText, linkText, fileName)
+                        addLink(element, document, linkText, linkText, proveniencePath)
                     }
                     super.visitElement(element)
                 }
@@ -132,12 +133,12 @@ class LinkRetrieverService(private val project: Project?) {
     /**
      * Function to add links to our list.
      */
-    fun addLink(element: PsiElement, document: Document, linkText: String, linkPath: String, fileName: String) {
+    fun addLink(element: PsiElement, document: Document, linkText: String, linkPath: String, proveniencePath: String) {
         linkFound = true
         noOfLinks++
         val textOffset: Int = element.node.startOffset
         val lineNumber: Int = document.getLineNumber(textOffset) + 1
-        val link = createLink(linkText, linkPath, fileName, lineNumber)
+        val link = createLink(linkText, linkPath, proveniencePath, lineNumber)
         links.add(link)
     }
 
