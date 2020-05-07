@@ -12,17 +12,15 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes.GFM_AUTOLINK
-import org.intellij.plugin.tracker.data.Link
-import org.intellij.plugin.tracker.data.LinkType
-import org.intellij.plugin.tracker.data.RelativeLink
-import org.intellij.plugin.tracker.data.WebLink
-import org.intellij.plugin.tracker.data.WebLinkReferenceType
+import org.intellij.plugin.tracker.data.*
 import org.intellij.plugins.markdown.lang.MarkdownElementType
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 import org.intellij.plugins.markdown.lang.MarkdownFileType
 import org.intellij.plugins.markdown.lang.psi.impl.MarkdownFile
 import org.intellij.plugins.markdown.lang.psi.impl.MarkdownLinkDestinationImpl
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 class LinkRetrieverService(private val project: Project?) {
 
@@ -58,10 +56,10 @@ class LinkRetrieverService(private val project: Project?) {
                         addLink(element, document, linkText, linkText, fileName)
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         val linkPath = element.node.text
-                        val linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
+                        val linkText = element.parent.firstChild.text.substring(1, element.parent.firstChild.text.length-1)
                         addLink(element, document, linkText, linkPath, fileName)
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
-                        val linkText = element.node.text.replace("<", "").replace(">", "")
+                        val linkText = element.node.text.substring(1, element.node.text.length-1)
                         addLink(element, document, linkText, linkText, fileName)
                     }
                     super.visitElement(element)
@@ -93,25 +91,35 @@ class LinkRetrieverService(private val project: Project?) {
     fun createLink(linkText: String, linkPath: String, proveniencePath: String, lineNo: Int): Link {
         if (getLinkType(linkPath) == LinkType.URL) {
             if (linkPath.contains("github") || linkPath.contains("gitlab")) {
-                // commit
-                if (linkPath.contains("blob")) {
-                    val parts = linkPath.split("//").get(1).split("/blob/")
-                    val projectName = parts.get(0).split("/").get(parts.get(0).split("/").lastIndex)
-                    val platformName = parts.get(0).split("/").get(0)
-                    val projectOwnerName = parts.get(0).split(platformName + "/").get(1).split("/" + projectName).get(0)
-                    val relativePath = parts.get(1).split(parts.get(1).split("/").get(0) + "/").get(1).split("#L").get(0)
-                    if (parts.get(1).split("#L").get(1).contains("-L")) {
-                        val start = parts.get(1).split("#L").get(1).split("-L").get(0).toInt()
-                        val end = parts.get(1).split("#L").get(1).split("-L").get(1).toInt()
-                        return WebLink(LinkType.LINES, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, end)
-                    } else {
-                        val lineReferenced = parts.get(1).split("#L").get(1).toInt()
-                        return WebLink(LinkType.LINE, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, lineReferenced, lineReferenced, lineReferenced)
-                    }
-                } else {
-                    val userName = linkPath.split("//").get(1).split("/").get(1)
-                    val platformName = linkPath.split("//").get(1).split("/").get(0)
+                val patternLine = Pattern.compile("https://([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)")
+                val matcherLine: Matcher = patternLine.matcher(linkPath)
+                if(matcherLine.matches()) {
+                    val platformName = matcherLine.group(1)
+                    val projectOwnerName = matcherLine.group(2)
+                    val projectName = matcherLine.group(3)
+                    val relativePath = matcherLine.group(8)
+                    val start = matcherLine.group(9).toInt()
+                    return WebLink(LinkType.LINE, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, start)
+                }
+                val patternLines = Pattern.compile("https://([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)-L([0-9]+)")
+                val matcherLines: Matcher = patternLines.matcher(linkPath)
+                if(matcherLines.matches()) {
+                    val platformName = matcherLines.group(1)
+                    val projectOwnerName = matcherLines.group(2)
+                    val projectName = matcherLines.group(3)
+                    val relativePath = matcherLines.group(8)
+                    val start = matcherLines.group(9).toInt()
+                    val end = matcherLines.group(10).toInt()
+                    return WebLink(LinkType.LINES, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, end)
+                }
+                val patternUser = Pattern.compile("https://([a-zA-Z.]+)/([a-zA-Z0-9-_.]+)")
+                val matcherUser: Matcher = patternUser.matcher(linkPath)
+                if(matcherUser.matches()) {
+                    val platformName = matcherUser.group(1)
+                    val userName = matcherUser.group(2)
                     return WebLink(LinkType.USER, linkText, linkPath, proveniencePath, lineNo, platformName, userName, "", "", WebLinkReferenceType.TAG, linkText, 0, 0, 0)
+                } else {
+                    return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
                 }
             } else {
                 return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
