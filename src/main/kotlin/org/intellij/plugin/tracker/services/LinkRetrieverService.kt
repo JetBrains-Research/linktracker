@@ -90,7 +90,7 @@ class LinkRetrieverService(private val project: Project?) {
     /**
      * Function which creates the link according to its type.
      */
-    fun createLink(linkText: String, linkPath: String, proveniencePath: String, lineNo: Int): Link {
+    fun createLink(linkText: String, linkPath: String, proveniencePath: String, lineNo: Int, textOffset: Int): Link {
         if (getLinkType(linkPath) == LinkType.URL) {
             if (linkPath.contains("github") || linkPath.contains("gitlab")) {
                 // commit
@@ -103,21 +103,21 @@ class LinkRetrieverService(private val project: Project?) {
                     if (parts.get(1).split("#L").get(1).contains("-L")) {
                         val start = parts.get(1).split("#L").get(1).split("-L").get(0).toInt()
                         val end = parts.get(1).split("#L").get(1).split("-L").get(1).toInt()
-                        return WebLink(LinkType.LINES, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, end)
+                        return WebLink(LinkType.LINES, linkText, linkPath, proveniencePath, lineNo, textOffset, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, start, start, end)
                     } else {
                         val lineReferenced = parts.get(1).split("#L").get(1).toInt()
-                        return WebLink(LinkType.LINE, linkText, linkPath, proveniencePath, lineNo, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, lineReferenced, lineReferenced, lineReferenced)
+                        return WebLink(LinkType.LINE, linkText, linkPath, proveniencePath, lineNo, textOffset, platformName, projectOwnerName, projectName, relativePath, WebLinkReferenceType.COMMIT, linkText, lineReferenced, lineReferenced, lineReferenced)
                     }
                 } else {
                     val userName = linkPath.split("//").get(1).split("/").get(1)
                     val platformName = linkPath.split("//").get(1).split("/").get(0)
-                    return WebLink(LinkType.USER, linkText, linkPath, proveniencePath, lineNo, platformName, userName, "", "", WebLinkReferenceType.TAG, linkText, 0, 0, 0)
+                    return WebLink(LinkType.USER, linkText, linkPath, proveniencePath, lineNo, textOffset, platformName, userName, "", "", WebLinkReferenceType.TAG, linkText, 0, 0, 0)
                 }
             } else {
-                return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
+                return WebLink(LinkType.URL, linkText, linkPath, proveniencePath, lineNo, textOffset, "", "", "", "", WebLinkReferenceType.COMMIT, "", 0, 0, 0)
             }
         } else {
-            return RelativeLink(getLinkType(linkPath), linkText, linkPath, proveniencePath, lineNo)
+            return RelativeLink(getLinkType(linkPath), linkText, linkPath, proveniencePath, lineNo, textOffset)
         }
     }
 
@@ -129,7 +129,7 @@ class LinkRetrieverService(private val project: Project?) {
         noOfLinks++
         val textOffset: Int = element.node.startOffset
         val lineNumber: Int = document.getLineNumber(textOffset) + 1
-        val link = createLink(linkText, linkPath, fileName, lineNumber)
+        val link = createLink(linkText, linkPath, fileName, lineNumber, textOffset)
         links.add(link)
     }
 

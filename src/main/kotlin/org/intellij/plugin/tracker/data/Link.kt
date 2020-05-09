@@ -22,7 +22,8 @@ abstract class Link(
     open var linkText: String,
     open var linkPath: String,
     open var proveniencePath: String, // TODO what is proveniencePath
-    open var foundAtLineNumber: Int
+    open var foundAtLineNumber: Int,
+    open var textOffset: Int
 ) {
     fun getMarkDownSyntaxString(): String {
         return "[$linkText]($linkPath)"
@@ -40,6 +41,7 @@ data class WebLink(
     override var linkPath: String,
     override var proveniencePath: String,
     override var foundAtLineNumber: Int,
+    override var textOffset: Int,
     var platformName: String,
     var projectOwnerName: String,
     var projectName: String,
@@ -49,7 +51,7 @@ data class WebLink(
     var lineReferenced: Int? = null,
     var startReferencedLine: Int? = null,
     var endReferencedLine: Int? = null
-) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
+) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset) {
 
     override fun getPath(): String {
         return relativePath
@@ -69,8 +71,9 @@ data class RelativeLink(
     override var linkText: String,
     override var linkPath: String,
     override var proveniencePath: String,
-    override var foundAtLineNumber: Int
-) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber) {
+    override var foundAtLineNumber: Int,
+    override var textOffset: Int
+) : Link(linkType, linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset) {
 
     override fun getPath(): String {
         return linkPath
