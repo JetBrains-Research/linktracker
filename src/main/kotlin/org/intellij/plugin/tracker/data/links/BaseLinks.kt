@@ -91,8 +91,9 @@ data class NotSupportedLink(
     override val proveniencePath: String,
     override val foundAtLineNumber: Int,
     override val matcher: Matcher? = null,
+    override val commitSHA: String? = null,
     val errorMessage: String? = null
-):Link(linkText, linkPath, proveniencePath, foundAtLineNumber, matcher) {
+):Link(linkText, linkPath, proveniencePath, foundAtLineNumber, matcher, commitSHA) {
     override fun getPath(): String {
         return linkPath
     }
