@@ -40,7 +40,7 @@ class TreeView : JPanel(BorderLayout()) {
                 addNodeTree("Found at Line", link.first.foundAtLineNumber.toString(), linkTree)
                 if (link.first is WebLink) {
                     addNodeTree("Platform Name", (link.first as WebLink).getPlatformName(), linkTree)
-                    addNodeTree("Project Owner Name", (link.first as WebLink).getProjectName(), linkTree)
+                    addNodeTree("Project Owner Name", (link.first as WebLink).getProjectOwnerName(), linkTree)
                     addNodeTree("Project Name", (link.first as WebLink).getProjectName(), linkTree)
                     addNodeTree("Relative Path", (link.first as WebLink).getPath(), linkTree)
                     //addNodeTree("Reference Type", (link.first as WebLink).referenceType.name, linkTree)
