@@ -15,8 +15,6 @@ class LinkProcessingRouter {
         fun getChangesForLink(link: Link, project: Project): Pair<Link, LinkChange> {
             val changeTrackerService = ChangeTrackerService(project)
 
-           // val linksToFiles = mutableListOf<Link>()
-
             when(link) {
                 is RelativeLinkToDirectory -> throw NotImplementedError("")
                 is RelativeLinkToFile -> return changeTrackerService.getFileChange(link)
@@ -41,10 +39,6 @@ class LinkProcessingRouter {
                 is NotSupportedLink -> throw NotImplementedError("$link is not yet supported")
                 else -> throw NotImplementedError("$link is not yet supported")
             }
-
-            //val linksAndChanges = mutableListOf<Pair<Link, LinkChange>>()
-            //linksAndChanges.addAll(changeTrackerService.getFileChanges())
-            //return linksAndChanges
         }
 
         /**
