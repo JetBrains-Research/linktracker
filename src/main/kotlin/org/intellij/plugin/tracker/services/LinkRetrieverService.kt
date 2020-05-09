@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
@@ -43,9 +44,10 @@ class LinkRetrieverService(private val project: Project?) {
         for (virtualFile in virtualFiles) {
             linkFound = false
             noOfFiles++
+
+            val fileName = virtualFile.path.replace("${currentProject.basePath!!}/", "")
             val psiFile: MarkdownFile = PsiManager.getInstance(currentProject).findFile(virtualFile!!) as MarkdownFile
             val document = psiDocumentManager.getDocument(psiFile)!!
-            val fileName = psiFile.name
             psiFile.accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
                     val elemType = element.node.elementType
