@@ -69,7 +69,7 @@ class GitOperationManager(private val project: Project) {
         linkPath: String
     ): Boolean {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
-        gitLineHandler.addParameters(commitSHA, "--is-inside-work-tree", linkPath)
+        gitLineHandler.addParameters(commitSHA, "--is-inside-work-tree", "-- $linkPath")
         val outputRevParse = git.runCommand(gitLineHandler)
         if (outputRevParse.exitCode == 0) return true
         return false
@@ -94,17 +94,17 @@ class GitOperationManager(private val project: Project) {
     }
 
     fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<Change>? {
-        val start = System.currentTimeMillis()
+        //val start = System.currentTimeMillis()
         val ret = GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
-        val formatter = DecimalFormat("#0.00000")
-        var end = System.currentTimeMillis()
-        println("diff with working tree execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
+        //val formatter = DecimalFormat("#0.00000")
+        //var end = System.currentTimeMillis()
+        //println("diff with working tree execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
         return ret
     }
 
 
     fun getStartCommit(lineNumber: Int, proveniencePath: String, linkText: String, linkPath: String): String {
-        val start = System.currentTimeMillis()
+        //val start = System.currentTimeMillis()
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("-L$lineNumber,+1:$proveniencePath", "--reverse")
         val outputLog = git.runCommand(gitLineHandler)
@@ -113,9 +113,9 @@ class GitOperationManager(private val project: Project) {
             linkText = linkText,
             linkPath = linkPath
         )
-        val formatter = DecimalFormat("#0.00000")
-        var end = System.currentTimeMillis()
-        println("start commit Execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
+        //val formatter = DecimalFormat("#0.00000")
+        // var end = System.currentTimeMillis()
+        //println("start commit Execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
 
         return ret_val
     }
@@ -128,14 +128,14 @@ class GitOperationManager(private val project: Project) {
     }
 
     fun getRemoteOriginUrl(): String {
-        val start = System.currentTimeMillis()
+        //val start = System.currentTimeMillis()
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CONFIG)
         gitLineHandler.addParameters("--get", "remote.origin.url")
         val outputLog = git.runCommand(gitLineHandler)
 
-        val formatter = DecimalFormat("#0.00000")
-        var end = System.currentTimeMillis()
-        println("get remote origin execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
+        //val formatter = DecimalFormat("#0.00000")
+        //var end = System.currentTimeMillis()
+        //println("get remote origin execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
         return outputLog.getOutputOrThrow()
     }
 }
