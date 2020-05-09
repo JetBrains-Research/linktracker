@@ -7,7 +7,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
@@ -17,7 +16,6 @@ import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.services.UIService
-import java.text.DecimalFormat
 
 
 class LinkTrackerAction : AnAction() {
@@ -46,22 +44,17 @@ class LinkTrackerAction : AnAction() {
             potentialLinkList = linkService.getLinks()
         }
 
-        val formatter = DecimalFormat("#0.00000")
-        var end = System.currentTimeMillis()
-        // println("Link retrieving Execution time is " + formatter.format((end - start3) / 1000.0) + " seconds")
-
-        val start2 = System.currentTimeMillis()
         ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
                 override fun run(indicator: ProgressIndicator) {
                     for (potentialLink in potentialLinkList) {
+                        val start2 = System.currentTimeMillis()
+
                         val commitSHA = null
                         val link = LinkFactory.createLink(potentialLink, commitSHA, currentProject)
 
-                        //println("$link")
-
+                        // println("$link")
 
                         if (link is NotSupportedLink) {
-                            // println(link)
                             continue
                         }
 
@@ -75,20 +68,12 @@ class LinkTrackerAction : AnAction() {
                                 )
                             )
                         } catch (e: NotImplementedError) {
-                            //println(e.message)
                             continue
                         }
+
+                        // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                     }
                 }})
-
-        end = System.currentTimeMillis()
-        // println("Git Execution time is " + formatter.format((end - start2) / 1000.0) + " seconds")
-
-        end = System.currentTimeMillis()
-        println("Total Execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
-
-        // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
-
 
         val statistics =
             mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
