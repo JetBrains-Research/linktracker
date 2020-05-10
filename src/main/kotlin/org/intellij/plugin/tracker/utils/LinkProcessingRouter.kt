@@ -40,22 +40,5 @@ class LinkProcessingRouter {
                 else -> throw NotImplementedError("$link is not yet supported")
             }
         }
-
-        /**
-         * Takes the link and corresponding computed change and calls core API methods
-         */
-        fun processLinks(linkAndChange: Pair<Link, LinkChange>) {
-            when(linkAndChange.first) {
-                is RelativeLinkToDirectory -> Unit
-                is RelativeLinkToFile -> Unit
-                is RelativeLinkToLine -> Unit
-                is RelativeLinkToLines -> Unit
-                is WebLinkToDirectory -> Unit
-                is WebLinkToFile -> Unit
-                is WebLinkToLine -> Unit
-                is WebLinkToLines -> Unit
-                is NotSupportedLink -> Unit
-            }
-        }
     }
 }

@@ -9,13 +9,24 @@ import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.links.Link
-import java.text.DecimalFormat
+import org.intellij.plugin.tracker.data.links.LinkInfo
 
+
+/**
+ * Class that handles the logic of git operations
+ */
 class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
     private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
 
+
+    /**
+     * Auxiliary function that processes the outputs of a git log -L command
+     *
+     * Checks between the diffs of the line to see when the line containing the link was introduced
+     * and returns the corresponding commit SHA.
+     */
     private fun processOutputLog(
         outputLog: String,
         link: Link? = null,
@@ -75,6 +86,12 @@ class GitOperationManager(private val project: Project) {
         return false
     }
 
+
+    /**
+     * Method that retrieves the list of directories in a git repository, at a certain commit
+     *
+     * Runs git command 'git ls-tree -d -r --name-only COMMITSHA'
+     */
     fun getListOfDirectories(
         commitSHA: String
     ): List<String> {
@@ -84,6 +101,12 @@ class GitOperationManager(private val project: Project) {
         return outputDirectories.getOutputOrThrow().split("\n")
     }
 
+
+    /**
+     * Method that retrieves the list of files in a git repository, at a certain commit
+     *
+     * Runs git command 'git ls -r --name-only COMMITSHA'
+     */
     fun getListOfFiles(
         commitSHA: String
     ): List<String> {
@@ -93,49 +116,42 @@ class GitOperationManager(private val project: Project) {
         return outputFiles.getOutputOrThrow().split("\n")
     }
 
-    fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<Change>? {
-        //val start = System.currentTimeMillis()
-        val ret = GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
-        //val formatter = DecimalFormat("#0.00000")
-        //var end = System.currentTimeMillis()
-        //println("diff with working tree execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
-        return ret
-    }
+
+    /**
+     * Method that retrieves a list of changes between the project version at commit commitSHA
+     * and the current working tree (includes also uncommitted files)
+     */
+    fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<Change>? =
+        GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
 
 
-    fun getStartCommit(lineNumber: Int, proveniencePath: String, linkText: String, linkPath: String): String {
-        //val start = System.currentTimeMillis()
+    /**
+     * Get the commit at which a line containing the information in linkInfo was created
+     *
+     * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
+     * to the markdown file in which the link was found and 32 would be the line number at which that link was found
+     */
+    fun getStartCommit(linkInfo: LinkInfo): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("-L$lineNumber,+1:$proveniencePath", "--reverse")
+        gitLineHandler.addParameters("-L${linkInfo.foundAtLineNumber},+1:${linkInfo.proveniencePath}", "--reverse")
         val outputLog = git.runCommand(gitLineHandler)
-        val ret_val = processOutputLog(
+        return processOutputLog(
             outputLog.getOutputOrThrow(),
-            linkText = linkText,
-            linkPath = linkPath
+            linkText = linkInfo.linkText,
+            linkPath = linkInfo.linkPath
         )
-        //val formatter = DecimalFormat("#0.00000")
-        // var end = System.currentTimeMillis()
-        //println("start commit Execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
-
-        return ret_val
     }
 
-    fun getStartCommit(link: Link): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("-L${link.foundAtLineNumber},+1:${link.proveniencePath}", "--reverse")
-        val outputLog = git.runCommand(gitLineHandler)
-        return processOutputLog(outputLog.getOutputOrThrow(), link = link)
-    }
 
+    /**
+     * Get the remote origin url of a git repository
+     *
+     * Runs git command 'git config --get remote.origin.url'
+     */
     fun getRemoteOriginUrl(): String {
-        //val start = System.currentTimeMillis()
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CONFIG)
         gitLineHandler.addParameters("--get", "remote.origin.url")
         val outputLog = git.runCommand(gitLineHandler)
-
-        //val formatter = DecimalFormat("#0.00000")
-        //var end = System.currentTimeMillis()
-        //println("get remote origin execution time is " + formatter.format((end - start) / 1000.0) + " seconds")
         return outputLog.getOutputOrThrow()
     }
 }

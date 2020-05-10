@@ -4,217 +4,119 @@ package org.intellij.plugin.tracker.utils
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.links.*
-import java.util.regex.Pattern
 
 class LinkFactory {
 
     companion object {
 
         /**
-         * Cache each link that is being identified
+         * Cache each link that is being identified for faster identification upon consecutive runs
          */
-        val cachedResults: HashMap<String, Link> = hashMapOf<String, Link>()
+        private val cachedResults: HashMap<Pair<String, Int>, Link> = hashMapOf<Pair<String, Int>, Link>()
 
         /**
-         * Function which creates the link according to its type.
+         * Check whether a link is a valid link to file or directory.
          */
-        fun createLink(potentialLink: PotentialLink, commitSHA: String?, currentProject: Project): Link {
+        private fun processAmbiguousLink(
+            linkInfo: LinkInfo,
+            commit: String,
+            gitOperationManager: GitOperationManager
+        ): Link {
+            val key = Pair(linkInfo.linkPath, linkInfo.foundAtLineNumber)
+            val projectRelativeLinkPath = linkInfo.getProjectRelativePath()
+            val linkValidity =
+                gitOperationManager.checkValidityOfLinkPathAtCommit(commit, projectRelativeLinkPath)
 
-            val linkText = potentialLink.linkText
-            val linkPath = potentialLink.linkPath
-            val proveniencePath = potentialLink.proveniencePath
-            val foundAtLineNumber = potentialLink.foundAtLineNumber
+            val link: Link
 
-            if (cachedResults.containsKey(linkPath))
-                return cachedResults.get(linkPath)!!
-
-            // Web links patterns
-            val webLinkToLinesMatcher = Pattern.compile(LinkPatterns.WebLinkToLines.patternString).matcher(linkPath)
-            val webLinkToLineMatcher = Pattern.compile(LinkPatterns.WebLinkToLine.patternString).matcher(linkPath)
-            val webLinkToFileMatcher = Pattern.compile(LinkPatterns.WebLinkToFile.patternString).matcher(linkPath)
-            val webLinkToDirectoryMatcher =
-                Pattern.compile(LinkPatterns.WebLinkToDirectory.patternString).matcher(linkPath)
-            val genericWebLinksMatcher = Pattern.compile(LinkPatterns.GenericWebLinks.patternString).matcher(linkPath)
-
-            // Relative links patterns
-            val relativeLinkToLinesMatcher =
-                Pattern.compile(LinkPatterns.RelativeLinkToLines.patternString).matcher(linkPath)
-            val relativeLinkToLineMatcher =
-                Pattern.compile(LinkPatterns.RelativeLinkToLine.patternString).matcher(linkPath)
-
-            val gitOperationManager = GitOperationManager(project = currentProject)
-            var commit = ""
-            try {
-                commit =
-                    commitSHA ?: gitOperationManager.getStartCommit(
-                        foundAtLineNumber,
-                        proveniencePath,
-                        linkText,
-                        linkPath
-                    )
-            } catch (e: VcsException) {
-                val link =
-                    NotSupportedLink(
-                        linkText = linkText,
-                        linkPath = linkPath,
-                        proveniencePath = proveniencePath,
-                        foundAtLineNumber = foundAtLineNumber,
-                        errorMessage = e.message
-                    )
-                cachedResults.put(linkPath, link)
+            if (!linkValidity) {
+                link = NotSupportedLink(
+                    linkInfo = linkInfo,
+                    commitSHA = commit,
+                    errorMessage = "Link was not referencing a valid element when it was created"
+                )
+                cachedResults[key] = link
                 return link
             }
 
+            val fileList = gitOperationManager.getListOfFiles(commit)
+            if (projectRelativeLinkPath in fileList) {
+                link = RelativeLinkToFile(linkInfo = linkInfo, commitSHA = commit)
+                cachedResults[key] = link
+                return link
+            }
+
+            val directoryList = gitOperationManager.getListOfDirectories(commit)
+            if (projectRelativeLinkPath in directoryList) {
+                link = RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
+            } else {
+                link = NotSupportedLink(linkInfo = linkInfo, errorMessage = "Not a valid link")
+            }
+            cachedResults[key] = link
+            return link
+        }
+
+        /**
+         * Factory method which creates the link according to its link path type.
+         */
+        fun createLink(linkInfo: LinkInfo, commitSHA: String?, currentProject: Project): Link {
+            val gitOperationManager = GitOperationManager(project = currentProject)
+            val key = Pair(linkInfo.linkPath, linkInfo.foundAtLineNumber)
+
+            if (cachedResults.containsKey(key))
+                return cachedResults[key]!!
+
+            val commit: String
+            try {
+                commit = commitSHA ?: gitOperationManager.getStartCommit(linkInfo = linkInfo)
+            } catch (e: VcsException) {
+                val link = NotSupportedLink(linkInfo = linkInfo, errorMessage = e.message)
+                cachedResults[key] = link
+                return link
+            }
+
+            // Web links matchers
+            val webLinkToLinesMatcher = LinkPatterns.WebLinkToLines.pattern.matcher(linkInfo.linkPath)
+            val webLinkToLineMatcher = LinkPatterns.WebLinkToLine.pattern.matcher(linkInfo.linkPath)
+            val webLinkToFileMatcher = LinkPatterns.WebLinkToFile.pattern.matcher(linkInfo.linkPath)
+            val webLinkToDirectoryMatcher = LinkPatterns.WebLinkToDirectory.pattern.matcher(linkInfo.linkPath)
+            val genericWebLinksMatcher = LinkPatterns.GenericWebLinks.pattern.matcher(linkInfo.linkPath)
+
+            // Relative links matchers
+            val relativeLinkToLinesMatcher = LinkPatterns.RelativeLinkToLines.pattern.matcher(linkInfo.linkPath)
+            val relativeLinkToLineMatcher = LinkPatterns.RelativeLinkToLine.pattern.matcher(linkInfo.linkPath)
+
+            val link: Link
             when {
-                webLinkToLinesMatcher.matches() -> {
-                    val link =
-                        WebLinkToLines(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = webLinkToLinesMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
-                }
                 webLinkToLineMatcher.matches() -> {
-                    val link =
-                        WebLinkToLine(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = webLinkToLineMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = WebLinkToLine(linkInfo = linkInfo, commitSHA = commit)
+                }
+                webLinkToLinesMatcher.matches() -> {
+                    link = WebLinkToLines(linkInfo = linkInfo, commitSHA = commit)
                 }
                 webLinkToFileMatcher.matches() -> {
-                    val link =
-                        WebLinkToFile(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = webLinkToFileMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = WebLinkToFile(linkInfo = linkInfo, commitSHA = commit)
                 }
                 webLinkToDirectoryMatcher.matches() -> {
-                    val link =
-                        WebLinkToDirectory(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = webLinkToDirectoryMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = WebLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
                 }
                 genericWebLinksMatcher.matches() -> {
-                    val link =
-                        NotSupportedLink(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            errorMessage = "This type of web link is not supported"
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link =
+                        NotSupportedLink(linkInfo = linkInfo, errorMessage = "This type of web link is not supported")
                 }
                 relativeLinkToLinesMatcher.matches() -> {
-                    val link =
-                        RelativeLinkToLines(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = relativeLinkToLinesMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = RelativeLinkToLines(linkInfo = linkInfo, commitSHA = commit)
                 }
                 relativeLinkToLineMatcher.matches() -> {
-                    val link =
-                        RelativeLinkToLine(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            matcher = relativeLinkToLineMatcher,
-                            commitSHA = commit
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = RelativeLinkToLine(linkInfo = linkInfo, commitSHA = commit)
                 }
                 else -> {
                     // Ambiguous link: have to see whether it's a path to a file or directory
-
-                    val linkValidity =
-                        gitOperationManager.checkValidityOfLinkPathAtCommit(commit, linkPath)
-
-                    if (!linkValidity) {
-                        val link =
-                            NotSupportedLink(
-                                linkText = linkText,
-                                linkPath = linkPath,
-                                proveniencePath = proveniencePath,
-                                foundAtLineNumber = foundAtLineNumber,
-                                commitSHA = commit,
-                                errorMessage = "Link was not referencing a valid element when it was created"
-                            )
-                        cachedResults.put(linkPath, link)
-                        return link
-                    }
-
-                    val fileList = gitOperationManager.getListOfFiles(commit)
-
-                    if (linkPath in fileList) {
-                        val link =
-                            RelativeLinkToFile(
-                                linkText = linkText,
-                                linkPath = linkPath,
-                                proveniencePath = proveniencePath,
-                                foundAtLineNumber = foundAtLineNumber,
-                                commitSHA = commit
-                            )
-                        cachedResults.put(linkPath, link)
-                        return link
-                    }
-                    val directoryList = gitOperationManager.getListOfDirectories(commit)
-                    if (linkPath in directoryList) {
-                        val link =
-                            RelativeLinkToDirectory(
-                                linkText = linkText,
-                                linkPath = linkPath,
-                                proveniencePath = proveniencePath,
-                                foundAtLineNumber = foundAtLineNumber,
-                                commitSHA = commit
-                            )
-                        cachedResults.put(linkPath, link)
-                        return link
-                    }
-                    val link =
-                        NotSupportedLink(
-                            linkText = linkText,
-                            linkPath = linkPath,
-                            proveniencePath = proveniencePath,
-                            foundAtLineNumber = foundAtLineNumber,
-                            errorMessage = "Not a valid link"
-                        )
-                    cachedResults.put(linkPath, link)
-                    return link
+                    link = processAmbiguousLink(linkInfo, commit, gitOperationManager)
                 }
             }
+            cachedResults[key] = link
+            return link
         }
     }
 }

@@ -10,8 +10,8 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
-import org.intellij.plugin.tracker.data.links.PotentialLink
 import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 import org.intellij.plugin.tracker.services.LinkRetrieverService
@@ -35,31 +35,23 @@ class LinkTrackerAction : AnAction() {
         val uiService = UIService.getInstance(currentProject)
 
         val linksAndChangesList = mutableListOf<Pair<Link, LinkChange>>()
-        var potentialLinkList: MutableList<PotentialLink> = mutableListOf()
-
-        val start = System.currentTimeMillis()
-        val start3 = System.currentTimeMillis()
+        var linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
         ApplicationManager.getApplication().runReadAction {
-            potentialLinkList = linkService.getLinks()
+            linkInfoList = linkService.getLinks()
         }
 
         ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
                 override fun run(indicator: ProgressIndicator) {
-                    for (potentialLink in potentialLinkList) {
-                        val start2 = System.currentTimeMillis()
-
+                    for (linkInfo in linkInfoList) {
+                        // TODO: Get commit SHA from disk if possible
                         val commitSHA = null
-                        val link = LinkFactory.createLink(potentialLink, commitSHA, currentProject)
-
-                        // println("$link")
+                        val link = LinkFactory.createLink(linkInfo, commitSHA, currentProject)
 
                         if (link is NotSupportedLink) {
                             continue
                         }
-
-                        indicator.text = "Tracking link with path ${link.linkPath}.."
-
+                        indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
                         try {
                             linksAndChangesList.add(
                                 LinkProcessingRouter.getChangesForLink(
@@ -70,7 +62,6 @@ class LinkTrackerAction : AnAction() {
                         } catch (e: NotImplementedError) {
                             continue
                         }
-
                         // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                     }
                 }})

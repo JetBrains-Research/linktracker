@@ -10,7 +10,7 @@ import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
-import kotlin.reflect.typeOf
+
 
 /**
  * Class creating tree view
@@ -27,17 +27,17 @@ class TreeView : JPanel(BorderLayout()) {
 
         // Adds current links and their information
         val curr = DefaultMutableTreeNode("Current Files & Links")
-        val links = fileChanges.groupBy { it.first.proveniencePath }
+        val links = fileChanges.groupBy { it.first.linkInfo.proveniencePath }
 
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
             for (link in linkList.value) {
-                val linkTree = DefaultMutableTreeNode(link.first.linkPath)
+                val linkTree = DefaultMutableTreeNode(link.first.linkInfo.linkPath)
                 //addNodeTree("Link Type", link.first.linkType.name, linkTree)
-                addNodeTree("Link Text", link.first.linkText, linkTree)
-                addNodeTree("Link Path", link.first.linkPath, linkTree)
-                addNodeTree("Provenience Path", link.first.proveniencePath, linkTree)
-                addNodeTree("Found at Line", link.first.foundAtLineNumber.toString(), linkTree)
+                addNodeTree("Link Text", link.first.linkInfo.linkText, linkTree)
+                addNodeTree("Link Path", link.first.linkInfo.linkPath, linkTree)
+                addNodeTree("Provenience Path", link.first.linkInfo.proveniencePath, linkTree)
+                addNodeTree("Found at Line", link.first.linkInfo.foundAtLineNumber.toString(), linkTree)
                 if (link.first is WebLink) {
                     addNodeTree("Platform Name", (link.first as WebLink).getPlatformName(), linkTree)
                     addNodeTree("Project Owner Name", (link.first as WebLink).getProjectOwnerName(), linkTree)
