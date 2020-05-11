@@ -40,3 +40,5 @@ Some text to show that the reference links can follow later.
 [test number 1] (build.gradle)
 
 [test number 2](..)
+
+[link to a file](build.gradle)
