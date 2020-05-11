@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.changes
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
@@ -10,7 +10,7 @@ data class FileChange(
     val afterPath: String? = null,
     val moveRelativePath: String? = null,
     val errorMessage: String? = null
-) {
+): LinkChange() {
     private constructor(builder: Builder) : this(
         builder.changeType,
         builder.fileName,
@@ -22,7 +22,7 @@ data class FileChange(
 
     companion object {
         fun changeToFileChange(project: Project, change: Change): FileChange {
-            val fileChangeBuilder = FileChange.Builder()
+            val fileChangeBuilder = Builder()
             fileChangeBuilder.changeType = change.type.toString()
 
             if (change.type.toString() == "MOVED") {

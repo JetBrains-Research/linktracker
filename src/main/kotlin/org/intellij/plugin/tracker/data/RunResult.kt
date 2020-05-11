@@ -1,5 +1,7 @@
 package org.intellij.plugin.tracker.data
 
+import org.intellij.plugin.tracker.data.links.Link
+
 /**
  * @author Tommaso Brandirali
  *

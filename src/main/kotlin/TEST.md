@@ -20,7 +20,7 @@
 
 [I'm a relative reference to a repository file](../../../README.md)
 
-[I'm a relative reference to a repository](../kotlin/org/intellij/plugin/tracker/services)
+[I'm a relative reference to a repository](org/intellij/plugin/tracker/services)
 
 [You can use numbers for reference-style link definitions][1]
 
@@ -36,3 +36,7 @@ Some text to show that the reference links can follow later.
 [arbitrary case-insensitive reference text 2]: ../../../README.md
 [1]: http://slashdot.org
 [link text itself]: http://www.reddit.com
+
+[test number 1] (build.gradle)
+
+[test number 2](..)

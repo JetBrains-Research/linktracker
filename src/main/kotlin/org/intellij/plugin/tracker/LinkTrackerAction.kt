@@ -3,12 +3,20 @@ package org.intellij.plugin.tracker
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import org.intellij.plugin.tracker.data.Link
-import org.intellij.plugin.tracker.data.LinkType
-import org.intellij.plugin.tracker.data.RelativeLink
-import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.NotSupportedLink
+import org.intellij.plugin.tracker.utils.LinkFactory
+import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.UIService
+
 
 class LinkTrackerAction : AnAction() {
 
@@ -23,18 +31,45 @@ class LinkTrackerAction : AnAction() {
             return
         }
 
-        // linkList is hardcoded for now. Should be retrieved from project files. Also commitSHA (should be retrieved from disk, if possible)
-        // TODO: Implement logic for linkPath to have both relative paths + absolute paths
+        val linkService = LinkRetrieverService.getInstance(currentProject)
+        val uiService = UIService.getInstance(currentProject)
 
-        val changeTrackerService = ChangeTrackerService.getInstance(currentProject)
-        val linkService= LinkRetrieverService.getInstance(currentProject)
-        val links = linkService.getLinks()
+        val linksAndChangesList = mutableListOf<Pair<Link, LinkChange>>()
+        var linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
-        // TODO: Commit SHA needs to be given to following method to retrieve changes
-        val fileChanges = changeTrackerService.getFileChanges(links as MutableList<Link>)
-        val statistics = mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
-        changeTrackerService.updateView(currentProject, fileChanges)
-        changeTrackerService.updateStatistics(currentProject, statistics)
-        // println(linkTrackerAction.getFileChanges(mutableListOf(Link(linkType = LinkType.FILE, linkText = "", linkPath = "C:/Users/Tudor/Desktop/plugins/markdown-plugin/README.md", provinencePath = "README.md")), commitSHA = "2b474"))
+        ApplicationManager.getApplication().runReadAction {
+            linkInfoList = linkService.getLinks()
+        }
+
+        ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
+                override fun run(indicator: ProgressIndicator) {
+                    for (linkInfo in linkInfoList) {
+                        // TODO: Get commit SHA from disk if possible
+                        val commitSHA = null
+                        val link = LinkFactory.createLink(linkInfo, commitSHA, currentProject)
+
+                        if (link is NotSupportedLink) {
+                            continue
+                        }
+                        indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
+                        try {
+                            linksAndChangesList.add(
+                                LinkProcessingRouter.getChangesForLink(
+                                    link = link,
+                                    project = currentProject
+                                )
+                            )
+                        } catch (e: NotImplementedError) {
+                            continue
+                        }
+                        // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
+                    }
+                }})
+
+        val statistics =
+            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+
+        uiService.updateView(currentProject, linksAndChangesList)
+        uiService.updateStatistics(currentProject, statistics)
     }
 }
