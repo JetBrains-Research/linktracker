@@ -5,18 +5,18 @@ import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.Processor
 import com.intellij.util.indexing.FileBasedIndex
-import org.intellij.plugin.tracker.data.FileChange
-import org.intellij.plugin.tracker.data.Link
-import org.intellij.plugin.tracker.data.RelativeLink
-import org.intellij.plugin.tracker.data.WebLink
+import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.WebLink
 import java.util.*
+import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory as MarkdownPsiElementFactory
 
 
 /**
@@ -51,7 +51,7 @@ class LinkUpdaterService(val project: Project) {
      */
     private fun updateLink(link: Link, fileChange: FileChange) {
         when (link) {
-            is RelativeLink -> updateRelativeLink(link, fileChange)
+            is RelativeLinkToFile -> updateRelativeLink(link, fileChange)
             is WebLink -> throw NotImplementedError()
             else -> throw NotImplementedError()
         }
@@ -64,11 +64,12 @@ class LinkUpdaterService(val project: Project) {
      * @param fileChange the FileChange according to which to update the link
      * @return true if update succeeded, false otherwise
      */
-    private fun updateRelativeLink(link: Link, fileChange: FileChange): Boolean {
+    fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange): Boolean {
         val linkElement = getLinkElement(link) ?: return false
         if (fileChange.changeType == "MOVED") {
-            val manipulator = ElementManipulators.getManipulator(linkElement)
-            manipulator.handleContentChange(linkElement, fileChange.afterPath)
+            val newPath = fileChange.afterPath ?: return false
+            val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
+            linkElement.replace(newElement)
             return true
         } else {
             throw NotImplementedError()

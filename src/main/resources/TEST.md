@@ -18,9 +18,9 @@
 
 [I'm a reference-style link 2][Arbitrary case-insensitive reference text 2]
 
-[I'm a relative reference to a repository file](../../../README.md)
+[I'm a relative reference to a repository file](README.md)
 
-[I'm a relative reference to a repository](../kotlin/org/intellij/plugin/tracker/services)
+[I'm a relative reference to a repository](src/main/kotlin/org/intellij/plugin/tracker/services)
 
 [You can use numbers for reference-style link definitions][1]
 
@@ -33,6 +33,10 @@ example.com (but not on Github, for example).
 Some text to show that the reference links can follow later.
 
 [arbitrary case-insensitive reference text]: https://www.mozilla.org
-[arbitrary case-insensitive reference text 2]: ../../../README.md
+[arbitrary case-insensitive reference text 2]: README.md
 [1]: http://slashdot.org
 [link text itself]: http://www.reddit.com
+
+[test number 1] (build.gradle)
+
+[test number 2](src/main/../../build.gradle)

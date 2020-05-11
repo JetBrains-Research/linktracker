@@ -24,10 +24,15 @@
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
   <actions>
-    <group id="MyPlugin.TrackerMenu" text="Change Tracker" description="Change Tracker menu">
-      <add-to-group group-id="MainMenu" anchor="last"/>
-      <action id="link-tracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link tracking plugin" description="Link tracking plugin"/>
-    </group>
+    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link tracker plugin" description="Track links">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+      <!-- Except to the "Mac OS X" keymap and its children -->
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+      <!-- The "Mac OS X 10.5+" keymap and its children will have only this keyboard shortcut for this action.  -->
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+      <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+    </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
@@ -36,6 +41,7 @@
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
   </extensions>
 
 </idea-plugin>

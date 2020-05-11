@@ -28,7 +28,7 @@ projects with a large number of links and files.
 * [Ceren Ugurlu](https://gitlab.ewi.tudelft.nl/cugurlu)
 * [Irem Ugurlu](https://gitlab.ewi.tudelft.nl/iugurlu)
 * [Tommaso Brandirali](https://gitlab.ewi.tudelft.nl/tbrandirali)
-* [Tudor Popovici](https://gitlab.ewi.tudelft.nl/tudorpopovici) 
+* [Tudor Popovici](https://gitlab.ewi.tudelft.nl/tudorpopovici)
 
 <img align="right" src="https://user-images.githubusercontent.com/47633984/80767259-cdce2700-8b47-11ea-90a4-cf27fd585449.png" hspace="20" width="150"/>
 <br/><br/>
