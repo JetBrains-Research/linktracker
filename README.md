@@ -36,6 +36,8 @@ projects with a large number of links and files.
 
 [link to a file](build.gradle)
 
+[link to a file](src/main/kotlin/org/intellij/plugin/tracker/utils/LinkFactory.kt)
+
 [web link to file local project](https://gitlab.ewi.tudelft.nl/cse2000-software-project/2019-2020-q4/cluster-0/tracking-changes-in-links-to-code/tracking-changes-in-links-to-code/-/blob/add_regex_to_link_parsing/README.md)
 
 <br/><br/><br/><br/><br/>
