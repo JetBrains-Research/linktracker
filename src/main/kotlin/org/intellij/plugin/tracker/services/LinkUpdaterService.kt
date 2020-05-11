@@ -1,22 +1,17 @@
 package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.search.FileTypeIndex
+import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.util.Processor
-import com.intellij.util.indexing.FileBasedIndex
+import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLink
-import java.util.*
-import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory as MarkdownPsiElementFactory
+import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
 
 
 /**
@@ -29,18 +24,38 @@ class LinkUpdaterService(val project: Project) {
      */
     companion object {
         fun getInstance(project: Project) =
-            ServiceManager.getService(project, LinkUpdaterService::class.java)
+                ServiceManager.getService(project, LinkUpdaterService::class.java)
     }
 
     /**
      * Update a batch of broken links according to their paired file changes.
      *
+     * WARNING: This function can only be called inside a WriteCommandAction, like:
+     *
+     * `ApplicationManager.getApplication().invokeLater {
+     *   WriteCommandAction.runWriteCommandAction(currentProject, Runnable {
+     *      LinkUpdaterService.getInstance(project).updateLinks(links)
+     *  }}`
+     *
      * @param links the collection of link data necessary for the update
      */
-    fun updateLinks(links: MutableCollection<Pair<Link, FileChange>>) {
+    fun updateLinks(links: MutableCollection<Pair<Link, LinkChange>>): UpdateResult {
+        val startTime = System.currentTimeMillis()
+        val updated = mutableListOf<Link>()
+        val failed = mutableListOf<Link>()
         for (link in links) {
-            updateLink(link.first, link.second)
+            try {
+                if (updateLink(link.first, link.second)) {
+                    updated.add(link.first)
+                } else {
+                    failed.add(link.first)
+                }
+            } catch (e: NotImplementedError) {
+                failed.add(link.first)
+            }
         }
+        val timeElapsed = System.currentTimeMillis() - startTime
+        return UpdateResult(updated, failed, timeElapsed)
     }
 
     /**
@@ -49,9 +64,9 @@ class LinkUpdaterService(val project: Project) {
      * @param link the Link object to be updated
      * @param fileChange the FileChange according to which to update the link
      */
-    private fun updateLink(link: Link, fileChange: FileChange) {
+    private fun updateLink(link: Link, fileChange: LinkChange): Boolean {
         when (link) {
-            is RelativeLinkToFile -> updateRelativeLink(link, fileChange)
+            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange as FileChange)
             is WebLink -> throw NotImplementedError()
             else -> throw NotImplementedError()
         }
@@ -64,7 +79,7 @@ class LinkUpdaterService(val project: Project) {
      * @param fileChange the FileChange according to which to update the link
      * @return true if update succeeded, false otherwise
      */
-    fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange): Boolean {
+    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange): Boolean {
         val linkElement = getLinkElement(link) ?: return false
         if (fileChange.changeType == "MOVED") {
             val newPath = fileChange.afterPath ?: return false
@@ -83,30 +98,19 @@ class LinkUpdaterService(val project: Project) {
      * @return an instance of PsiElement, or null if none found.
      */
     private fun getLinkElement(link: Link): PsiElement? {
-        val fileRelativePath = link.proveniencePath
+        val fileRelativePath = link.linkInfo.proveniencePath
         val relativePath =
-            if (fileRelativePath.startsWith("/")) fileRelativePath else "/$fileRelativePath"
-        val fileTypes: Set<FileType> =
-            Collections.singleton(FileTypeManager.getInstance().getFileTypeByFileName(relativePath))
-        val fileList: MutableList<VirtualFile> = ArrayList()
-        FileBasedIndex.getInstance()
-            .processFilesContainingAllKeys(FileTypeIndex.NAME, fileTypes,
-                GlobalSearchScope.projectScope(project), null,
-                Processor { virtualFile: VirtualFile ->
-                    if (virtualFile.path.endsWith(relativePath)) {
-                        fileList.add(virtualFile)
-                    }
-                    true
-                }
-            )
+                if (fileRelativePath.startsWith("/")) fileRelativePath else "/$fileRelativePath"
 
-        // An alternative way of finding files can be by calling:
-        // `FilenameIndex.getFilesByName(project, fileName, scope)`
-        // and then checking the file's path against the relative path.
+        val matchingFiles = FilenameIndex.getFilesByName(project,
+                link.linkInfo.fileName,
+                GlobalSearchScope.projectScope(project))
+        matchingFiles.filter({ file -> file.virtualFile.path.endsWith(relativePath) })
 
         // Assume only one valid result
-        val virtualFile = fileList[0]
-        val psiFile = PsiManager.getInstance(project).findFile(virtualFile)!!
-        return psiFile.findElementAt(link.textOffset)
+        assert(matchingFiles.size == 1)
+        val psiFile = matchingFiles[0]
+//        val psiFile = PsiManager.getInstance(project).findFile(virtualFile)!!
+        return psiFile.findElementAt(link.linkInfo.textOffset)
     }
 }

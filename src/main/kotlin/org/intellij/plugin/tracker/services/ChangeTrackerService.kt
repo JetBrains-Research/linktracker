@@ -13,6 +13,10 @@ class ChangeTrackerService(private val project: Project) {
 
     private val gitOperationManager = GitOperationManager(project = project)
 
+
+    /**
+     * Extract the link we are looking for from a list of changes
+     */
     private fun extractSpecificFileChanges(link: Link, changeList: MutableCollection<Change>): FileChange {
         val fullPath = "${project.basePath}/${link.getPath()}"
         for (change in changeList) {
@@ -21,14 +25,18 @@ class ChangeTrackerService(private val project: Project) {
         return FileChange()
     }
 
+
+    /**
+     * Main function for getting changes for a link to a file.
+     */
     fun getFileChange(
-        link: Link
+            link: Link
     ): Pair<Link, FileChange> {
         val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
         return if (changeList != null) {
             val fileChange = extractSpecificFileChanges(
-                link = link,
-                changeList = changeList
+                    link = link,
+                    changeList = changeList
             )
             Pair(link, fileChange)
         } else {
@@ -38,6 +46,6 @@ class ChangeTrackerService(private val project: Project) {
 
     companion object {
         fun getInstance(project: Project): ChangeTrackerService =
-            ServiceManager.getService(project, ChangeTrackerService::class.java)
+                ServiceManager.getService(project, ChangeTrackerService::class.java)
     }
 }

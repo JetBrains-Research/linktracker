@@ -34,5 +34,8 @@ projects with a large number of links and files.
 <br/><br/>
 <img align="right" src="https://user-images.githubusercontent.com/47633984/80767220-b68f3980-8b47-11ea-8125-f338980623d2.png" hspace="20" width="150"/>
 
+[link to a file](build.gradle)
+
+[web link to file local project](https://gitlab.ewi.tudelft.nl/cse2000-software-project/2019-2020-q4/cluster-0/tracking-changes-in-links-to-code/tracking-changes-in-links-to-code/-/blob/add_regex_to_link_parsing/README.md)
 
 <br/><br/><br/><br/><br/>

@@ -1,65 +1,43 @@
 package org.intellij.plugin.tracker.data.links
 
-import java.util.regex.Matcher
+import org.intellij.plugin.tracker.utils.LinkPatterns
+import java.util.regex.Pattern
 
 data class RelativeLinkToDirectory(
-    override val linkText: String,
-    override val linkPath: String,
-    override val proveniencePath: String,
-    override val foundAtLineNumber: Int,
-    override val textOffset: Int,
-    override val matcher: Matcher? = null,
-    override val commitSHA: String
-) : Link(linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset, matcher, commitSHA) {
+        override val linkInfo: LinkInfo,
+        override val pattern: Pattern? = null,
+        override val commitSHA: String
+) : RelativeLink(linkInfo, pattern, commitSHA) {
     override fun getPath(): String {
-        return linkPath
+        return linkInfo.linkPath
     }
 }
 
 data class RelativeLinkToFile(
-    override val linkText: String,
-    override val linkPath: String,
-    override val proveniencePath: String,
-    override val foundAtLineNumber: Int,
-    override val textOffset: Int,
-    override val matcher: Matcher? = null,
-    override val commitSHA: String
-) : Link(linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset, matcher, commitSHA) {
+        override val linkInfo: LinkInfo,
+        override val pattern: Pattern? = null,
+        override val commitSHA: String
+) : RelativeLink(linkInfo, pattern, commitSHA) {
     override fun getPath(): String {
-        return linkPath
+        return linkInfo.linkPath
     }
 }
 
-data class RelativeLinkToLine(
-    override val linkText: String,
-    override val linkPath: String,
-    override val proveniencePath: String,
-    override val foundAtLineNumber: Int,
-    override val textOffset: Int,
-    override val matcher: Matcher,
-    override val commitSHA: String
-) : Link(linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset, matcher, commitSHA) {
 
-    override fun getPath(): String {
-        return linkPath
-    }
+data class RelativeLinkToLine(
+        override val linkInfo: LinkInfo,
+        override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern,
+        override val commitSHA: String
+) : RelativeLink(linkInfo, pattern, commitSHA) {
 
     fun getLineReferenced(): Int = matcher.group(1).toInt()
 }
 
 data class RelativeLinkToLines(
-    override val linkText: String,
-    override val linkPath: String,
-    override val proveniencePath: String,
-    override val foundAtLineNumber: Int,
-    override val textOffset: Int,
-    override val matcher: Matcher,
-    override val commitSHA: String
-) : Link(linkText, linkPath, proveniencePath, foundAtLineNumber, textOffset, matcher, commitSHA) {
-
-    override fun getPath(): String {
-        return linkPath
-    }
+        override val linkInfo: LinkInfo,
+        override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern,
+        override val commitSHA: String
+) : RelativeLink(linkInfo, pattern, commitSHA) {
 
     fun getStartLineReferenced(): Int = matcher.group(1).toInt()
 

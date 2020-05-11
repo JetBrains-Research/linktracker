@@ -11,8 +11,7 @@ import com.intellij.psi.impl.source.tree.LeafPsiElement
 import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes.GFM_AUTOLINK
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.PotentialLink
+import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugins.markdown.lang.MarkdownElementType
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
@@ -20,21 +19,22 @@ import org.intellij.plugins.markdown.lang.MarkdownFileType
 import org.intellij.plugins.markdown.lang.psi.impl.MarkdownFile
 import org.intellij.plugins.markdown.lang.psi.impl.MarkdownLinkDestinationImpl
 
+
 class LinkRetrieverService(private val project: Project?) {
 
     var noOfLinks = 0
     var noOfFiles = 0
     var noOfFilesWithLinks = 0
     var linkFound = false
-    var potentialLinkList: ArrayList<PotentialLink> = arrayListOf<PotentialLink>()
+    var linkInfoList: ArrayList<LinkInfo> = arrayListOf<LinkInfo>()
 
     /**
      * Function to get the list of links.
      */
-    fun getLinks(): MutableList<PotentialLink> {
+    fun getLinks(): MutableList<LinkInfo> {
         val currentProject = project
         val virtualFiles =
-            FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
+                FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
         val psiDocumentManager = PsiDocumentManager.getInstance(project!!)
         noOfLinks = 0
         noOfFiles = 0
@@ -43,9 +43,12 @@ class LinkRetrieverService(private val project: Project?) {
         for (virtualFile in virtualFiles) {
             linkFound = false
             noOfFiles++
+
+            val proveniencePath = virtualFile.path.replace("${currentProject.basePath!!}/", "")
             val psiFile: MarkdownFile = PsiManager.getInstance(currentProject).findFile(virtualFile!!) as MarkdownFile
             val document = psiDocumentManager.getDocument(psiFile)!!
             val fileName = psiFile.name
+
             psiFile.accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
                     val elemType = element.node.elementType
@@ -56,27 +59,27 @@ class LinkRetrieverService(private val project: Project?) {
                     val lineNumber: Int
 
                     if (element.javaClass == LeafPsiElement::class.java && (elemType === MarkdownElementType.platformType(
-                            GFM_AUTOLINK
-                        ) &&
-                                element.parent.node.elementType !== LINK_DESTINATION)
+                                    GFM_AUTOLINK
+                            ) &&
+                                    element.parent.node.elementType !== LINK_DESTINATION)
                     ) {
                         linkText = element.node.text
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        potentialLinkList.add(PotentialLink(linkText, linkText, fileName, lineNumber, textOffset))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName))
 
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
                         linkPath = element.node.text
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        potentialLinkList.add(PotentialLink(linkText, linkPath, fileName, lineNumber, textOffset))
+                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, textOffset, fileName))
 
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        potentialLinkList.add(PotentialLink(linkText, linkText, fileName, lineNumber, textOffset))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName))
                     }
                     super.visitElement(element)
                 }
@@ -85,7 +88,7 @@ class LinkRetrieverService(private val project: Project?) {
                 noOfFilesWithLinks++
             }
         }
-        return potentialLinkList
+        return linkInfoList
     }
 
     /**
@@ -93,6 +96,6 @@ class LinkRetrieverService(private val project: Project?) {
      */
     companion object {
         fun getInstance(project: Project): LinkRetrieverService =
-            ServiceManager.getService(project, LinkRetrieverService::class.java)
+                ServiceManager.getService(project, LinkRetrieverService::class.java)
     }
 }
