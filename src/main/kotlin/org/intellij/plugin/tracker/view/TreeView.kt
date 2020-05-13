@@ -6,6 +6,7 @@ import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
@@ -32,7 +33,7 @@ class TreeView : JPanel(BorderLayout()) {
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
             for (link in linkList.value) {
-                val linkTree = DefaultMutableTreeNode(link.first.linkInfo.linkPath)
+                val linkTree = DefaultMutableTreeNode(checkRelativeLink(link.first.linkInfo.getProjectRelativePath()))
                 //addNodeTree("Link Type", link.first.linkType.name, linkTree)
                 addNodeTree("Link Text", link.first.linkInfo.linkText, linkTree)
                 addNodeTree("Link Path", link.first.linkInfo.linkPath, linkTree)

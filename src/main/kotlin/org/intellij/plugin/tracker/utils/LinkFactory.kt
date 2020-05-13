@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.utils
 
-
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.links.*
@@ -39,15 +38,19 @@ class LinkFactory {
                 return link
             }
 
+            val processedLink = checkRelativeLink(projectRelativeLinkPath)
+
             val fileList = gitOperationManager.getListOfFiles(commit)
-            if (projectRelativeLinkPath in fileList) {
+
+            if (processedLink in fileList) {
                 link = RelativeLinkToFile(linkInfo = linkInfo, commitSHA = commit)
                 cachedResults[key] = link
                 return link
             }
 
             val directoryList = gitOperationManager.getListOfDirectories(commit)
-            if (projectRelativeLinkPath in directoryList) {
+
+            if (processedLink in directoryList) {
                 link = RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
             } else {
                 link = NotSupportedLink(linkInfo = linkInfo, errorMessage = "Not a valid link")

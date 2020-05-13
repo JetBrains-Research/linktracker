@@ -1,5 +1,23 @@
 # Test Markdown File
 
+[test 1](../kotlin)
+
+[test 2](..)
+
+[test 3](../..)
+
+[test 4](../kotlin/org/intellij/plugin/tracker/services/LinkRetrieverService.kt)
+
+[test 5](../../../build.gradle)
+
+[test 6](./org)
+
+[test 7](../kotlin/.)
+
+[test 8](../../.)
+
+[test 9](../kotlin/org/intellij/plugin/tracker/services/./LinkRetrieverService.kt)
+
 [I'm an inline-style link](https://www.google.com)
 
 [I'm an inline-style link 2](../../../README.md)
