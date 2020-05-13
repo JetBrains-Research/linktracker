@@ -9,7 +9,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -18,8 +17,8 @@ import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.services.UIService
-import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 import org.intellij.plugin.tracker.utils.LinkFactory
+import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 
 
 class LinkTrackerAction : AnAction() {
@@ -29,8 +28,8 @@ class LinkTrackerAction : AnAction() {
 
         if (currentProject == null) {
             Messages.showErrorDialog(
-                    "Please open a project to run the link tracking plugin.",
-                    "Link Tracker"
+                "Please open a project to run the link tracking plugin.",
+                "Link Tracker"
             )
             return
         }
@@ -53,7 +52,12 @@ class LinkTrackerAction : AnAction() {
                 for (linkInfo in linkInfoList) {
                     // TODO: Get commit SHA from disk if possible
                     val commitSHA = null
-                    val link = LinkFactory.createLink(linkInfo, commitSHA, currentProject, ChangeTrackerService.getInstance(project).cachedChanges)
+                    val link = LinkFactory.createLink(
+                        linkInfo,
+                        commitSHA,
+                        currentProject,
+                        ChangeTrackerService.getInstance(project).cachedChanges
+                    )
 
                     if (link is NotSupportedLink) {
                         continue
@@ -61,16 +65,17 @@ class LinkTrackerAction : AnAction() {
                     indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
                     try {
                         linksAndChangesList.add(
-                                LinkProcessingRouter.getChangesForLink(
-                                        link = link,
-                                        project = currentProject
-                                )
+                            LinkProcessingRouter.getChangesForLink(
+                                link = link,
+                                project = currentProject
+                            )
                         )
                     } catch (e: NotImplementedError) {
                         continue
                     }
                     // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                 }
+                // Debug
                 println("Link tracking finished!")
                 running = false
             }
@@ -78,7 +83,7 @@ class LinkTrackerAction : AnAction() {
 
         // TODO: Commit SHA needs to be given to following method to retrieve changes
         val statistics =
-                mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
 
         // Run linkUpdater thread
         // There should be a better way to wait for the Tracking Links task to finish
@@ -87,25 +92,18 @@ class LinkTrackerAction : AnAction() {
                 while (running) {
                     Thread.sleep(100L)
                 }
+                // Debug
                 println("Finished waiting")
                 if (linksAndChangesList.size != 0) {
-
-                    // For testing purposes
-                    // Start test
-                    val matches =
-                        linksAndChangesList.filter { pair -> pair.first.linkInfo.linkText == "link to a file" }
-                    if (matches.isNotEmpty()) {
-                        val testLink = matches[0].first
-                        val originalChange = (matches[0].second as FileChange)
-                        val testChange = FileChange(changeType = "MOVED", afterPath = originalChange.afterPath)
-                        linksAndChangesList.add(Pair(testLink, testChange))
-                    } else {
-                        println("No match found.")
-                    }
-                    // End test
+                    // Debug
+                    println("All changes: ")
+                    // Debug
+                    linksAndChangesList.map { pair -> println(pair) }
                     val result = linkUpdateService.updateLinks(linksAndChangesList)
+                    // Debug
                     println("Update result: $result")
                 } else {
+                    // Debug
                     println("No links to update...")
                 }
             })
