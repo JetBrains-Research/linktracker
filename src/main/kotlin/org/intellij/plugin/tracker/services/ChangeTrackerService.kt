@@ -26,6 +26,7 @@ class ChangeTrackerService(private val project: Project) {
                 val fileChange: FileChange = FileChange.changeToFileChange(project, change)
 
                 if (link.beenCached && fileChange.beforePath == fileChange.afterPath) {
+                    link.beenCached = false
                     fileChange.changeType = "MOVED"
                 }
                 cachedChanges.add(fileChange)
