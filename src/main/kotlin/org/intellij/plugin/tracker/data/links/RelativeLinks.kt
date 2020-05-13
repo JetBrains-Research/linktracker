@@ -7,9 +7,8 @@ import java.util.regex.Pattern
 data class RelativeLinkToDirectory(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern? = null,
-        override val commitSHA: String,
-        override var beenCached: Boolean = false
-        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+        override val commitSHA: String
+        ) : RelativeLink(linkInfo, pattern, commitSHA) {
     override fun getPath(): String {
         return linkInfo.linkPath
     }
@@ -18,9 +17,8 @@ data class RelativeLinkToDirectory(
 data class RelativeLinkToFile(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern? = null,
-        override val commitSHA: String,
-        override var beenCached: Boolean = false
-        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+        override val commitSHA: String
+        ) : RelativeLink(linkInfo, pattern, commitSHA) {
     override fun getPath(): String {
         return linkInfo.linkPath
     }
@@ -30,9 +28,8 @@ data class RelativeLinkToFile(
 data class RelativeLinkToLine(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern,
-        override val commitSHA: String,
-        override var beenCached: Boolean = false
-        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+        override val commitSHA: String
+        ) : RelativeLink(linkInfo, pattern, commitSHA) {
 
     fun getLineReferenced(): Int = matcher.group(1).toInt()
 }
@@ -40,9 +37,8 @@ data class RelativeLinkToLine(
 data class RelativeLinkToLines(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern,
-        override val commitSHA: String,
-        override var beenCached: Boolean = false
-        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+        override val commitSHA: String
+        ) : RelativeLink(linkInfo, pattern, commitSHA) {
 
     fun getStartLineReferenced(): Int = matcher.group(1).toInt()
 

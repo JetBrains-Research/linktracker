@@ -24,8 +24,7 @@ enum class WebLinkReferenceType(private val type: String) {
 abstract class Link(
     open val linkInfo: LinkInfo,
     open val pattern: Pattern? = null,
-    open val commitSHA: String? = null,
-    open var beenCached: Boolean = false
+    open val commitSHA: String? = null
 ) {
 
     /**
@@ -58,9 +57,8 @@ abstract class Link(
 abstract class RelativeLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override val commitSHA: String,
-    override var beenCached: Boolean = false
-) : Link(linkInfo, pattern, commitSHA, beenCached) {
+    override val commitSHA: String
+) : Link(linkInfo, pattern, commitSHA) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -76,9 +74,8 @@ abstract class RelativeLink(
 abstract class WebLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern,
-    override val commitSHA: String,
-    override var beenCached: Boolean = false
-) : Link(linkInfo, pattern, commitSHA, beenCached) {
+    override val commitSHA: String
+) : Link(linkInfo, pattern, commitSHA) {
 
     fun getPlatformName(): String = matcher.group(4)
 
@@ -110,9 +107,8 @@ data class NotSupportedLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     override val commitSHA: String? = null,
-    override var beenCached: Boolean = false,
     val errorMessage: String? = null
-):Link(linkInfo, pattern, commitSHA, beenCached) {
+):Link(linkInfo, pattern, commitSHA) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
