@@ -49,40 +49,45 @@ data class RelativeLinkToLines(
 }
 
 fun checkRelativeLink(link: String): String {
-    var newLink = link;
-    while(newLink.contains("..")) {
-        val pattern = Pattern.compile("((([a-zA-Z./]+)/)*)(([a-zA-Z]+)/../)([a-zA-Z./]+)")
-        val matcher: Matcher = pattern.matcher(newLink)
+    return checkSingleDot(checkDoubleDots(link))
+}
+
+fun checkDoubleDots(link: String): String {
+    var result = link
+    while(result.contains("..")) {
+        val matcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDots.pattern.matcher(result)
         if(matcher.matches()) {
             val firstPart = matcher.group(2)
             val secondPart = matcher.group(6)
-            newLink = if(firstPart==null) {
+            result = if(firstPart==null) {
                 secondPart
             } else {
                 firstPart+secondPart
             }
         } else {
-            val lastPattern = Pattern.compile("(([a-zA-Z/]+)/([a-zA-Z]+)/..)")
-            val lastMatcher: Matcher = lastPattern.matcher(newLink)
-            if(lastMatcher.matches()) {
-                newLink = lastMatcher.group(2)
+            val endMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtEnd.pattern.matcher(result)
+            if(endMatcher.matches()) {
+                result = endMatcher.group(2)
             }
         }
     }
-    while(newLink.contains("/.")) {
-        val pattern = Pattern.compile("(([a-zA-Z/]+)/./([a-zA-Z/.]+))")
-        val matcher: Matcher = pattern.matcher(newLink)
+    return result
+}
+
+fun checkSingleDot(link: String): String {
+    var result = link
+    while(result.contains("/.")) {
+        val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
         if(matcher.matches()) {
             val firstPart = matcher.group(2)
             val secondPart = matcher.group(3)
-            newLink = "$firstPart/$secondPart"
+            result = "$firstPart/$secondPart"
         } else {
-            val lastPattern = Pattern.compile("(([a-zA-Z/]+)/.)")
-            val lastMatcher: Matcher = lastPattern.matcher(newLink)
-            if(lastMatcher.matches()) {
-                newLink = lastMatcher.group(2)
+            val endMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtEnd.pattern.matcher(result)
+            if(endMatcher.matches()) {
+                result = endMatcher.group(2)
             }
         }
     }
-    return newLink
+    return result
 }
