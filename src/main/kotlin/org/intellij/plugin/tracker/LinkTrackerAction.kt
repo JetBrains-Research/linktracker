@@ -55,9 +55,10 @@ class LinkTrackerAction : AnAction() {
                     val link = LinkFactory.createLink(
                         linkInfo,
                         commitSHA,
-                        currentProject,
-                        ChangeTrackerService.getInstance(project).cachedChanges
+                        currentProject
                     )
+
+                    // println(link)
 
                     if (link is NotSupportedLink) {
                         continue

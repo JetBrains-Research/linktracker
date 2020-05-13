@@ -6,6 +6,7 @@ import git4idea.changes.GitChangeUtils
 import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
+import git4idea.history.GitHistoryUtils
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.links.Link
@@ -19,6 +20,9 @@ class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
     private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
+
+    private val cachedFilesAtCommits: HashMap<String, MutableList<String>> = hashMapOf()
+    private val cachedDirectoriesAtCommits: HashMap<String, MutableList<String>> = hashMapOf()
 
 
     /**
@@ -90,7 +94,6 @@ class GitOperationManager(private val project: Project) {
         return false
     }
 
-
     /**
      * Method that retrieves the list of directories in a git repository, at a certain commit
      *
@@ -118,6 +121,109 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("-r", "--name-only", commitSHA)
         val outputFiles = git.runCommand(gitLineHandler)
         return outputFiles.getOutputOrThrow().split("\n")
+    }
+
+
+
+    /**
+     * Method that retrieves the commit at which a link path representing a directory appears (starting at a commit
+     * and following along all commits within a 30 minute interval of the first commit)
+     *
+     * Runs git command 'git ls-tree -d -r --name-only COMMITSHA' on the list of commits, which is a list of commits
+     * between a start commit and the commits that follow 30 minutes after it
+     *
+     *
+     * Returns `null` if no match found.
+     */
+    fun getCommitForDirectories(
+        linkPath: String,
+        commitSHA: String
+    ): String? {
+        val timestampSince: String = getDateOfCommit(commitSHA)
+        // get all commits within 30 minutes of the `start` commit
+        val timestampUntil = (timestampSince.toLong() +   30 * 60).toString()
+
+        val listOfCommitsBetweenTimestamps =
+            GitHistoryUtils.collectTimedCommits(project, gitRepository.root, "--since", timestampSince, "--until", timestampUntil)
+        for (commit in listOfCommitsBetweenTimestamps) {
+            val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
+            val commitId = commit.id.toString()
+
+            // check if directories are cached for this commit id
+            if (cachedDirectoriesAtCommits.containsKey(commitId)) {
+                if (cachedDirectoriesAtCommits[commitId]!!.contains(linkPath)) return commitId
+
+                // skip over running git commands
+                else continue
+            }
+
+            gitLineHandler.addParameters("-d", "-r", "--name-only", commitId)
+            val outputDirectories = git.runCommand(gitLineHandler)
+
+            val directoryList = outputDirectories.getOutputOrThrow().split("\n")
+            cachedDirectoriesAtCommits[commitId] = mutableListOf()
+            cachedDirectoriesAtCommits[commitId]!!.addAll(directoryList)
+
+            if (directoryList.contains(linkPath)) return commitId
+        }
+
+        return null
+    }
+
+    /**
+     * Get the date of a commit in a timestamp format
+     *
+     */
+    fun getDateOfCommit(commitSHA: String): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
+        gitLineHandler.addParameters("-s", "--format=%ct", commitSHA)
+        val timestampOutput = git.runCommand(gitLineHandler)
+        return timestampOutput.getOutputOrThrow()
+    }
+
+
+    /**
+     * Method that retrieves the commit at which a link path representing a file appears (starting at a commit
+     * and following along all commits within a 30 minute interval of the first commit)
+     *
+     * Runs git command 'git ls -r --name-only COMMITSHA' on the list of commits, which is a list of commits
+     * between a start commit and the commits that follow 30 minutes after it
+     *
+     * Returns `null` if no match found.
+     */
+    fun getCommitForFiles(
+        linkPath: String,
+        commitSHA: String
+    ): String? {
+        val timestampSince: String = getDateOfCommit(commitSHA)
+        // get all commits within 30 minutes of the `start` commit
+        val timestampUntil = (timestampSince.toLong() +   30 * 60).toString()
+
+        val listOfCommitsBetweenTimestamps =
+            GitHistoryUtils.collectTimedCommits(project, gitRepository.root, "--since", timestampSince, "--until", timestampUntil)
+        for (commit in listOfCommitsBetweenTimestamps) {
+            val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
+            val commitId = commit.id.toString()
+
+            // check if directories are cached for this commit id
+            if (cachedFilesAtCommits.containsKey(commitId)) {
+                if (cachedFilesAtCommits[commitId]!!.contains(linkPath)) return commitId
+
+                // skip over running git commands
+                else continue
+            }
+
+            gitLineHandler.addParameters("-r", "--name-only", commitId)
+            val outputFiles = git.runCommand(gitLineHandler)
+
+            val fileList = outputFiles.getOutputOrThrow().split("\n")
+            cachedFilesAtCommits[commitId] = mutableListOf()
+            cachedFilesAtCommits[commitId]!!.addAll(fileList)
+
+            if (fileList.contains(linkPath)) return commitId
+        }
+
+        return null
     }
 
 

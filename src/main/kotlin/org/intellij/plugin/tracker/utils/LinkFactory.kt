@@ -22,27 +22,24 @@ class LinkFactory {
             commit: String,
             gitOperationManager: GitOperationManager
         ): Link {
-            val projectRelativeLinkPath = linkInfo.getMarkdownDirectoryRelativeLinkPath()
+            val markdownDirectoryRelativePath: String = linkInfo.getMarkdownDirectoryRelativeLinkPath()
             val link: Link
 
-            val fileList: List<String> = gitOperationManager.getListOfFiles(commit)
+            var commitToUse: String? = gitOperationManager.getCommitForFiles(markdownDirectoryRelativePath, commit)
 
-            fileList.map { x -> x.trim() }
-            if (fileList.any { x -> x == projectRelativeLinkPath }) {
-                link = RelativeLinkToFile(linkInfo = linkInfo, commitSHA = commit)
+            if (commitToUse != null) {
+                link = RelativeLinkToFile(linkInfo = linkInfo, commitSHA = commitToUse)
                 cachedResults[linkInfo] = link
                 return link
             }
 
-            val directoryList = gitOperationManager.getListOfDirectories(commit)
+            commitToUse = gitOperationManager.getCommitForDirectories(markdownDirectoryRelativePath, commit)
 
-            directoryList.map { x -> x.trim() }
-            if (directoryList.any { x -> x == projectRelativeLinkPath }) {
-                link = RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
+            if (commitToUse != null) {
+                link = RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commitToUse)
             } else {
                 link = NotSupportedLink(linkInfo = linkInfo, errorMessage = "Not a valid link")
             }
-
             cachedResults[linkInfo] = link
             return link
         }
@@ -53,8 +50,7 @@ class LinkFactory {
         fun createLink(
             linkInfo: LinkInfo,
             commitSHA: String?,
-            currentProject: Project,
-            cachedChanges: HashSet<LinkChange>
+            currentProject: Project
         ): Link {
             if (cachedResults.containsKey(linkInfo)) {
                 return cachedResults[linkInfo]!!
@@ -66,16 +62,8 @@ class LinkFactory {
                 commit = commitSHA ?: gitOperationManager.getStartCommit(linkInfo = linkInfo)
                 if (commit == null) {
 
-                    // check if this link has been updated by a previous run
-                    val cachedChange = cachedChanges.find { change -> change.changeType == "MOVED"
-                            && change.afterPath != null
-                            && linkInfo.getAfterPathToOriginalFormat(change.afterPath!!) == linkInfo.linkPath }
-                    if (cachedChange != null) {
-                        linkInfo.linkPath = linkInfo.getAfterPathToOriginalFormat(cachedChange.beforePath!!)
-                        val cachedLink = cachedResults[linkInfo]!!
-                        cachedLink.beenCached = true
-                        return cachedResults[linkInfo]!!
-                    }
+                    // TODO: this link has just been added. Just a simple check File.exists / Directory.exists()
+                    // TODO: would suffice - sanity check for lines (whether the line/lines exist in the specified file)
 
                     return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Could not find start commit for this link - this link has just been added")
                 }

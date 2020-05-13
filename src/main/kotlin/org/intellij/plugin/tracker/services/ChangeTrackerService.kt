@@ -13,8 +13,6 @@ import java.io.File
 class ChangeTrackerService(private val project: Project) {
 
     private val gitOperationManager = GitOperationManager(project = project)
-    val cachedChanges: HashSet<LinkChange> = hashSetOf()
-
 
     /**
      * Extract the link we are looking for from a list of changes
@@ -22,22 +20,9 @@ class ChangeTrackerService(private val project: Project) {
     private fun extractSpecificFileChanges(link: Link, changeList: MutableCollection<Change>): FileChange {
         val fullPath = "${project.basePath}/${link.getPath()}"
         for (change in changeList) {
-            if (change.affectsFile(File(fullPath))) {
-                val fileChange: FileChange = FileChange.changeToFileChange(project, change)
-                cachedChanges.add(fileChange)
-                return fileChange
-            }
+            if (change.affectsFile(File(fullPath))) return FileChange.changeToFileChange(project, change)
         }
-        // could not find file change in change list: file has not changed
 
-        // check whether this link has been cached before: if cached and change type is NONE,
-        // this means that it has been moved back to the 'original' path
-
-        if (link.beenCached) {
-            println("HERE!!")
-            link.beenCached = false
-            return FileChange(changeType = "MOVED", afterPath = link.linkInfo.linkPath)
-        }
         return FileChange()
     }
 
