@@ -24,7 +24,7 @@ class LinkUpdaterService(val project: Project) {
      */
     companion object {
         fun getInstance(project: Project) =
-                ServiceManager.getService(project, LinkUpdaterService::class.java)
+            ServiceManager.getService(project, LinkUpdaterService::class.java)
     }
 
     /**
@@ -43,15 +43,18 @@ class LinkUpdaterService(val project: Project) {
         val startTime = System.currentTimeMillis()
         val updated = mutableListOf<Link>()
         val failed = mutableListOf<Link>()
-        for (link in links) {
+        val listWithElements = getLinkElements(links)
+        for (triple in listWithElements) {
             try {
-                if (updateLink(link.first, link.second)) {
-                    updated.add(link.first)
+                if (triple.third == null) {
+                    failed.add(triple.first)
+                } else if (updateLink(triple.first, triple.second, triple.third!!)) {
+                    updated.add(triple.first)
                 } else {
-                    failed.add(link.first)
+                    failed.add(triple.first)
                 }
             } catch (e: NotImplementedError) {
-                failed.add(link.first)
+                failed.add(triple.first)
             }
         }
         val timeElapsed = System.currentTimeMillis() - startTime
@@ -64,9 +67,9 @@ class LinkUpdaterService(val project: Project) {
      * @param link the Link object to be updated
      * @param fileChange the FileChange according to which to update the link
      */
-    private fun updateLink(link: Link, fileChange: LinkChange): Boolean {
+    private fun updateLink(link: Link, fileChange: LinkChange, element: PsiElement): Boolean {
         when (link) {
-            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange as FileChange)
+            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange as FileChange, element)
             is WebLink -> throw NotImplementedError()
             else -> throw NotImplementedError()
         }
@@ -79,20 +82,29 @@ class LinkUpdaterService(val project: Project) {
      * @param fileChange the FileChange according to which to update the link
      * @return true if update succeeded, false otherwise
      */
-    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange): Boolean {
-        val linkElement = getLinkElement(link) ?: return false
+    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange, element: PsiElement): Boolean {
         if (fileChange.changeType == "MOVED") {
             var newPath = fileChange.afterPath ?: return false
-
             // transform the path to the original format: this will mostly work for paths which
             // do not contain ../ or ./ in their original format
             newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
             val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
-            linkElement.replace(newElement)
+            element.replace(newElement)
             return true
         } else {
             throw NotImplementedError()
         }
+    }
+
+    /**
+     * Gets the PsiElement corresponding to each input Link.
+     *
+     * @return a List of Triple<Link, FileChange, PsiElement>
+     */
+    private fun getLinkElements(list: MutableCollection<Pair<Link, LinkChange>>):
+            MutableCollection<Triple<Link, LinkChange, PsiElement?>> {
+        return list.map { pair -> Triple(pair.first, pair.second, getLinkElement(pair.first)) }
+                as MutableCollection<Triple<Link, LinkChange, PsiElement?>>
     }
 
     /**
@@ -104,13 +116,13 @@ class LinkUpdaterService(val project: Project) {
     private fun getLinkElement(link: Link): PsiElement? {
         val fileRelativePath = link.linkInfo.proveniencePath
         val relativePath =
-                if (fileRelativePath.startsWith("/")) fileRelativePath else "/$fileRelativePath"
-
-        val matchingFiles = FilenameIndex.getFilesByName(project,
-                link.linkInfo.fileName,
-                GlobalSearchScope.projectScope(project))
-        matchingFiles.filter({ file -> file.virtualFile.path.endsWith(relativePath) })
-
+            if (fileRelativePath.startsWith("/")) fileRelativePath else "/$fileRelativePath"
+        val matchingFiles = FilenameIndex.getFilesByName(
+            project,
+            link.linkInfo.fileName,
+            GlobalSearchScope.projectScope(project)
+        )
+        matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
         // Assume only one valid result
         assert(matchingFiles.size == 1)
         val psiFile = matchingFiles[0]
