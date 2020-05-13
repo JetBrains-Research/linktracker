@@ -82,7 +82,11 @@ class LinkUpdaterService(val project: Project) {
     private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange): Boolean {
         val linkElement = getLinkElement(link) ?: return false
         if (fileChange.changeType == "MOVED") {
-            val newPath = fileChange.afterPath ?: return false
+            var newPath = fileChange.afterPath ?: return false
+
+            // transform the path to the original format: this will mostly work for paths which
+            // do not contain ../ or ./ in their original format
+            newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
             val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
             linkElement.replace(newElement)
             return true
