@@ -24,14 +24,19 @@ class ChangeTrackerService(private val project: Project) {
         for (change in changeList) {
             if (change.affectsFile(File(fullPath))) {
                 val fileChange: FileChange = FileChange.changeToFileChange(project, change)
-
-                if (link.beenCached && fileChange.beforePath == fileChange.afterPath) {
-                    link.beenCached = false
-                    fileChange.changeType = "MOVED"
-                }
                 cachedChanges.add(fileChange)
                 return fileChange
             }
+        }
+        // could not find file change in change list: file has not changed
+
+        // check whether this link has been cached before: if cached and change type is NONE,
+        // this means that it has been moved back to the 'original' path
+
+        if (link.beenCached) {
+            println("HERE!!")
+            link.beenCached = false
+            return FileChange(changeType = "MOVED", afterPath = link.linkInfo.linkPath)
         }
         return FileChange()
     }

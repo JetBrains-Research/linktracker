@@ -24,22 +24,9 @@ class LinkFactory {
             gitOperationManager: GitOperationManager
         ): Link {
             val projectRelativeLinkPath = linkInfo.getMarkdownDirectoryRelativeLinkPath()
-            val linkValidity =
-                gitOperationManager.checkValidityOfLinkPathAtCommit(commit, projectRelativeLinkPath)
-
             val link: Link
 
-            if (!linkValidity) {
-                link = NotSupportedLink(
-                    linkInfo = linkInfo,
-                    commitSHA = commit,
-                    errorMessage = "Link was not referencing a valid element when it was created"
-                )
-                cachedResults[linkInfo] = link
-                return link
-            }
-
-            val fileList = gitOperationManager.getListOfFiles(commit)
+            val fileList: List<String> = gitOperationManager.getListOfFiles(commit)
 
             fileList.map { x -> x.trim() }
             if (fileList.any { x -> x == projectRelativeLinkPath }) {
@@ -91,7 +78,7 @@ class LinkFactory {
                         return cachedResults[linkInfo]!!
                     }
 
-                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "")
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Could not find start commit for this link - this link has just been added")
                 }
             } catch (e: VcsException) {
                 val link = NotSupportedLink(linkInfo = linkInfo, errorMessage = e.message)

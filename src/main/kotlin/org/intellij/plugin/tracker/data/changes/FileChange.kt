@@ -5,9 +5,9 @@ import com.intellij.openapi.vcs.changes.Change
 
 data class FileChange(
     override var changeType: String = "NONE",
-    override val fileName: String? = null,
-    override val beforePath: String? = null,
-    override val afterPath: String? = null,
+    override var fileName: String? = null,
+    override var beforePath: String? = null,
+    override var afterPath: String? = null,
     val moveRelativePath: String? = null,
     val errorMessage: String? = null
 ): LinkChange() {
