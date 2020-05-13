@@ -114,7 +114,6 @@ class LinkUpdaterService(val project: Project) {
         // Assume only one valid result
         assert(matchingFiles.size == 1)
         val psiFile = matchingFiles[0]
-//        val psiFile = PsiManager.getInstance(project).findFile(virtualFile)!!
-        return psiFile.findElementAt(link.linkInfo.textOffset)
+        return psiFile.findElementAt(link.linkInfo.textOffset)?.parent
     }
 }

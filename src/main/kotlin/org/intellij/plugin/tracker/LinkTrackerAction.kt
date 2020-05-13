@@ -89,20 +89,6 @@ class LinkTrackerAction : AnAction() {
                 }
                 println("Finished waiting")
                 if (linksAndChangesList.size != 0) {
-
-                    // For testing purposes
-                    // Start test
-                    val matches =
-                        linksAndChangesList.filter { pair -> pair.first.linkInfo.linkText == "link to a file" }
-                    if (matches.isNotEmpty()) {
-                        val testLink = matches[0].first
-                        val originalChange = (matches[0].second as FileChange)
-                        val testChange = FileChange(changeType = "MOVED", afterPath = originalChange.afterPath)
-                        linksAndChangesList.add(Pair(testLink, testChange))
-                    } else {
-                        println("No match found.")
-                    }
-                    // End test
                     val result = linkUpdateService.updateLinks(linksAndChangesList)
                     println("Update result: $result")
                 } else {
