@@ -26,12 +26,11 @@ class LinkRetrieverService(private val project: Project?) {
     var noOfFiles = 0
     var noOfFilesWithLinks = 0
     var linkFound = false
-    var linkInfoList: ArrayList<LinkInfo> = arrayListOf<LinkInfo>()
 
     /**
      * Function to get the list of links.
      */
-    fun getLinks(): MutableList<LinkInfo> {
+    fun getLinks(linkInfoList: MutableList<LinkInfo>) {
         val currentProject = project
         val virtualFiles =
                 FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
@@ -66,20 +65,20 @@ class LinkRetrieverService(private val project: Project?) {
                         linkText = element.node.text
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject))
 
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
                         linkPath = element.node.text
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, textOffset, fileName))
+                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, textOffset, fileName, currentProject))
 
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject))
                     }
                     super.visitElement(element)
                 }
@@ -88,7 +87,6 @@ class LinkRetrieverService(private val project: Project?) {
                 noOfFilesWithLinks++
             }
         }
-        return linkInfoList
     }
 
     /**
