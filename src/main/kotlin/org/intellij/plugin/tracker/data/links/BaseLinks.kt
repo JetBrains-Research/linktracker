@@ -24,7 +24,8 @@ enum class WebLinkReferenceType(private val type: String) {
 abstract class Link(
     open val linkInfo: LinkInfo,
     open val pattern: Pattern? = null,
-    open val commitSHA: String? = null
+    open val commitSHA: String? = null,
+    var beenCached: Boolean = false
 ) {
 
     /**
@@ -122,14 +123,24 @@ data class NotSupportedLink(
  */
 data class LinkInfo(
     val linkText: String,
-    val linkPath: String,
+    var linkPath: String,
     val proveniencePath: String,
     val foundAtLineNumber: Int,
     val textOffset: Int,
-    val fileName: String
+    val fileName: String,
+    val project: Project
 ){
-    fun getProjectRelativePath(): String {
-        if (proveniencePath == fileName) return fileName
-        return proveniencePath.replace(fileName, "") + linkPath
+
+    fun getAfterPathToOriginalFormat(afterPath: String): String{
+        val newPath = afterPath.replace("${project.basePath!!}/", "")
+        return newPath.replace(getMarkdownDirectoryPath(), "")
+    }
+
+    fun getMarkdownDirectoryPath(): String {
+        return proveniencePath.replace(fileName, "")
+    }
+
+    fun getMarkdownDirectoryRelativeLinkPath(): String {
+        return getMarkdownDirectoryPath() + linkPath
     }
 }

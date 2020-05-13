@@ -137,9 +137,9 @@ class LinkFactory {
                 else -> {
                     // Ambiguous link: have to see whether it's a path to a file or directory
                     link = processAmbiguousLink(
-                        linkInfo,
-                        commit,
-                        gitOperationManager
+                            linkInfo,
+                            commit,
+                            gitOperationManager
                     )
                 }
             }

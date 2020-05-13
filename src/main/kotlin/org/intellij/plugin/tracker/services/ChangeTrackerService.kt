@@ -4,6 +4,7 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
 import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.io.File
@@ -12,6 +13,7 @@ import java.io.File
 class ChangeTrackerService(private val project: Project) {
 
     private val gitOperationManager = GitOperationManager(project = project)
+    val cachedChanges: HashSet<LinkChange> = hashSetOf()
 
 
     /**
@@ -20,7 +22,15 @@ class ChangeTrackerService(private val project: Project) {
     private fun extractSpecificFileChanges(link: Link, changeList: MutableCollection<Change>): FileChange {
         val fullPath = "${project.basePath}/${link.getPath()}"
         for (change in changeList) {
-            if (change.affectsFile(File(fullPath))) return FileChange.changeToFileChange(project, change)
+            if (change.affectsFile(File(fullPath))) {
+                val fileChange: FileChange = FileChange.changeToFileChange(project, change)
+
+                if (link.beenCached && fileChange.beforePath == fileChange.afterPath) {
+                    fileChange.changeType = "MOVED"
+                }
+                cachedChanges.add(fileChange)
+                return fileChange
+            }
         }
         return FileChange()
     }
