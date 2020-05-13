@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.utils
 
-
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.changes.LinkChange
