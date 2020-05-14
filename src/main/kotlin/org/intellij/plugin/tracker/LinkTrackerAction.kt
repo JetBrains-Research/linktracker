@@ -25,8 +25,8 @@ class LinkTrackerAction : AnAction() {
 
         if (currentProject == null) {
             Messages.showErrorDialog(
-                "Please open a project to run the link tracking plugin.",
-                "Link Tracker"
+                    "Please open a project to run the link tracking plugin.",
+                    "Link Tracker"
             )
             return
         }
@@ -42,32 +42,36 @@ class LinkTrackerAction : AnAction() {
         }
 
         ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
-                override fun run(indicator: ProgressIndicator) {
-                    for (linkInfo in linkInfoList) {
-                        // TODO: Get commit SHA from disk if possible
-                        val commitSHA = null
-                        val link = LinkFactory.createLink(linkInfo, commitSHA, currentProject)
+            override fun run(indicator: ProgressIndicator) {
+                for (linkInfo in linkInfoList) {
+                    // TODO: Get commit SHA from disk if possible
+                    val commitSHA = null
+                    val link = LinkFactory.createLink(linkInfo, commitSHA, currentProject)
 
-                        if (link is NotSupportedLink) {
-                            continue
-                        }
-                        indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
-                        try {
-                            linksAndChangesList.add(
-                                LinkProcessingRouter.getChangesForLink(
-                                    link = link,
-                                    project = currentProject
-                                )
-                            )
-                        } catch (e: NotImplementedError) {
-                            continue
-                        }
-                        // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
+                    if (link is NotSupportedLink) {
+                        continue
                     }
-                }})
+                    indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
+                    try {
+                        linksAndChangesList.add(
+                                LinkProcessingRouter.getChangesForLink(
+                                        link = link,
+                                        project = currentProject
+                                )
+                        )
+                    } catch (e: NotImplementedError) {
+                        continue
+                    }
+                    // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
+                }
+            }})
 
+        for (change in linkInfoList) {
+            println(change)
+        }
+        
         val statistics =
-            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+                mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
 
         uiService.updateView(currentProject, linksAndChangesList)
         uiService.updateStatistics(currentProject, statistics)
