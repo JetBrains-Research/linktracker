@@ -22,7 +22,7 @@
 
 [I'm an inline-style link](https://www.google.com)
 
-[I'm an inline-style link 2](../../../README.md)
+[I'm an inline-style link 2](README.md)
 
 * [Irem Ugurlu](https://gitlab.ewi.tudelft.nl/iugurlu)
 
@@ -60,3 +60,5 @@ Some text to show that the reference links can follow later.
 [test number 1] (build.gradle)
 
 [test number 2](..)
+
+[link to a file](build.gradle)

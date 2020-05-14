@@ -33,7 +33,7 @@ class TreeView : JPanel(BorderLayout()) {
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
             for (link in linkList.value) {
-                val linkTree = DefaultMutableTreeNode(checkRelativeLink(link.first.linkInfo.getProjectRelativePath()))
+                val linkTree = DefaultMutableTreeNode(checkRelativeLink(link.first.linkInfo.getMarkdownDirectoryRelativeLinkPath()))
                 //addNodeTree("Link Type", link.first.linkType.name, linkTree)
                 addNodeTree("Link Text", link.first.linkInfo.linkText, linkTree)
                 addNodeTree("Link Path", link.first.linkInfo.linkPath, linkTree)

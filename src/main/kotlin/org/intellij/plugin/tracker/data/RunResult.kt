@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.data
 
+import com.intellij.util.ui.update.Update
 import org.intellij.plugin.tracker.data.links.Link
 
 /**
@@ -17,22 +18,20 @@ data class RunResult(
     /**
      * The links that were valid when scanned by the plugin.
      */
-    val validLinks: ArrayList<Link>,
+    val validLinks: MutableList<Link>,
 
     /**
-     * The links that were found to be invalid
-     * and should have been correctly fixed by the plugin.
+     * The links that were found to be invalid.
      */
-    val fixedLinks: ArrayList<Link>,
+    val invalidLinks: MutableList<Link>,
 
     /**
-     * The links that were found to be invalid
-     * and couldn't be automatically fixed.
+     * The results from the LinkUpdaterService's run.
      */
-    val invalidLinks: ArrayList<Link>,
+    var updateResult: UpdateResult,
 
     /**
      * Plugin run duration.
      */
-    val timeElapsed: Int
+    val timeElapsed: Long
 )

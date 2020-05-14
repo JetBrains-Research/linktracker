@@ -13,14 +13,14 @@ class LinkProcessingRouter {
          * Takes in the link and calls ChangeTrackerService API methods depending on the link type
          */
         fun getChangesForLink(link: Link, project: Project): Pair<Link, LinkChange> {
-            val changeTrackerService = ChangeTrackerService(project)
+            val changeTrackerService = ChangeTrackerService.getInstance(project)
 
-            when(link) {
+            when (link) {
                 is RelativeLinkToDirectory -> throw NotImplementedError("")
                 is RelativeLinkToFile -> return changeTrackerService.getFileChange(link)
                 is RelativeLinkToLine -> throw NotImplementedError("")
                 is RelativeLinkToLines -> throw NotImplementedError("")
-                is WebLinkToDirectory-> when {
+                is WebLinkToDirectory -> when {
                     link.correspondsToLocalProject(project) -> throw NotImplementedError("$link is not yet supported")
                     else -> throw NotImplementedError("$link is not yet supported")
                 }

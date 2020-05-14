@@ -24,7 +24,8 @@ enum class WebLinkReferenceType(private val type: String) {
 abstract class Link(
     open val linkInfo: LinkInfo,
     open val pattern: Pattern? = null,
-    open val commitSHA: String? = null
+    open val commitSHA: String? = null,
+    open var beenCached: Boolean = false
 ) {
 
     /**
@@ -51,15 +52,15 @@ abstract class Link(
     abstract fun getPath(): String
 }
 
-
 /**
  * Abstract class for relative links
  */
 abstract class RelativeLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override val commitSHA: String
-) : Link(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+) : Link(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -75,8 +76,9 @@ abstract class RelativeLink(
 abstract class WebLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern,
-    override val commitSHA: String
-) : Link(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+) : Link(linkInfo, pattern, commitSHA, beenCached) {
 
     fun getPlatformName(): String = matcher.group(4)
 
@@ -100,7 +102,6 @@ abstract class WebLink(
     }
 }
 
-
 /**
  * Data class which encapsulates information about links which are not supported and the reasoning
  * why they are not supported
@@ -109,8 +110,9 @@ data class NotSupportedLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     override val commitSHA: String? = null,
+    override var beenCached: Boolean = false,
     val errorMessage: String? = null
-):Link(linkInfo, pattern, commitSHA) {
+):Link(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -124,13 +126,24 @@ data class NotSupportedLink(
  */
 data class LinkInfo(
     val linkText: String,
-    val linkPath: String,
+    var linkPath: String,
     val proveniencePath: String,
     val foundAtLineNumber: Int,
-    val fileName: String
+    val textOffset: Int,
+    val fileName: String,
+    val project: Project
 ){
-    fun getProjectRelativePath(): String {
-        if (proveniencePath == fileName) return fileName
-        return proveniencePath.replace(fileName, "") + linkPath
+
+    fun getAfterPathToOriginalFormat(afterPath: String): String{
+        val newPath = afterPath.replace("${project.basePath!!}/", "")
+        return newPath.replace(getMarkdownDirectoryPath(), "")
+    }
+
+    fun getMarkdownDirectoryPath(): String {
+        return proveniencePath.replace(fileName, "")
+    }
+
+    fun getMarkdownDirectoryRelativeLinkPath(): String {
+        return getMarkdownDirectoryPath() + linkPath
     }
 }

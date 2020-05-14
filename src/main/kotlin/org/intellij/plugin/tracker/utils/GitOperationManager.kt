@@ -32,7 +32,7 @@ class GitOperationManager(private val project: Project) {
         link: Link? = null,
         linkText: String? = null,
         linkPath: String? = null
-    ): String {
+    ): String? {
         val outputLogLines = outputLog.split("\n")
 
         /**
@@ -69,7 +69,11 @@ class GitOperationManager(private val project: Project) {
             }
             if (commitFound) break
         }
-        return lastCommitSHA
+        return if (commitFound) {
+            lastCommitSHA
+        } else {
+            null
+        }
     }
 
     /**
@@ -79,8 +83,8 @@ class GitOperationManager(private val project: Project) {
         commitSHA: String,
         linkPath: String
     ): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
-        gitLineHandler.addParameters(commitSHA, "--is-inside-work-tree", "-- $linkPath")
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CAT_FILE)
+        gitLineHandler.addParameters("-e", "$commitSHA:$linkPath")
         val outputRevParse = git.runCommand(gitLineHandler)
         if (outputRevParse.exitCode == 0) return true
         return false
@@ -131,7 +135,7 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(linkInfo: LinkInfo): String {
+    fun getStartCommit(linkInfo: LinkInfo): String? {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("-L${linkInfo.foundAtLineNumber},+1:${linkInfo.proveniencePath}", "--reverse")
         val outputLog = git.runCommand(gitLineHandler)
