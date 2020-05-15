@@ -6,9 +6,11 @@ import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
+import javax.swing.JOptionPane
 import javax.swing.JPanel
 import javax.swing.JScrollPane
 import javax.swing.JTree
+import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeCellRenderer
@@ -81,12 +83,36 @@ class TreeView : JPanel(BorderLayout()) {
         file.add(tree)
     }
 
+    private fun createSelectionListener(): TreeSelectionListener? {
+        return TreeSelectionListener { e ->
+            val pathCount: Int = e.path.pathCount
+            val path: String = e.path.getPathComponent(pathCount - 1).toString()
+            if (path == "Accept Change ") {
+                val dialogResult = JOptionPane.showConfirmDialog(null,
+                        "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    // TO DO : method saving change needs to be called
+                    println("change accepted")
+                }
+            }
+            if (path == "Deny Change ") {
+                val dialogResult = JOptionPane.showConfirmDialog(null,
+                        "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    // TO DO : method not saving change needs to be called
+                    println("change denied")
+                }
+            }
+        }
+    }
+
     /**
      * Constructor of class
      */
     init {
         val mdFiles = DefaultMutableTreeNode("Markdown Files")
         tree = JTree(mdFiles)
+        tree.addTreeSelectionListener(createSelectionListener());
         val renderer: TreeCellRenderer = CustomCellRenderer()
         tree.cellRenderer = renderer
         val scrollPane = JScrollPane(tree)
