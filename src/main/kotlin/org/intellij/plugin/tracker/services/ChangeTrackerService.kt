@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
+import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
@@ -57,6 +58,31 @@ class ChangeTrackerService(private val project: Project) {
             Pair(link, fileChange)
         } else {
             Pair(link, FileChange())
+        }
+    }
+
+    /**
+     * Extract the directory we are looking for from a list of changes
+     */
+    private fun extractSpecificDirectoryChanges(changeList: MutableCollection<Change>): DirectoryChange {
+        for (change in changeList) {
+            val prevPath = change.beforeRevision?.file?.parentPath
+            val currPath = change.afterRevision?.file?.parentPath
+            if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(project, change)
+        }
+        return DirectoryChange()
+    }
+
+    /**
+     * Main function for getting changes for a directory.
+     */
+    fun getDirectoryChange(link: Link): Pair<Link, DirectoryChange> {
+        val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
+        return if (changeList != null) {
+            val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
+            Pair(link, directoryChange)
+        } else {
+            Pair(link, DirectoryChange())
         }
     }
 

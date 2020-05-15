@@ -28,8 +28,8 @@ class LinkTrackerAction : AnAction() {
 
         if (currentProject == null) {
             Messages.showErrorDialog(
-                "Please open a project to run the link tracking plugin.",
-                "Link Tracker"
+                    "Please open a project to run the link tracking plugin.",
+                    "Link Tracker"
             )
             return
         }
@@ -83,7 +83,7 @@ class LinkTrackerAction : AnAction() {
 
         // TODO: Commit SHA needs to be given to following method to retrieve changes
         val statistics =
-            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+                mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
 
         // Run linkUpdater thread
         // There should be a better way to wait for the Tracking Links task to finish
