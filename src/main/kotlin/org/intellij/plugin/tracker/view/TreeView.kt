@@ -1,34 +1,37 @@
 package org.intellij.plugin.tracker.view
 
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.treeStructure.Tree
 import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
+import javax.swing.JOptionPane
 import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JTree
+import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreeCellRenderer
 
 
 /**
  * Class creating tree view
  */
 class TreeView : JPanel(BorderLayout()) {
-    private var tree: Tree
+    private var tree: JTree
 
     /**
      * Updating tree view
      */
-    fun updateModel(fileChanges: MutableList<Pair<Link, LinkChange>>) {
+    fun updateModel(changes: MutableList<Pair<Link, LinkChange>>) {
         val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
         // Adds current links and their information
         val curr = DefaultMutableTreeNode("Current Files & Links")
-        val links = fileChanges.groupBy { it.first.linkInfo.proveniencePath }
+        val links = changes.groupBy { it.first.linkInfo.proveniencePath }
 
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
@@ -44,11 +47,6 @@ class TreeView : JPanel(BorderLayout()) {
                     addNodeTree("Project Owner Name", (link.first as WebLink).getProjectOwnerName(), linkTree)
                     addNodeTree("Project Name", (link.first as WebLink).getProjectName(), linkTree)
                     addNodeTree("Relative Path", (link.first as WebLink).getPath(), linkTree)
-                    //addNodeTree("Reference Type", (link.first as WebLink).referenceType.name, linkTree)
-                    //addNodeTree("Reference Name", (link.first as WebLink).referenceName, linkTree)
-                    //addNodeTree("Line Referenced", (link.first as WebLink).lineReferenced.toString(), linkTree)
-                    //addNodeTree("Start Referenced Line", (link.first as WebLink).startReferencedLine.toString(), linkTree)
-                    //addNodeTree("End Referenced Line", (link.first as WebLink).endReferencedLine.toString(), linkTree)
                 }
                 file.add(linkTree)
             }
@@ -56,23 +54,24 @@ class TreeView : JPanel(BorderLayout()) {
         }
         root.add(curr)
 
-        // Add changes of file
-        val changes = DefaultMutableTreeNode("Changes")
-        for (change in fileChanges) {
-            if (change.second is FileChange) {
+        // Add changes of links
+        val changeNode = DefaultMutableTreeNode("Changes")
+        for (change in changes) {
+            if (change.second is FileChange && change.second.changeType != "NONE") {
                 // for now, cast to FileChange.
                 val fileChange = change.second as FileChange
                 val file = DefaultMutableTreeNode(fileChange.fileName)
-                addNodeTree("File Name", fileChange.fileName, file)
-                addNodeTree("Change Type", fileChange.changeType, file)
-                addNodeTree("Before Path", fileChange.beforePath, file)
-                addNodeTree("After Path", fileChange.afterPath, file)
-                addNodeTree("Move Relative Path", fileChange.moveRelativePath, file)
-                changes.add(file)
+                addNodeTree("File Name:", fileChange.fileName, file)
+                addNodeTree("Change Type:", fileChange.changeType, file)
+                addNodeTree("Before Path:", fileChange.beforePath, file)
+                addNodeTree("After Path:", fileChange.afterPath, file)
+                addNodeTree("Move Relative Path:", fileChange.moveRelativePath, file)
+                addNodeTree("Accept Change", "", file)
+                addNodeTree("Deny Change", "", file)
+                changeNode.add(file)
             }
         }
-        root.add(changes)
-
+        root.add(changeNode)
         (tree.model as DefaultTreeModel).reload()
     }
 
@@ -80,8 +79,31 @@ class TreeView : JPanel(BorderLayout()) {
      * Adds new node to tree
      */
     private fun addNodeTree(name: String, value: String?, file: DefaultMutableTreeNode) {
-        val tree = DefaultMutableTreeNode("$name: $value")
+        val tree = DefaultMutableTreeNode("$name $value")
         file.add(tree)
+    }
+
+    private fun createSelectionListener(): TreeSelectionListener? {
+        return TreeSelectionListener { e ->
+            val pathCount: Int = e.path.pathCount
+            val path: String = e.path.getPathComponent(pathCount - 1).toString()
+            if (path == "Accept Change ") {
+                val dialogResult = JOptionPane.showConfirmDialog(null,
+                        "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    // TO DO : method saving change needs to be called
+                    println("change accepted")
+                }
+            }
+            if (path == "Deny Change ") {
+                val dialogResult = JOptionPane.showConfirmDialog(null,
+                        "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
+                if (dialogResult == JOptionPane.YES_OPTION) {
+                    // TO DO : method not saving change needs to be called
+                    println("change denied")
+                }
+            }
+        }
     }
 
     /**
@@ -89,8 +111,11 @@ class TreeView : JPanel(BorderLayout()) {
      */
     init {
         val mdFiles = DefaultMutableTreeNode("Markdown Files")
-        tree = Tree(DefaultTreeModel(mdFiles))
-        val scrollPane = JBScrollPane(tree)
+        tree = JTree(mdFiles)
+        tree.addTreeSelectionListener(createSelectionListener());
+        val renderer: TreeCellRenderer = CustomCellRenderer()
+        tree.cellRenderer = renderer
+        val scrollPane = JScrollPane(tree)
         layout = BorderLayout()
         add(scrollPane, BorderLayout.CENTER)
     }

@@ -109,6 +109,30 @@ class LinkTrackerAction : AnAction() {
             })
         }
 
+        // Run linkUpdater thread
+        // There should be a better way to wait for the Tracking Links task to finish
+        ApplicationManager.getApplication().invokeLater {
+            WriteCommandAction.runWriteCommandAction(currentProject, Runnable {
+                while (running) {
+                    Thread.sleep(100L)
+                }
+                // Debug
+                println("Finished waiting")
+                if (linksAndChangesList.size != 0) {
+                    // Debug
+                    println("All changes: ")
+                    // Debug
+                    linksAndChangesList.map { pair -> println(pair) }
+                    val result = linkUpdateService.updateLinks(linksAndChangesList)
+                    // Debug
+                    println("Update result: $result")
+                } else {
+                    // Debug
+                    println("No links to update...")
+                }
+            })
+        }
+
         uiService.updateView(currentProject, linksAndChangesList)
         uiService.updateStatistics(currentProject, statistics)
     }
