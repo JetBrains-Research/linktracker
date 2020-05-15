@@ -40,6 +40,7 @@
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
   </extensions>
 

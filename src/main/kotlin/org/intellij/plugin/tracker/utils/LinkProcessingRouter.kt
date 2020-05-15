@@ -13,7 +13,7 @@ class LinkProcessingRouter {
          * Takes in the link and calls ChangeTrackerService API methods depending on the link type
          */
         fun getChangesForLink(link: Link, project: Project): Pair<Link, LinkChange> {
-            val changeTrackerService = ChangeTrackerService(project)
+            val changeTrackerService = ChangeTrackerService.getInstance(project)
 
             when(link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)

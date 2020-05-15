@@ -7,8 +7,9 @@ import java.util.regex.Pattern
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern,
-    override val commitSHA: String
-) : WebLink(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+    ) : WebLink(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String = matcher.group(12)
 }
@@ -16,8 +17,9 @@ data class WebLinkToDirectory(
 data class WebLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToFile.pattern,
-    override val commitSHA: String
-) : WebLink(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+    ) : WebLink(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String = matcher.group(12)
 }
@@ -25,8 +27,9 @@ data class WebLinkToFile(
 data class WebLinkToLine(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToLine.pattern,
-    override val commitSHA: String
-) : WebLink(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+    ) : WebLink(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String {
         matcher.matches()
@@ -40,8 +43,9 @@ data class WebLinkToLine(
 data class WebLinkToLines(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToLines.pattern,
-    override val commitSHA: String
-) : WebLink(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+    ) : WebLink(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String = matcher.group(11)
 

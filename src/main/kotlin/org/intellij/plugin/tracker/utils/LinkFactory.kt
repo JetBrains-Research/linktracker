@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.utils
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 
 class LinkFactory {
@@ -11,7 +12,7 @@ class LinkFactory {
         /**
          * Cache each link that is being identified for faster identification upon consecutive runs
          */
-        private val cachedResults: HashMap<Pair<String, Int>, Link> = hashMapOf<Pair<String, Int>, Link>()
+        private val cachedResults: HashMap<LinkInfo, Link> = hashMapOf()
 
         /**
          * Check whether a link is a valid link to file or directory.
@@ -21,60 +22,66 @@ class LinkFactory {
             commit: String,
             gitOperationManager: GitOperationManager
         ): Link {
-            val key = Pair(linkInfo.linkPath, linkInfo.foundAtLineNumber)
-            val projectRelativeLinkPath = linkInfo.getProjectRelativePath()
-            val linkValidity =
-                gitOperationManager.checkValidityOfLinkPathAtCommit(commit, projectRelativeLinkPath)
-
+            val projectRelativeLinkPath = linkInfo.getMarkdownDirectoryRelativeLinkPath()
             val link: Link
 
-            if (!linkValidity) {
-                link = NotSupportedLink(
-                    linkInfo = linkInfo,
-                    commitSHA = commit,
-                    errorMessage = "Link was not referencing a valid element when it was created"
-                )
-                cachedResults[key] = link
-                return link
-            }
+            val fileList: List<String> = gitOperationManager.getListOfFiles(commit)
 
-            val processedLink = checkRelativeLink(projectRelativeLinkPath)
-
-            val fileList = gitOperationManager.getListOfFiles(commit)
-
-            if (processedLink in fileList) {
+            fileList.map { x -> x.trim() }
+            if (fileList.any { x -> x == projectRelativeLinkPath }) {
                 link = RelativeLinkToFile(linkInfo = linkInfo, commitSHA = commit)
-                cachedResults[key] = link
+                cachedResults[linkInfo] = link
                 return link
             }
 
             val directoryList = gitOperationManager.getListOfDirectories(commit)
 
-            if (processedLink in directoryList) {
+            directoryList.map { x -> x.trim() }
+            if (directoryList.any { x -> x == projectRelativeLinkPath }) {
                 link = RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
             } else {
                 link = NotSupportedLink(linkInfo = linkInfo, errorMessage = "Not a valid link")
             }
-            cachedResults[key] = link
+
+            cachedResults[linkInfo] = link
             return link
         }
 
         /**
          * Factory method which creates the link according to its link path type.
          */
-        fun createLink(linkInfo: LinkInfo, commitSHA: String?, currentProject: Project): Link {
+        fun createLink(
+            linkInfo: LinkInfo,
+            commitSHA: String?,
+            currentProject: Project,
+            cachedChanges: HashSet<LinkChange>
+        ): Link {
+            if (cachedResults.containsKey(linkInfo)) {
+                return cachedResults[linkInfo]!!
+            }
+
             val gitOperationManager = GitOperationManager(project = currentProject)
-            val key = Pair(linkInfo.linkPath, linkInfo.foundAtLineNumber)
-
-            if (cachedResults.containsKey(key))
-                return cachedResults[key]!!
-
-            val commit: String
+            val commit: String?
             try {
                 commit = commitSHA ?: gitOperationManager.getStartCommit(linkInfo = linkInfo)
+                if (commit == null) {
+
+                    // check if this link has been updated by a previous run
+                    val cachedChange = cachedChanges.find { change -> change.changeType == "MOVED"
+                            && change.afterPath != null
+                            && linkInfo.getAfterPathToOriginalFormat(change.afterPath!!) == linkInfo.linkPath }
+                    if (cachedChange != null) {
+                        linkInfo.linkPath = linkInfo.getAfterPathToOriginalFormat(cachedChange.beforePath!!)
+                        val cachedLink = cachedResults[linkInfo]!!
+                        cachedLink.beenCached = true
+                        return cachedResults[linkInfo]!!
+                    }
+
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Could not find start commit for this link - this link has just been added")
+                }
             } catch (e: VcsException) {
                 val link = NotSupportedLink(linkInfo = linkInfo, errorMessage = e.message)
-                cachedResults[key] = link
+                cachedResults[linkInfo] = link
                 return link
             }
 
@@ -115,10 +122,14 @@ class LinkFactory {
                 }
                 else -> {
                     // Ambiguous link: have to see whether it's a path to a file or directory
-                    link = processAmbiguousLink(linkInfo, commit, gitOperationManager)
+                    link = processAmbiguousLink(
+                            linkInfo,
+                            commit,
+                            gitOperationManager
+                    )
                 }
             }
-            cachedResults[key] = link
+            cachedResults[linkInfo] = link
             return link
         }
     }
