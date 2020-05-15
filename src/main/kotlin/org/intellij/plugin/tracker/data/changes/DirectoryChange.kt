@@ -4,10 +4,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
 
 data class DirectoryChange(
-        val changeType: String = "NONE",
+        override var changeType: String = "NONE",
         val directoryName: String? = null,
-        val beforePath: String? = null,
-        val afterPath: String? = null,
+        override val beforePath: String? = null,
+        override val afterPath: String? = null,
         val moveRelativePath: String? = null,
         val errorMessage: String? = null
 ): LinkChange() {
