@@ -3,8 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
-import org.intellij.plugin.tracker.data.changes.DirectoryChange
-import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.utils.GitOperationManager
@@ -14,18 +13,12 @@ import java.io.File
 class ChangeTrackerService(private val project: Project) {
 
     private val gitOperationManager = GitOperationManager(project = project)
+    var lastCommitRunOn: String? = null
+
 
     /**
      * Extract the link we are looking for from a list of changes
      */
-    private fun extractSpecificFileChanges(link: Link, changeList: MutableCollection<Change>): FileChange {
-        val fullPath = "${project.basePath}/${link.getPath()}"
-        for (change in changeList) {
-            if (change.affectsFile(File(fullPath))) return FileChange.changeToFileChange(project, change)
-        }
-
-        return FileChange()
-    }
 
 
     /**
@@ -33,41 +26,31 @@ class ChangeTrackerService(private val project: Project) {
      */
     fun getFileChange(
             link: Link
-    ): Pair<Link, FileChange> {
-        val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
-        return if (changeList != null) {
-            val fileChange = extractSpecificFileChanges(
-                    link = link,
-                    changeList = changeList
-            )
-            Pair(link, fileChange)
-        } else {
-            Pair(link, FileChange())
-        }
-    }
+    ): Pair<Link, LinkChange> {
+        val workingTreeChange: LinkChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
-    /**
-     * Extract the directory we are looking for from a list of changes
-     */
-    private fun extractSpecificDirectoryChanges(changeList: MutableCollection<Change>): DirectoryChange {
-        for (change in changeList) {
-            val prevPath = change.beforeRevision?.file?.parentPath
-            val currPath = change.afterRevision?.file?.parentPath
-            if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(project, change)
+        // this file has just been added and is not tracked by git, but the link is valid
+        if (workingTreeChange != null && workingTreeChange.changeType.toString() == "ADDED") {
+            return Pair(link, workingTreeChange)
         }
-        return DirectoryChange()
-    }
 
-    /**
-     * Main function for getting changes for a directory.
-     */
-    fun getDirectoryChange(link: Link): Pair<Link, DirectoryChange> {
-        val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
-        return if (changeList != null) {
-            val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
-            Pair(link, directoryChange)
-        } else {
-            Pair(link, DirectoryChange())
+        val change = gitOperationManager.getAllChangesForFile(link)
+
+        println("CHANGE IS: $change")
+
+        when (change.changeType) {
+            ChangeType.INVALID -> return Pair(link, change)
+            else -> {
+                // so far we have only checked `git log` with the commit that is pointing to HEAD.
+                // but we want to also check non-committed changes for file changes.
+
+                if (workingTreeChange == null) return Pair(link, change)
+
+                return when (workingTreeChange.changeType) {
+                    ChangeType.DELETED, ChangeType.MOVED -> Pair(link, workingTreeChange)
+                    else -> Pair(link, change)
+                }
+            }
         }
     }
 

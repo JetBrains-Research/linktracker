@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.data.links
 
 import org.intellij.plugin.tracker.utils.LinkPatterns
+import java.io.File
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -9,6 +10,10 @@ data class RelativeLinkToDirectory(
         override val pattern: Pattern? = null,
         override val commitSHA: String
         ) : RelativeLink(linkInfo, pattern, commitSHA) {
+    override fun getReferencedFileName(): String {
+        return ""
+    }
+
     override fun getPath(): String {
         return linkInfo.linkPath
     }
@@ -17,8 +22,14 @@ data class RelativeLinkToDirectory(
 data class RelativeLinkToFile(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern? = null,
-        override val commitSHA: String
-        ) : RelativeLink(linkInfo, pattern, commitSHA) {
+        override val commitSHA: String,
+        override var beenCached: Boolean = false
+        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+    override fun getReferencedFileName(): String {
+        val file = File(linkInfo.linkPath)
+        return file.name
+    }
+
     override fun getPath(): String {
         return linkInfo.linkPath
     }
@@ -30,6 +41,10 @@ data class RelativeLinkToLine(
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern,
         override val commitSHA: String
         ) : RelativeLink(linkInfo, pattern, commitSHA) {
+    override fun getReferencedFileName(): String {
+        val file = File(linkInfo.linkPath)
+        return file.name.replace("#L${matcher.group(1)}", "")
+    }
 
     fun getLineReferenced(): Int = matcher.group(1).toInt()
 }
@@ -39,6 +54,10 @@ data class RelativeLinkToLines(
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern,
         override val commitSHA: String
         ) : RelativeLink(linkInfo, pattern, commitSHA) {
+    override fun getReferencedFileName(): String {
+        val file = File(linkInfo.linkPath)
+        return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
+    }
 
     fun getStartLineReferenced(): Int = matcher.group(1).toInt()
 

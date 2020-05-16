@@ -24,7 +24,8 @@ enum class WebLinkReferenceType(private val type: String) {
 abstract class Link(
     open val linkInfo: LinkInfo,
     open val pattern: Pattern? = null,
-    open val commitSHA: String? = null
+    open val commitSHA: String? = null,
+    open var beenCached: Boolean = false
 ) {
 
     /**
@@ -36,14 +37,7 @@ abstract class Link(
         returnMatcher
     }
 
-
-    /**
-     * Gets the format in which the link appears in the markdown files
-     */
-    fun getMarkDownSyntaxString(): String {
-        return "[${linkInfo.linkText}](${linkInfo.linkPath})"
-    }
-
+    abstract fun getReferencedFileName(): String
 
     /**
      * Returns the relative path at which the referenced element is located.
@@ -57,8 +51,9 @@ abstract class Link(
 abstract class RelativeLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override val commitSHA: String
-) : Link(linkInfo, pattern, commitSHA) {
+    override val commitSHA: String,
+    override var beenCached: Boolean = false
+) : Link(linkInfo, pattern, commitSHA, beenCached) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -109,6 +104,9 @@ data class NotSupportedLink(
     override val commitSHA: String? = null,
     val errorMessage: String? = null
 ):Link(linkInfo, pattern, commitSHA) {
+    override fun getReferencedFileName(): String {
+        return ""
+    }
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -129,6 +127,13 @@ data class LinkInfo(
     val fileName: String,
     val project: Project
 ){
+
+    /**
+     * Gets the format in which the link appears in the markdown files
+     */
+    fun getMarkDownSyntaxString(): String {
+        return "[$linkText]($linkPath)"
+    }
 
     fun getAfterPathToOriginalFormat(afterPath: String): String{
         val newPath = afterPath.replace("${project.basePath!!}/", "")

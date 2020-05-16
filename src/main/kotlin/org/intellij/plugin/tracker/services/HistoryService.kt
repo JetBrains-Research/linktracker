@@ -5,7 +5,8 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
-import org.intellij.plugin.tracker.data.RunResult
+import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.LinkChange
 
 /**
  * @author Tommaso Brandirali
@@ -24,12 +25,16 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
             ServiceManager.getService(project, HistoryService::class.java)
     }
 
-    private var state = State()
+    var stateObject = State()
 
     data class State(
         // The listed results are ordered from most recent to last recent.
         // New results are pushed to the front of the list.
-        var resultsList: ArrayList<RunResult> = ArrayList()
+        //var resultsList: ArrayList<RunResult> = ArrayList(),
+
+        var commitSHA: String? = null,
+
+        var cachedChanges: HashSet<FileChange> = hashSetOf()
     )
 
     /**
@@ -37,7 +42,8 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      * be saved to persistence.
      */
     override fun getState(): State {
-        return state
+        println(stateObject)
+        return stateObject
     }
 
     /**
@@ -46,30 +52,43 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      * @param state the state retrieved from disk
      */
     override fun loadState(state: State) {
-        this.state = state
+        println("LOAD STATE: $state")
+        this.stateObject = state
     }
 
+/*
     fun setResultsList(resultsList: ArrayList<RunResult>) {
         state.resultsList = resultsList
     }
 
     fun getResultsList(): ArrayList<RunResult> {
         return state.resultsList
+    }*/
+
+    fun getCachedChanges() = state.cachedChanges
+
+    fun saveCachedChanges(hashSet: HashSet<FileChange>) {
+        println(hashSet)
+        stateObject.cachedChanges = hashSet
     }
 
-    /**
+    fun saveCommitSHA(commitSHA: String) {
+        stateObject.commitSHA = commitSHA
+    }
+
+/*    *//**
      * Returns true if there is data from any previous runs saved on disk, false otherwise.
-     */
+     *//*
     fun hasHistory(): Boolean {
         return state.resultsList.size != 0
     }
 
-    /**
+    *//**
      * Saves given statistics per project by updating state.
      *
      * @param results the data to save on disk
-     */
+     *//*
     fun saveResults(results: RunResult) {
         state.resultsList.add(0, results)
-    }
+    }*/
 }
