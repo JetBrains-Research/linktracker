@@ -24,8 +24,7 @@ enum class WebLinkReferenceType(private val type: String) {
 abstract class Link(
     open val linkInfo: LinkInfo,
     open val pattern: Pattern? = null,
-    open val commitSHA: String? = null,
-    open var beenCached: Boolean = false
+    open var commitSHA: String? = null
 ) {
 
     /**
@@ -51,9 +50,8 @@ abstract class Link(
 abstract class RelativeLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override val commitSHA: String,
-    override var beenCached: Boolean = false
-) : Link(linkInfo, pattern, commitSHA, beenCached) {
+    override var commitSHA: String? = null
+) : Link(linkInfo, pattern) {
 
     override fun getPath(): String {
         return linkInfo.linkPath
@@ -69,8 +67,8 @@ abstract class RelativeLink(
 abstract class WebLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern,
-    override val commitSHA: String
-) : Link(linkInfo, pattern, commitSHA) {
+    override var commitSHA: String? = null
+) : Link(linkInfo, pattern) {
 
     fun getPlatformName(): String = matcher.group(4)
 
@@ -88,9 +86,9 @@ abstract class WebLink(
     fun getReferencingName(): String = matcher.group(9) ?: matcher.group(11)
 
     // TODO: check the web reference type
-    fun correspondsToLocalProject(project: Project): Boolean {
+    fun correspondsToLocalProject(): Boolean {
         val remoteOriginUrl = "https://${getPlatformName()}/${getProjectOwnerName()}/${getProjectName()}.git"
-        return GitOperationManager(project).getRemoteOriginUrl() == remoteOriginUrl
+        return GitOperationManager(linkInfo.project).getRemoteOriginUrl() == remoteOriginUrl
     }
 }
 
@@ -101,9 +99,9 @@ abstract class WebLink(
 data class NotSupportedLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override val commitSHA: String? = null,
+    override var commitSHA: String? = null,
     val errorMessage: String? = null
-):Link(linkInfo, pattern, commitSHA) {
+):Link(linkInfo, pattern) {
     override fun getReferencedFileName(): String {
         return ""
     }
@@ -140,7 +138,7 @@ data class LinkInfo(
         return newPath.replace(getMarkdownDirectoryPath(), "")
     }
 
-    fun getMarkdownDirectoryPath(): String {
+    private fun getMarkdownDirectoryPath(): String {
         return proveniencePath.replace(fileName, "")
     }
 

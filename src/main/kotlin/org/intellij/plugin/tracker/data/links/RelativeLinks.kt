@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.data.links
 
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Matcher
@@ -8,8 +9,9 @@ import java.util.regex.Pattern
 data class RelativeLinkToDirectory(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern? = null,
-        override val commitSHA: String
-        ) : RelativeLink(linkInfo, pattern, commitSHA) {
+        override var commitSHA: String? = null
+        ) : RelativeLink(linkInfo, pattern) {
+
     override fun getReferencedFileName(): String {
         return ""
     }
@@ -21,10 +23,8 @@ data class RelativeLinkToDirectory(
 
 data class RelativeLinkToFile(
         override val linkInfo: LinkInfo,
-        override val pattern: Pattern? = null,
-        override val commitSHA: String,
-        override var beenCached: Boolean = false
-        ) : RelativeLink(linkInfo, pattern, commitSHA, beenCached) {
+        override val pattern: Pattern? = null
+) : RelativeLink(linkInfo, pattern) {
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name
@@ -38,9 +38,8 @@ data class RelativeLinkToFile(
 
 data class RelativeLinkToLine(
         override val linkInfo: LinkInfo,
-        override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern,
-        override val commitSHA: String
-        ) : RelativeLink(linkInfo, pattern, commitSHA) {
+        override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern
+        ): RelativeLink(linkInfo, pattern) {
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name.replace("#L${matcher.group(1)}", "")
@@ -51,9 +50,8 @@ data class RelativeLinkToLine(
 
 data class RelativeLinkToLines(
         override val linkInfo: LinkInfo,
-        override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern,
-        override val commitSHA: String
-        ) : RelativeLink(linkInfo, pattern, commitSHA) {
+        override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern
+        ) : RelativeLink(linkInfo, pattern) {
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
