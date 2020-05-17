@@ -9,7 +9,8 @@ import java.util.regex.Pattern
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
     BRANCH("BRANCH"),
-    TAG("TAG")
+    TAG("TAG"),
+    INVALID("INVALID")
 }
 
 
@@ -76,10 +77,19 @@ abstract class WebLink(
 
     fun getProjectName(): String = matcher.group(6)
 
-    fun getWebLinkReferenceType(): WebLinkReferenceType = throw NotImplementedError("")
+    fun getWebLinkReferenceType(): WebLinkReferenceType {
+        val ref: String = getReferencingName()
+        val gitOperationManager = GitOperationManager(linkInfo.project)
+        return when {
+            gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH
+            gitOperationManager.isRefATag(ref) -> WebLinkReferenceType.TAG
+            gitOperationManager.isRefACommit(ref) -> WebLinkReferenceType.COMMIT
+            else -> WebLinkReferenceType.INVALID
+        }
+    }
 
     fun isPermalink(): Boolean {
-        if (getWebLinkReferenceType().toString() == "COMMIT") return true
+        if (getWebLinkReferenceType() == WebLinkReferenceType.COMMIT) return true
         return false
     }
 
@@ -101,7 +111,7 @@ data class NotSupportedLink(
     override val pattern: Pattern? = null,
     override var commitSHA: String? = null,
     val errorMessage: String? = null
-):Link(linkInfo, pattern) {
+) : Link(linkInfo, pattern) {
     override fun getReferencedFileName(): String {
         return ""
     }
@@ -124,7 +134,7 @@ data class LinkInfo(
     val textOffset: Int,
     val fileName: String,
     val project: Project
-){
+) {
 
     /**
      * Gets the format in which the link appears in the markdown files
@@ -133,7 +143,7 @@ data class LinkInfo(
         return "[$linkText]($linkPath)"
     }
 
-    fun getAfterPathToOriginalFormat(afterPath: String): String{
+    fun getAfterPathToOriginalFormat(afterPath: String): String {
         val newPath = afterPath.replace("${project.basePath!!}/", "")
         return newPath.replace(getMarkdownDirectoryPath(), "")
     }

@@ -1,6 +1,6 @@
 package org.intellij.plugin.tracker.utils
 
-import com.intellij.openapi.project.Project
+import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.ChangeTrackerService
@@ -35,8 +35,19 @@ class LinkProcessingRouter {
                     link.correspondsToLocalProject() -> return changeTrackerService.getDirectoryChange(link)
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
-                is WebLinkToFile -> when {
-                    link.correspondsToLocalProject() -> return changeTrackerService.getFileChange(link).second
+                is WebLinkToFile -> return when {
+                    link.correspondsToLocalProject() -> {
+                        val webLinkReferenceType: WebLinkReferenceType = link.getWebLinkReferenceType()
+
+                        // match on the web link reference type and call the methods with the right parameters
+                        when (webLinkReferenceType) {
+                            WebLinkReferenceType.COMMIT -> changeTrackerService.getFileChange(link, specificCommit = link.getReferencingName()).second
+                            WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
+                                changeTrackerService.getFileChange(link, branchOrTagName = link.getReferencingName()).second
+                            WebLinkReferenceType.INVALID ->
+                                Pair(link, LinkChange(ChangeType.INVALID, errorMessage = "Web link reference name is invalid", afterPath = link.linkInfo.linkPath))
+                        }
+                    }
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToLine -> when {
