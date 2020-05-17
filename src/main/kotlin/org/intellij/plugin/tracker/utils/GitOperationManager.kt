@@ -14,6 +14,7 @@ import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import kotlin.math.min
 
 
@@ -115,7 +116,7 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processWorkingTreeChanges(link.getPath(), outputLog.getOutputOrThrow())
+        return processWorkingTreeChanges(checkRelativeLink(link.getPath()), outputLog.getOutputOrThrow())
     }
 
     /**
@@ -139,7 +140,7 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link.getPath(), outputLog.getOutputOrThrow())
+        return processChangesForFile(checkRelativeLink(link.getPath()), outputLog.getOutputOrThrow())
     }
 
     /**

@@ -8,6 +8,9 @@ import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.WebLinkToFile
 
 
 class ChangeTrackerService(project: Project) {
@@ -17,9 +20,7 @@ class ChangeTrackerService(project: Project) {
     /**
      * Main function for getting changes for a link to a file.
      */
-    fun getFileChange(
-        link: Link
-    ): Pair<Link, LinkChange> {
+    fun getFileChange(link: Link): Pair<Link, LinkChange> {
         val workingTreeChange: LinkChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
@@ -41,8 +42,22 @@ class ChangeTrackerService(project: Project) {
                 // but now we have a new path that corresponds to the original retrieved path
                 // we want to check whether there is any non-committed change that affects this new path
                 if (workingTreeChange == null) {
-                    link.linkInfo.linkPath = change.afterPath
-                    val currentChange: LinkChange = gitOperationManager.checkWorkingTreeChanges(link) ?: return Pair(link, change)
+                    var newLink: Link? = null
+                    // only these 2 link types get this far (LinkProcessingRouter handles this logic)
+                    when (link) {
+                        is RelativeLinkToFile -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
+                        is WebLinkToFile -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
+                    }
+
+                    // safe !!
+                    newLink!!.linkInfo.linkPath = change.afterPath
+                    val currentChange: LinkChange = gitOperationManager.checkWorkingTreeChanges(newLink) ?: return Pair(link, change)
                     // new change identified (from checking working tree). Use this newly-found change instead.
                     return Pair(link, currentChange)
                 }
