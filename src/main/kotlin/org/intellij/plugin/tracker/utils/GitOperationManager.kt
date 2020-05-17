@@ -121,7 +121,7 @@ class GitOperationManager(private val project: Project) {
 
     /**
      * Get all working tree changes by calling git command
-     * `git log --name-status --oneline --follow --find-renames=<sim_threshold> --reverse <*file_name>`
+     * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
      *
      * This method gets all of the changes that affected <filename> throughout git history
      *
@@ -133,7 +133,6 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters(
             "--name-status",
             "--oneline",
-            "--follow",
             "--find-renames=$similarityThreshold",
             "--reverse",
             "*${link.getReferencedFileName()}"
@@ -208,7 +207,7 @@ class GitOperationManager(private val project: Project) {
 
     /**
      * Auxiliary function that processes the output of
-     * `git log --name-status --oneline --follow --find-renames=<sim_threshold> --reverse <*file_name>`
+     * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
      *
      * Splits the output of the command into a list of lines. Then it tries retrieve all of the lines
      * which represent additions of a the file that is being tracked.
