@@ -24,7 +24,11 @@ data class WebLinkToFile(
     ) : WebLink(linkInfo, pattern) {
     override fun getReferencedFileName(): String = File(getPath()).name
 
-    override fun getPath(): String = matcher.group(12)
+    override fun getPath(): String {
+       if (matcher.matches())
+           return matcher.group(12)
+       return linkInfo.linkPath
+    }
 }
 
 data class WebLinkToLine(
@@ -34,8 +38,9 @@ data class WebLinkToLine(
     override fun getReferencedFileName(): String = File(getPath()).name.replace("#L${matcher.group(12)}", "")
 
     override fun getPath(): String {
-        matcher.matches()
-        return matcher.group(11)
+        if (matcher.matches())
+            return matcher.group(11)
+        return linkInfo.linkPath
     }
 
     fun getLineReferenced(): Int = matcher.group(12).toInt()
@@ -49,7 +54,11 @@ data class WebLinkToLines(
     override fun getReferencedFileName(): String =
         File(getPath()).name.replace("#L${matcher.group(12)}-L${matcher.group(13)}", "")
 
-    override fun getPath(): String = matcher.group(11)
+    override fun getPath(): String {
+        if (matcher.matches())
+            return matcher.group(11)
+        return linkInfo.linkPath
+    }
 
     fun getReferencedStartingLine(): Int = matcher.group(12).toInt()
 
