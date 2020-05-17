@@ -13,7 +13,6 @@ import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import kotlin.math.min
 
 
@@ -24,6 +23,54 @@ class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
     private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
+
+
+    /**
+     * Checks whether a reference name corresponds to a valid tag name
+     *
+     */
+    fun isRefATag(ref: String): Boolean {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.TAG)
+        // list all tags for this project
+        gitLineHandler.addParameters("-l")
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        val outputString: String = output.getOutputOrThrow()
+        var tagList: List<String> = outputString.split("\n")
+        tagList = tagList.map { line -> line.trim() }
+        return ref in tagList
+    }
+
+    /**
+     * Checks whether a reference name corresponds to a valid branch name
+     *
+     */
+    @Throws(VcsException::class)
+    fun isRefABranch(ref: String): Boolean {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.BRANCH)
+        // list all branch names for this project
+        gitLineHandler.addParameters("-l")
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        val outputString: String = output.getOutputOrThrow()
+        var branchList: List<String> = outputString.split("\n")
+        branchList = branchList.map { line -> line.trim() }
+        branchList = branchList.map { line -> line.replace("* ", "") }
+        return ref in branchList
+    }
+
+    /**
+     * Checks whether a reference name corresponds to a valid commit SHA
+     */
+    fun isRefACommit(ref: String): Boolean {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        gitLineHandler.addParameters(
+            "--verify",
+            "-q",
+            "$ref^{commit}"
+        )
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        if (output.exitCode == 0) return true
+        return false
+    }
 
 
     /**
@@ -103,6 +150,21 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
+     * Gets the commit SHA of the first commit in the currently checked out branch
+     *
+     * Runs git command `git rev-list --max-parents=0 HEAD`
+     */
+    @Throws(VcsException::class)
+    fun getFirstCommitSHA(): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+        gitLineHandler.addParameters("--max-parents=0")
+        gitLineHandler.addParameters("HEAD")
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        if (output.exitCode == 0) return output.outputAsJoinedString
+        throw VcsException("Could not find first commit SHA of the currently checked-out branch")
+    }
+
+    /**
      * Get all working tree changes by calling git command `git status --porcelain=v1`
      *
      * The --porcelain=v1 parameter ensures that the output of git status will be static, despite
@@ -125,10 +187,34 @@ class GitOperationManager(private val project: Project) {
      * This method gets all of the changes that affected <filename> throughout git history
      *
      * Hands the output to be processed by processChangesForFile()
+     *
+     * Optional parameters:
+     * @param similarityThreshold: if the contents of a file between two changes have a calculated similarity above
+     * similarityThreshold, those two changes will be identified as a move/rename; otherwise, the changes are identified as
+     * a deletion and an addition respectively.
+     * @param branchOrTagName: specific branch or tag name on which to execute the git command.
+     * @param specificCommit: specific commit SHA which to use as a starting point for the git command.
      */
     @Throws(VcsException::class)
-    fun getAllChangesForFile(link: Link, similarityThreshold: Int = 60): Pair<MutableList<Pair<String, String>>, LinkChange> {
+    fun getAllChangesForFile(
+        link: Link,
+        similarityThreshold: Int = 60,
+        branchOrTagName: String? = null,
+        specificCommit: String? = null
+    ): Pair<MutableList<Pair<String, String>>, LinkChange> {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        // add a specific branch or tag on which to execute the `git log` command
+        // this branch/tag name exists (it has been previously checked in the LinkProcessingRouter
+        if (branchOrTagName != null) gitLineHandler.addParameters(branchOrTagName)
+        // if a specific commit is given, use that commit as a starting point for the log and compare it
+        // to the HEAD commit
+        // check also that the commit SHA is different than the first commit SHA that corresponds to the currently
+        // checked-out branch; if they are the same, use a simple `git log` command without specifying commit range
+        if (specificCommit != null && !getFirstCommitSHA().startsWith(specificCommit)) {
+            gitLineHandler.addParameters("$specificCommit^..HEAD")
+        }
+        // misuse of the method: can not specify both branch/tag name and commit
+        if (branchOrTagName != null && specificCommit != null) throw VcsException("Can not specify both branch/tag name and commit")
         gitLineHandler.addParameters(
             "--name-status",
             "--oneline",
@@ -227,7 +313,10 @@ class GitOperationManager(private val project: Project) {
      *
      * If the output of the git command that is processed is the empty string, then that file never existed in git history.
      */
-    private fun processChangesForFile(linkPath: String, changes: String): Pair<MutableList<Pair<String, String>>, LinkChange> {
+    private fun processChangesForFile(
+        linkPath: String,
+        changes: String
+    ): Pair<MutableList<Pair<String, String>>, LinkChange> {
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
             val additionList: List<Pair<Int, String>> =
@@ -264,7 +353,7 @@ class GitOperationManager(private val project: Project) {
 
                     if (lookUpIndex != -1) {
                         lookUpContent = subList[lookUpIndex]
-                        fileHistoryList.add(Pair(parseContent(subList[lookUpIndex-1]), parseContent(lookUpContent)))
+                        fileHistoryList.add(Pair(parseContent(subList[lookUpIndex - 1]), parseContent(lookUpContent)))
                     }
                     subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
                 }
@@ -276,17 +365,19 @@ class GitOperationManager(private val project: Project) {
 
             return Pair(
                 mutableListOf(), LinkChange(
-                ChangeType.INVALID,
-                linkPath,
-                errorMessage = "File existed, but the path ${linkPath} to this file never existed in Git history."
-            ))
+                    ChangeType.INVALID,
+                    linkPath,
+                    errorMessage = "File existed, but the path ${linkPath} to this file never existed in Git history."
+                )
+            )
         }
         return Pair(
             mutableListOf(), LinkChange(
-            ChangeType.INVALID,
-            linkPath,
-            errorMessage = "Referenced file never existed in Git history."
-        ))
+                ChangeType.INVALID,
+                linkPath,
+                errorMessage = "Referenced file never existed in Git history."
+            )
+        )
     }
 
     /**
