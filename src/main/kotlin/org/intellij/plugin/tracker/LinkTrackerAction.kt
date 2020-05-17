@@ -9,6 +9,8 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vcs.VcsException
+import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -63,8 +65,17 @@ class LinkTrackerAction : AnAction() {
 
                     try {
                         linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
+                    // temporary solution to ignoring not implemented stuff
                     } catch (e: NotImplementedError) {
                         continue
+                    // catch any errors that might result from using vcs commands (git).
+                    } catch(e: VcsException) {
+                        linksAndChangesList.add(
+                            Pair(link, LinkChange(ChangeType.INVALID, errorMessage = e.message, afterPath = link.linkInfo.linkPath)))
+                    // horrible generic exception catch: just in case.
+                    } catch(e: Exception) {
+                        linksAndChangesList.add(
+                            Pair(link, LinkChange(ChangeType.INVALID, errorMessage = e.message, afterPath = link.linkInfo.linkPath)))
                     }
                     // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                 }
