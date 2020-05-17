@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.utils
 
-import com.intellij.history.core.changes.Change
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import git4idea.changes.GitChangeUtils
@@ -65,7 +64,7 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
         if (outputLog.exitCode == 0)
-            // return most recent finding
+        // return most recent finding
             if (outputLog.output.size != 0) return outputLog.output[0].split(" ")[0]
         return null
     }
@@ -128,7 +127,7 @@ class GitOperationManager(private val project: Project) {
      * Hands the output to be processed by processChangesForFile()
      */
     @Throws(VcsException::class)
-    fun getAllChangesForFile(link: Link, similarityThreshold: Int = 60): LinkChange {
+    fun getAllChangesForFile(link: Link, similarityThreshold: Int = 60): Pair<MutableList<Pair<String, String>>, LinkChange> {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters(
             "--name-status",
@@ -177,7 +176,8 @@ class GitOperationManager(private val project: Project) {
                 return LinkChange(
                     ChangeType.INVALID,
                     linkPath,
-                    errorMessage = "Could not track this link.")
+                    errorMessage = "Could not track this link."
+                )
             }
         }
     }
@@ -196,6 +196,12 @@ class GitOperationManager(private val project: Project) {
                 val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 3)
                 lineSplit[2]
+            }
+            // line containing a commit along with the commit description
+            content.matches("[a-z0-9]{6}.*".toRegex()) -> {
+                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                assert(lineSplit.isNotEmpty())
+                "Commit: ${lineSplit[0]}"
             }
             else -> {
                 val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
@@ -221,7 +227,7 @@ class GitOperationManager(private val project: Project) {
      *
      * If the output of the git command that is processed is the empty string, then that file never existed in git history.
      */
-    private fun processChangesForFile(linkPath: String, changes: String): LinkChange {
+    private fun processChangesForFile(linkPath: String, changes: String): Pair<MutableList<Pair<String, String>>, LinkChange> {
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
             val additionList: List<Pair<Int, String>> =
@@ -237,32 +243,50 @@ class GitOperationManager(private val project: Project) {
                 var lookUpContent: String = pair.second
                 var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
 
+                val fileHistoryList: MutableList<Pair<String, String>> = mutableListOf()
+                fileHistoryList.add(Pair(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+
                 while (lookUpIndex != -1) {
-                    val parsedLookUpContent = parseContent(lookUpContent).trim()
+                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
 
                     if (lookUpContent.contains(linkPath)) linkPathFound = true
 
-                    lookUpIndex = subList.indexOfFirst { line -> line.contains(parsedLookUpContent) }
+                    // if the link path has been found during the traversal
+                    // and we encounter a delete change type, that means that that file was deleted
+                    // stop the search and return
+                    if (linkPathFound && lookUpContent.startsWith("D")) break
 
-                    if (lookUpIndex != -1) lookUpContent = subList[lookUpIndex]
+                    // lookUpIndex will match the first line which is not a commit line and contains the
+                    // parsedLookUpContent
+                    lookUpIndex = subList.indexOfFirst { line ->
+                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
+                    }
+
+                    if (lookUpIndex != -1) {
+                        lookUpContent = subList[lookUpIndex]
+                        fileHistoryList.add(Pair(parseContent(subList[lookUpIndex-1]), parseContent(lookUpContent)))
+                    }
                     subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
                 }
 
                 if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    return extractChangeType(linkPath, lookUpContent)
+                    return Pair(fileHistoryList, extractChangeType(linkPath, lookUpContent))
                 }
             }
 
-            return LinkChange(
+            return Pair(
+                mutableListOf(), LinkChange(
                 ChangeType.INVALID,
                 linkPath,
                 errorMessage = "File existed, but the path ${linkPath} to this file never existed in Git history."
-            )
+            ))
         }
-        return LinkChange(
+        return Pair(
+            mutableListOf(), LinkChange(
             ChangeType.INVALID,
             linkPath,
-            errorMessage = "Referenced file never existed in Git history.")
+            errorMessage = "Referenced file never existed in Git history."
+        ))
     }
 
     /**

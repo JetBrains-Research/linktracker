@@ -3,14 +3,11 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
-import org.intellij.plugin.tracker.data.links.WebLinkToFile
+import org.intellij.plugin.tracker.data.links.*
+import org.intellij.plugin.tracker.utils.GitOperationManager
 
 
 class ChangeTrackerService(project: Project) {
@@ -20,18 +17,32 @@ class ChangeTrackerService(project: Project) {
     /**
      * Main function for getting changes for a link to a file.
      */
-    fun getFileChange(link: Link): Pair<Link, LinkChange> {
+    fun getFileChange(link: Link): Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>> {
         val workingTreeChange: LinkChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
         if (workingTreeChange != null && workingTreeChange.changeType == ChangeType.ADDED) {
-            return Pair(link, workingTreeChange)
+            return Pair(mutableListOf(Pair("Working tree", workingTreeChange.afterPath)), Pair(link, workingTreeChange))
         }
 
-        val change: LinkChange = gitOperationManager.getAllChangesForFile(link)
+        val result: Pair<MutableList<Pair<String, String>>, LinkChange> = gitOperationManager.getAllChangesForFile(link)
+        val change: LinkChange = result.second
         when (change.changeType) {
-            // this file's change type is invalid, return straight-away
-            ChangeType.INVALID -> return Pair(link, change)
+            // this file's change type is invalid
+            ChangeType.INVALID -> {
+                // this might be the case when a link corresponds to an uncommitted rename
+                // git log history will have no changes when using the new name
+                // but the working tree change will capture the rename, so we want to return it
+                if (workingTreeChange != null) return Pair(
+                    mutableListOf(
+                        Pair(
+                            "Working tree",
+                            workingTreeChange.afterPath
+                        )
+                    ), Pair(link, workingTreeChange)
+                )
+                return Pair(mutableListOf(), Pair(link, change))
+            }
             else -> {
                 // so far we have only checked `git log` with the commit that is pointing to HEAD.
                 // but we want to also check non-committed changes for file changes.
@@ -53,13 +64,33 @@ class ChangeTrackerService(project: Project) {
                             val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
                             newLink = link.copy(linkInfo = linkInfoCopy)
                         }
+                        is RelativeLinkToLine -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
+                        is WebLinkToLine -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
+                        is RelativeLinkToLines -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
+                        is WebLinkToLines -> {
+                            val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = change.afterPath)
+                            newLink = link.copy(linkInfo = linkInfoCopy)
+                        }
                     }
 
                     // safe !!
                     newLink!!.linkInfo.linkPath = change.afterPath
-                    val currentChange: LinkChange = gitOperationManager.checkWorkingTreeChanges(newLink) ?: return Pair(link, change)
+                    val currentChange: LinkChange = gitOperationManager.checkWorkingTreeChanges(newLink) ?: return Pair(
+                        result.first,
+                        Pair(link, change)
+                    )
                     // new change identified (from checking working tree). Use this newly-found change instead.
-                    return Pair(link, currentChange)
+                    result.first.add(Pair("Working tree", currentChange.afterPath))
+                    return Pair(result.first, Pair(link, currentChange))
                 }
 
                 // if the working tree change change type is either deleted or moved
@@ -67,8 +98,14 @@ class ChangeTrackerService(project: Project) {
                 // use this change instead of the one found from `git log` command (it overrides it).
                 // Otherwise, return the change found from `git log` command.
                 return when (workingTreeChange.changeType) {
-                    ChangeType.DELETED, ChangeType.MOVED -> Pair(link, workingTreeChange)
-                    else -> Pair(link, change)
+                    ChangeType.DELETED, ChangeType.MOVED -> {
+                        result.first.add(Pair("Working tree", workingTreeChange.afterPath))
+                        Pair(
+                            result.first,
+                            Pair(link, workingTreeChange)
+                        )
+                    }
+                    else -> Pair(result.first, Pair(link, change))
                 }
             }
         }

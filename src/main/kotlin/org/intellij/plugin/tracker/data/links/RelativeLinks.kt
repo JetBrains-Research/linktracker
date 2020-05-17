@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data.links
 
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Matcher
@@ -15,10 +14,6 @@ data class RelativeLinkToDirectory(
     override fun getReferencedFileName(): String {
         return ""
     }
-
-    override fun getPath(): String {
-        return linkInfo.linkPath
-    }
 }
 
 data class RelativeLinkToFile(
@@ -28,10 +23,6 @@ data class RelativeLinkToFile(
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name
-    }
-
-    override fun getPath(): String {
-        return linkInfo.linkPath
     }
 }
 
@@ -45,7 +36,13 @@ data class RelativeLinkToLine(
         return file.name.replace("#L${matcher.group(1)}", "")
     }
 
-    fun getLineReferenced(): Int = matcher.group(1).toInt()
+    override fun getPath(): String {
+        if (matcher.matches())
+            return linkInfo.linkPath.replace("#L${getLineReferenced()}", "")
+        return linkInfo.linkPath
+    }
+
+    fun getLineReferenced(): Int  = matcher.group(1).toInt()
 }
 
 data class RelativeLinkToLines(
@@ -55,6 +52,13 @@ data class RelativeLinkToLines(
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
+    }
+
+    override fun getPath(): String {
+        if (matcher.matches())
+            return linkInfo.linkPath.replace(
+                "#L${getStartLineReferenced()}-L${getEndLineReferenced()}", "")
+        return linkInfo.linkPath
     }
 
     fun getStartLineReferenced(): Int = matcher.group(1).toInt()
