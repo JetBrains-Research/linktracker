@@ -115,7 +115,7 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processWorkingTreeChanges(checkRelativeLink(link.getPath()), outputLog.getOutputOrThrow())
+        return processWorkingTreeChanges(link.getPath(), outputLog.getOutputOrThrow())
     }
 
     /**
@@ -138,7 +138,7 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(checkRelativeLink(link.getPath()), outputLog.getOutputOrThrow())
+        return processChangesForFile(link.getPath(), outputLog.getOutputOrThrow())
     }
 
     /**
