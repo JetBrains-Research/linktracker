@@ -11,7 +11,7 @@ enum class LinkPatterns(val pattern: Pattern) {
     /**
      * WebLink patterns
      */
-    WebLinkToLines(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+-L[0-9])")),
+    WebLinkToLines(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)-L([0-9]+)")),
     WebLinkToLine(Pattern.compile("((https?://)|(www\\.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)")),
     WebLinkToFile(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-zA-Z-_.0-9]+))|(-/blob/([a-zA-Z-_.0-9]+)))/([a-zA-Z0-9-_./]+\\.[a-zA-Z0-9-_./]+)")),
     WebLinkToDirectory(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((tree/([a-zA-Z-_.0-9]+))|(-/tree/([a-zA-Z-_.0-9]+)))/([a-zA-Z0-9-_./]+)")),

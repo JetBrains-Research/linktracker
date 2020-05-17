@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data.links
 
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Pattern
