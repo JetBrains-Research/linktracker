@@ -12,28 +12,50 @@ class LinkProcessingRouter {
         /**
          * Takes in the link and calls ChangeTrackerService API methods depending on the link type
          */
-        fun getChangesForLink(link: Link, project: Project): Pair<Link, LinkChange> {
-            val changeTrackerService = ChangeTrackerService.getInstance(project)
+        fun getChangesForLink(link: Link): Pair<Link, LinkChange> {
+            val changeTrackerService: ChangeTrackerService = ChangeTrackerService.getInstance(link.linkInfo.project)
 
             when(link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
-                is RelativeLinkToFile -> return changeTrackerService.getFileChange(link)
-                is RelativeLinkToLine -> throw NotImplementedError("")
-                is RelativeLinkToLines -> throw NotImplementedError("")
+                is RelativeLinkToFile -> return changeTrackerService.getFileChange(link).second
+                is RelativeLinkToLine -> {
+                    val result = changeTrackerService.getFileChange(link)
+                    println("FILE HISTORY LIST: ${result.first}")
+                    // TODO: get the versions of the file using the file history list
+                    // result.first will contains a list of Pair<String, String>, where the first element
+                    // represents the commitSHA and the project relative path to the file
+                    throw NotImplementedError("")
+                }
+                is RelativeLinkToLines -> {
+                    val result = changeTrackerService.getFileChange(link)
+                    println("FILE HISTORY LIST: ${result.first}")
+                    throw NotImplementedError("")
+                }
                 is WebLinkToDirectory-> when {
-                    link.correspondsToLocalProject(project) -> return changeTrackerService.getDirectoryChange(link)
+                    link.correspondsToLocalProject() -> return changeTrackerService.getDirectoryChange(link)
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToFile -> when {
-                    link.correspondsToLocalProject(project) -> return changeTrackerService.getFileChange(link)
+                    link.correspondsToLocalProject() -> return changeTrackerService.getFileChange(link).second
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToLine -> when {
-                    link.correspondsToLocalProject(project) -> throw NotImplementedError("$link is not yet supported")
+                    link.correspondsToLocalProject() -> {
+                        val result = changeTrackerService.getFileChange(link)
+                        println("FILE HISTORY LIST: ${result.first}")
+                        // TODO: get the versions of the file using the file history list
+                        // result.first will contains a list of Pair<String, String>, where the first element
+                        // represents the commitSHA and the project relative path to the file
+                        throw NotImplementedError("")
+                    }
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToLines -> when {
-                    link.correspondsToLocalProject(project) -> throw NotImplementedError("$link is not yet supported")
+                    link.correspondsToLocalProject() -> {
+                        val result = changeTrackerService.getFileChange(link)
+                        println("FILE HISTORY LIST: ${result.first}")
+                        throw NotImplementedError("")
+                    }
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is NotSupportedLink -> throw NotImplementedError("$link is not yet supported")

@@ -2,11 +2,12 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.plugin.tracker.data.UpdateResult
-import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
@@ -69,7 +70,7 @@ class LinkUpdaterService(val project: Project) {
      */
     private fun updateLink(link: Link, fileChange: LinkChange, element: PsiElement): Boolean {
         when (link) {
-            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange as FileChange, element)
+            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange, element)
             is WebLink -> throw NotImplementedError()
             else -> throw NotImplementedError()
         }
@@ -82,14 +83,15 @@ class LinkUpdaterService(val project: Project) {
      * @param fileChange the FileChange according to which to update the link
      * @return true if update succeeded, false otherwise
      */
-    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: FileChange, element: PsiElement): Boolean {
-        if (fileChange.changeType == "MOVED") {
-            var newPath = fileChange.afterPath ?: return false
+    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: LinkChange, element: PsiElement): Boolean {
+        if (fileChange.changeType == ChangeType.MOVED) {
+            var newPath = fileChange.afterPath
             // transform the path to the original format: this will mostly work for paths which
             // do not contain ../ or ./ in their original format
             newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
             val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
             element.replace(newElement)
+            PsiDocumentManager.getInstance(project).commitAllDocuments()
             return true
         } else {
             throw NotImplementedError()

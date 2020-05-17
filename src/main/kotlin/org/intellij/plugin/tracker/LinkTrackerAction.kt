@@ -13,10 +13,8 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.services.LinkRetrieverService
-import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.services.UIService
+import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugin.tracker.utils.LinkProcessingRouter
 
@@ -28,16 +26,19 @@ class LinkTrackerAction : AnAction() {
 
         if (currentProject == null) {
             Messages.showErrorDialog(
-                    "Please open a project to run the link tracking plugin.",
-                    "Link Tracker"
+                "Please open a project to run the link tracking plugin.",
+                "Link Tracker"
             )
             return
         }
 
-        val linkService = LinkRetrieverService.getInstance(currentProject)
-        val linkUpdateService = LinkUpdaterService.getInstance(currentProject)
-        val uiService = UIService.getInstance(currentProject)
+        // initialize all services
+        val historyService: HistoryService = HistoryService.getInstance(currentProject)
+        val linkService: LinkRetrieverService = LinkRetrieverService.getInstance(currentProject)
+        val linkUpdateService: LinkUpdaterService = LinkUpdaterService.getInstance(currentProject)
+        val uiService: UIService = UIService.getInstance(currentProject)
 
+        // initialize lists
         val linksAndChangesList: MutableList<Pair<Link, LinkChange>> = mutableListOf()
         val linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
@@ -46,30 +47,22 @@ class LinkTrackerAction : AnAction() {
         }
 
         var running = true
+
         ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
             override fun run(indicator: ProgressIndicator) {
                 running = true
                 for (linkInfo in linkInfoList) {
-                    // TODO: Get commit SHA from disk if possible
-                    val commitSHA = null
-                    val link = LinkFactory.createLink(
-                        linkInfo,
-                        commitSHA,
-                        currentProject,
-                        ChangeTrackerService.getInstance(project).cachedChanges
-                    )
+                    indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
+                    val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
+
+                    println("LINK IS: $link")
 
                     if (link is NotSupportedLink) {
                         continue
                     }
-                    indicator.text = "Tracking link with path ${link.linkInfo.linkPath}.."
+
                     try {
-                        linksAndChangesList.add(
-                            LinkProcessingRouter.getChangesForLink(
-                                link = link,
-                                project = currentProject
-                            )
-                        )
+                        linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
                     } catch (e: NotImplementedError) {
                         continue
                     }
@@ -78,17 +71,18 @@ class LinkTrackerAction : AnAction() {
                 // Debug
                 println("Link tracking finished!")
                 running = false
+
+                historyService.saveCommitSHA(GitOperationManager(currentProject).getHeadCommitSHA())
             }
         })
 
-        // TODO: Commit SHA needs to be given to following method to retrieve changes
         val statistics =
-                mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
 
         // Run linkUpdater thread
         // There should be a better way to wait for the Tracking Links task to finish
         ApplicationManager.getApplication().invokeLater {
-            WriteCommandAction.runWriteCommandAction(currentProject, Runnable {
+            WriteCommandAction.runWriteCommandAction(currentProject) {
                 while (running) {
                     Thread.sleep(100L)
                 }
@@ -106,31 +100,7 @@ class LinkTrackerAction : AnAction() {
                     // Debug
                     println("No links to update...")
                 }
-            })
-        }
-
-        // Run linkUpdater thread
-        // There should be a better way to wait for the Tracking Links task to finish
-        ApplicationManager.getApplication().invokeLater {
-            WriteCommandAction.runWriteCommandAction(currentProject, Runnable {
-                while (running) {
-                    Thread.sleep(100L)
-                }
-                // Debug
-                println("Finished waiting")
-                if (linksAndChangesList.size != 0) {
-                    // Debug
-                    println("All changes: ")
-                    // Debug
-                    linksAndChangesList.map { pair -> println(pair) }
-                    val result = linkUpdateService.updateLinks(linksAndChangesList)
-                    // Debug
-                    println("Update result: $result")
-                } else {
-                    // Debug
-                    println("No links to update...")
-                }
-            })
+            }
         }
 
         uiService.updateView(currentProject, linksAndChangesList)

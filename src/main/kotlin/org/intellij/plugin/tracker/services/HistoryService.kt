@@ -7,6 +7,7 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.RunResult
 
+
 /**
  * @author Tommaso Brandirali
  *
@@ -24,12 +25,14 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
             ServiceManager.getService(project, HistoryService::class.java)
     }
 
-    private var state = State()
+    var stateObject = State()
 
     data class State(
         // The listed results are ordered from most recent to last recent.
         // New results are pushed to the front of the list.
-        var resultsList: ArrayList<RunResult> = ArrayList()
+        var resultsList: ArrayList<RunResult> = ArrayList(),
+
+        var commitSHA: String? = null
     )
 
     /**
@@ -37,7 +40,7 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      * be saved to persistence.
      */
     override fun getState(): State {
-        return state
+        return stateObject
     }
 
     /**
@@ -46,8 +49,9 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      * @param state the state retrieved from disk
      */
     override fun loadState(state: State) {
-        this.state = state
+        this.stateObject = state
     }
+
 
     fun setResultsList(resultsList: ArrayList<RunResult>) {
         state.resultsList = resultsList
@@ -55,6 +59,11 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
 
     fun getResultsList(): ArrayList<RunResult> {
         return state.resultsList
+    }
+
+
+    fun saveCommitSHA(commitSHA: String) {
+        stateObject.commitSHA = commitSHA
     }
 
     /**

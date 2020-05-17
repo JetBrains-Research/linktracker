@@ -1,10 +1,8 @@
 package org.intellij.plugin.tracker.view
 
-import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
-import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
 import javax.swing.JOptionPane
 import javax.swing.JPanel
@@ -36,8 +34,7 @@ class TreeView : JPanel(BorderLayout()) {
         for (linkList in links) {
             val file = DefaultMutableTreeNode(linkList.key)
             for (link in linkList.value) {
-                val linkTree = DefaultMutableTreeNode(checkRelativeLink(link.first.linkInfo.getMarkdownDirectoryRelativeLinkPath()))
-                //addNodeTree("Link Type", link.first.linkType.name, linkTree)
+                val linkTree = DefaultMutableTreeNode(link.first.linkInfo.getMarkdownDirectoryRelativeLinkPath())
                 addNodeTree("Link Text", link.first.linkInfo.linkText, linkTree)
                 addNodeTree("Link Path", link.first.linkInfo.linkPath, linkTree)
                 addNodeTree("Provenience Path", link.first.linkInfo.proveniencePath, linkTree)
@@ -57,19 +54,14 @@ class TreeView : JPanel(BorderLayout()) {
         // Add changes of links
         val changeNode = DefaultMutableTreeNode("Changes")
         for (change in changes) {
-            if (change.second is FileChange && change.second.changeType != "NONE") {
-                // for now, cast to FileChange.
-                val fileChange = change.second as FileChange
-                val file = DefaultMutableTreeNode(fileChange.fileName)
-                addNodeTree("File Name:", fileChange.fileName, file)
-                addNodeTree("Change Type:", fileChange.changeType, file)
-                addNodeTree("Before Path:", fileChange.beforePath, file)
-                addNodeTree("After Path:", fileChange.afterPath, file)
-                addNodeTree("Move Relative Path:", fileChange.moveRelativePath, file)
-                addNodeTree("Accept Change", "", file)
-                addNodeTree("Deny Change", "", file)
-                changeNode.add(file)
-            }
+            val linkChange = change.second
+            val file = DefaultMutableTreeNode(linkChange.changeType.toString())
+            addNodeTree("Change Type:", linkChange.changeType.toString(), file)
+            addNodeTree("After Path:", linkChange.afterPath, file)
+            if (linkChange.errorMessage != null) addNodeTree("Error message:", linkChange.errorMessage, file)
+            addNodeTree("Accept Change", "", file)
+            addNodeTree("Deny Change", "", file)
+            changeNode.add(file)
         }
         root.add(changeNode)
         (tree.model as DefaultTreeModel).reload()
