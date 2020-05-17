@@ -17,7 +17,11 @@ class ChangeTrackerService(project: Project) {
     /**
      * Main function for getting changes for a link to a file.
      */
-    fun getFileChange(link: Link): Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>> {
+    fun getFileChange(
+        link: Link,
+        branchOrTagName: String? = null,
+        specificCommit: String? = null
+    ): Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>> {
         val workingTreeChange: LinkChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
@@ -25,7 +29,8 @@ class ChangeTrackerService(project: Project) {
             return Pair(mutableListOf(Pair("Working tree", workingTreeChange.afterPath)), Pair(link, workingTreeChange))
         }
 
-        val result: Pair<MutableList<Pair<String, String>>, LinkChange> = gitOperationManager.getAllChangesForFile(link)
+        val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
+            gitOperationManager.getAllChangesForFile(link, branchOrTagName = branchOrTagName, specificCommit = specificCommit)
         val change: LinkChange = result.second
         when (change.changeType) {
             // this file's change type is invalid
