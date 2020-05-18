@@ -34,18 +34,6 @@ internal class CustomCellRenderer : TreeCellRenderer {
                         check = true
                     }
                 }
-            } else if (value.parent?.toString() == "Markdown Files") {
-                val children = value.children()
-                for (child in children) {
-                    if (child.childCount != 0 && child.allowsChildren) {
-                        val linkList = child.children()
-                        for (link in linkList) {
-                            if (link.toString() == "Change") {
-                                check = true
-                            }
-                        }
-                    }
-                }
             }
 
             if (check) titleLabel.foreground = Color.BLUE else titleLabel.foreground = Color.DARK_GRAY
