@@ -26,17 +26,18 @@ internal class CustomCellRenderer : TreeCellRenderer {
             val userObject = value.userObject
             titleLabel.text = userObject.toString()
             var check = false
-            if (value.parent != null) {
-                if (value.parent.parent != null && value.parent.parent.toString() == "Markdown Files") {
-                    val children = value.children()
-                    for (child in children) {
-                        if (child.toString() == "Change") {
-                            check = true
-                        }
+
+            if (value.parent?.parent?.toString() == "Markdown Files") {
+                val children = value.children()
+                for (child in children) {
+                    if (child.toString() == "Change") {
+                        check = true
                     }
-                } else if (value.parent.toString() == "Markdown Files") {
-                    val children = value.children()
-                    for (child in children) {
+                }
+            } else if (value.parent?.toString() == "Markdown Files") {
+                val children = value.children()
+                for (child in children) {
+                    if (child.childCount != 0 && child.allowsChildren) {
                         val linkList = child.children()
                         for (link in linkList) {
                             if (link.toString() == "Change") {
@@ -47,20 +48,12 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 }
             }
 
-            if (check) {
-                titleLabel.foreground = Color.BLUE
-            } else {
-                titleLabel.foreground = Color.DARK_GRAY
-            }
+            if (check) titleLabel.foreground = Color.BLUE else titleLabel.foreground = Color.DARK_GRAY
 
+            if (userObject.toString() == "Accept Change ") titleLabel.foreground = Color.GREEN
 
-            if (selected && userObject.toString() == "Accept Change ") {
-                titleLabel.foreground = Color.GREEN
-            }
+            if (userObject.toString() == "Deny Change ") titleLabel.foreground = Color.RED
 
-            if (selected && userObject.toString() == "Deny Change ") {
-                titleLabel.foreground = Color.RED
-            }
             renderer.isEnabled = tree.isEnabled
             returnValue = renderer
         }
