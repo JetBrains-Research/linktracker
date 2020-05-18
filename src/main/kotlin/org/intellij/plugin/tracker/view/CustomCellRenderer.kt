@@ -37,7 +37,8 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 } else if (value.parent.toString() == "Markdown Files") {
                     val children = value.children()
                     for (child in children) {
-                        for (link in child.children()) {
+                        val linkList = child.children()
+                        for (link in linkList) {
                             if (link.toString() == "Change") {
                                 check = true
                             }
