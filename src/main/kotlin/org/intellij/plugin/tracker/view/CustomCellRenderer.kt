@@ -12,11 +12,11 @@ import javax.swing.tree.TreeCellRenderer
 
 
 internal class CustomCellRenderer : TreeCellRenderer {
-    var titleLabel = JLabel("")
-    var renderer: JPanel = JPanel()
-    var defaultRenderer = DefaultTreeCellRenderer()
-    var backgroundSelectionColor: Color
-    var backgroundNonSelectionColor: Color
+    private var titleLabel = JLabel("")
+    private var renderer: JPanel = JPanel()
+    private var defaultRenderer = DefaultTreeCellRenderer()
+    private var backgroundSelectionColor: Color
+    private var backgroundNonSelectionColor: Color
 
     override fun getTreeCellRendererComponent(
             tree: JTree, value: Any, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean
@@ -25,7 +25,33 @@ internal class CustomCellRenderer : TreeCellRenderer {
         if (value is DefaultMutableTreeNode) {
             val userObject = value.userObject
             titleLabel.text = userObject.toString()
-            titleLabel.foreground = Color.BLUE
+            var check = false
+            if (value.parent != null) {
+                if (value.parent.parent != null && value.parent.parent.toString() == "Markdown Files") {
+                    val children = value.children()
+                    for (child in children) {
+                        if (child.toString() == "Change") {
+                            check = true
+                        }
+                    }
+                } else if (value.parent.toString() == "Markdown Files") {
+                    val children = value.children()
+                    for (child in children) {
+                        for (link in child.children()) {
+                            if (link.toString() == "Change") {
+                                check = true
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (check) {
+                titleLabel.foreground = Color.BLUE
+            } else {
+                titleLabel.foreground = Color.DARK_GRAY
+            }
+
 
             if (selected && userObject.toString() == "Accept Change ") {
                 titleLabel.foreground = Color.GREEN
