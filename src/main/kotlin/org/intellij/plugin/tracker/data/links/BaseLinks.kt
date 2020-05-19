@@ -2,9 +2,9 @@ package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import java.nio.file.Paths
 
 
 enum class WebLinkReferenceType(private val type: String) {
@@ -72,6 +72,8 @@ abstract class WebLink(
     override var commitSHA: String? = null
 ) : Link(linkInfo, pattern) {
 
+    var referenceType: WebLinkReferenceType? = null
+
     fun getPlatformName(): String = matcher.group(4)
 
     fun getProjectOwnerName(): String = matcher.group(5)
@@ -81,12 +83,14 @@ abstract class WebLink(
     fun getWebLinkReferenceType(): WebLinkReferenceType {
         val ref: String = getReferencingName()
         val gitOperationManager = GitOperationManager(linkInfo.project)
-        return when {
+        val result: WebLinkReferenceType = when {
             gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH
             gitOperationManager.isRefATag(ref) -> WebLinkReferenceType.TAG
             gitOperationManager.isRefACommit(ref) -> WebLinkReferenceType.COMMIT
             else -> WebLinkReferenceType.INVALID
         }
+        referenceType = result
+        return result
     }
 
     fun isPermalink(): Boolean {
@@ -101,6 +105,13 @@ abstract class WebLink(
         val remoteOriginUrl = "https://${getPlatformName()}/${getProjectOwnerName()}/${getProjectName()}.git"
         return GitOperationManager(linkInfo.project).getRemoteOriginUrl() == remoteOriginUrl
     }
+
+    abstract fun updateLink(
+        afterPath: String,
+        referencedLine: Int? = null,
+        startLine: Int? = null,
+        endLine: Int? = null
+    ): String
 }
 
 /**

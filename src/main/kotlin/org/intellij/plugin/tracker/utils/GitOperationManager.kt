@@ -95,7 +95,7 @@ class GitOperationManager(private val project: Project) {
     @Throws(VcsException::class)
     fun getHeadCommitSHA(): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
-        gitLineHandler.addParameters("--short", "HEAD")
+        gitLineHandler.addParameters("HEAD")
         val output = git.runCommand(gitLineHandler)
         return output.getOutputOrThrow()
     }
@@ -132,18 +132,18 @@ class GitOperationManager(private val project: Project) {
         val change: String? = changeList.find { line -> line.contains(linkPath) }
         if (change != null) {
             when {
-                change.startsWith("?") -> return LinkChange(ChangeType.ADDED, linkPath)
-                change.startsWith("!") -> return LinkChange(ChangeType.ADDED, linkPath)
-                change.startsWith("C") -> return LinkChange(ChangeType.ADDED, linkPath)
-                change.startsWith("A") -> return LinkChange(ChangeType.ADDED, linkPath)
-                change.startsWith("U") -> return LinkChange(ChangeType.ADDED, linkPath)
+                change.startsWith("?") -> return LinkChange(ChangeType.ADDED, linkPath, fromWorkingTree = true)
+                change.startsWith("!") -> return LinkChange(ChangeType.ADDED, linkPath, fromWorkingTree = true)
+                change.startsWith("C") -> return LinkChange(ChangeType.ADDED, linkPath, fromWorkingTree = true)
+                change.startsWith("A") -> return LinkChange(ChangeType.ADDED, linkPath, fromWorkingTree = true)
+                change.startsWith("U") -> return LinkChange(ChangeType.ADDED, linkPath, fromWorkingTree = true)
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
-                    return LinkChange(ChangeType.MOVED, lineSplit[1])
+                    return LinkChange(ChangeType.MOVED, lineSplit[1], fromWorkingTree = true)
                 }
-                change.startsWith("D") -> return LinkChange(ChangeType.DELETED, linkPath)
-                change.startsWith("M") -> return LinkChange(ChangeType.MODIFIED, linkPath)
+                change.startsWith("D") -> return LinkChange(ChangeType.DELETED, linkPath, fromWorkingTree = true)
+                change.startsWith("M") -> return LinkChange(ChangeType.MODIFIED, linkPath, fromWorkingTree = true)
             }
         }
         return null
@@ -367,7 +367,7 @@ class GitOperationManager(private val project: Project) {
                 mutableListOf(), LinkChange(
                     ChangeType.INVALID,
                     linkPath,
-                    errorMessage = "File existed, but the path ${linkPath} to this file never existed in Git history."
+                    errorMessage = "File existed, but the path $linkPath to this file never existed in Git history."
                 )
             )
         }

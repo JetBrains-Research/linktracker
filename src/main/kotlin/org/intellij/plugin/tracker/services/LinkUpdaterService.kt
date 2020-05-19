@@ -9,9 +9,8 @@ import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
-import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.*
+import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
 
 
@@ -40,7 +39,7 @@ class LinkUpdaterService(val project: Project) {
      *
      * @param links the collection of link data necessary for the update
      */
-    fun updateLinks(links: MutableCollection<Pair<Link, LinkChange>>): UpdateResult {
+    fun updateLinks(links: MutableCollection<Pair<Link, LinkChange>>, newCommit: String?): UpdateResult {
         val startTime = System.currentTimeMillis()
         val updated = mutableListOf<Link>()
         val failed = mutableListOf<Link>()
@@ -49,7 +48,7 @@ class LinkUpdaterService(val project: Project) {
             try {
                 if (triple.third == null) {
                     failed.add(triple.first)
-                } else if (updateLink(triple.first, triple.second, triple.third!!)) {
+                } else if (updateLink(triple.first, triple.second, triple.third!!, newCommit)) {
                     updated.add(triple.first)
                 } else {
                     failed.add(triple.first)
@@ -68,12 +67,51 @@ class LinkUpdaterService(val project: Project) {
      * @param link the Link object to be updated
      * @param fileChange the FileChange according to which to update the link
      */
-    private fun updateLink(link: Link, fileChange: LinkChange, element: PsiElement): Boolean {
-        when (link) {
-            is RelativeLinkToFile -> return updateRelativeLink(link, fileChange, element)
-            is WebLink -> throw NotImplementedError()
-            else -> throw NotImplementedError()
+    private fun updateLink(link: Link, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
+        return when (link) {
+            is RelativeLinkToFile -> updateRelativeLink(link, linkChange, element)
+            is WebLink -> updateWebLink(link, linkChange, element, newCommit)
+            // else: NotSupportedLink - this should not be updated nonetheless
+            else -> return false
         }
+    }
+
+    private fun updateWebLink(link: WebLink, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
+        if (linkChange.changeType == ChangeType.MOVED) {
+            var afterPath: String = when (link) {
+                is WebLinkToFile -> {
+                    link.updateLink(linkChange.afterPath)
+                }
+                is WebLinkToDirectory -> {
+                    link.updateLink(linkChange.afterPath)
+                }
+                is WebLinkToLine -> {
+                    throw NotImplementedError("")
+                }
+                // web link to lines
+                else -> {
+                    throw NotImplementedError("")
+                }
+            }
+            // in case the web link reference type is a commit
+            // we need to replace this commit with a `fresher` one
+            // replace with the commit SHA that currently points to HEAD
+            if (link.referenceType == WebLinkReferenceType.COMMIT) {
+                // can not update this link without a new commit being given
+                // something went wrong previously in fetching this commit SHA
+                // don't update the link
+                // if the change comes from the working tree, do not update the link
+                if (newCommit == null || linkChange.fromWorkingTree) return false
+
+                afterPath = afterPath.replace(link.getReferencingName(), newCommit)
+            }
+            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
+            element.replace(newElement)
+            return true
+        }
+
+        // only change changes of type MOVED
+        return false
     }
 
     /**
@@ -85,13 +123,12 @@ class LinkUpdaterService(val project: Project) {
      */
     private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: LinkChange, element: PsiElement): Boolean {
         if (fileChange.changeType == ChangeType.MOVED) {
-            var newPath = fileChange.afterPath
+            var newPath: String = fileChange.afterPath
             // transform the path to the original format: this will mostly work for paths which
             // do not contain ../ or ./ in their original format
             newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
-            val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
+            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
             element.replace(newElement)
-            PsiDocumentManager.getInstance(project).commitAllDocuments()
             return true
         } else {
             throw NotImplementedError()
