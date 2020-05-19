@@ -2,8 +2,8 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.plugin.tracker.data.UpdateResult
@@ -12,6 +12,7 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
 
 
@@ -89,9 +90,8 @@ class LinkUpdaterService(val project: Project) {
             // transform the path to the original format: this will mostly work for paths which
             // do not contain ../ or ./ in their original format
             newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
-            val newElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
+            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, newPath)
             element.replace(newElement)
-            PsiDocumentManager.getInstance(project).commitAllDocuments()
             return true
         } else {
             throw NotImplementedError()
@@ -127,7 +127,7 @@ class LinkUpdaterService(val project: Project) {
         matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
         // Assume only one valid result
         assert(matchingFiles.size == 1)
-        val psiFile = matchingFiles[0]
-        return psiFile.findElementAt(link.linkInfo.textOffset)?.parent
+        val psiFile: PsiFile = matchingFiles[0]
+        return psiFile.findElementAt(link.linkInfo.textOffset)
     }
 }
