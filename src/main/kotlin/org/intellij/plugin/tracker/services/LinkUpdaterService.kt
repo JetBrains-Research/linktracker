@@ -2,8 +2,8 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.plugin.tracker.data.UpdateResult
@@ -164,7 +164,7 @@ class LinkUpdaterService(val project: Project) {
         matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
         // Assume only one valid result
         assert(matchingFiles.size == 1)
-        val psiFile = matchingFiles[0]
-        return psiFile.findElementAt(link.linkInfo.textOffset)?.parent
+        val psiFile: PsiFile = matchingFiles[0]
+        return psiFile.findElementAt(link.linkInfo.textOffset)
     }
 }
