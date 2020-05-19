@@ -24,11 +24,11 @@ class CustomDialog internal constructor(canBeParent: Boolean) : DialogWrapper(ca
         if (okAction.isEnabled) {
             try {
                 val input = thresholdText.toInt()
-                if (input in 101 downTo 29) {
+                if (input in 0..100) {
                     prop.setValue("threshold", input.toString())
                     close(OK_EXIT_CODE)
                 } else {
-                    JOptionPane.showMessageDialog(null, "Please enter a number between 30-100")
+                    JOptionPane.showMessageDialog(null, "Please enter a number between 0-100")
                 }
 
             } catch (e: Exception) {

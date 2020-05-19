@@ -27,7 +27,7 @@
     <group id="outer" text="Sample" description="Sample desc">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
       <group id="inner" text="Link Tracker Plugin" popup="true">
-        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker" description="Track links">
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Run" description="Track links">
           <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
           <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
           <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
