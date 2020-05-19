@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import java.nio.file.Paths
 
 
 enum class WebLinkReferenceType(private val type: String) {
@@ -144,8 +145,9 @@ data class LinkInfo(
     }
 
     fun getAfterPathToOriginalFormat(afterPath: String): String {
-        val newPath = afterPath.replace("${project.basePath!!}/", "")
-        return newPath.replace(getMarkdownDirectoryPath(), "")
+        val targetPath = Paths.get(afterPath)
+        val sourcePath = Paths.get(proveniencePath).parent ?: Paths.get(".")
+        return sourcePath?.relativize(targetPath).toString().replace("\\", "/")
     }
 
     private fun getMarkdownDirectoryPath(): String {
