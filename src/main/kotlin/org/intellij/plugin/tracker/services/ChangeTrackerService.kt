@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.services
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
@@ -29,8 +30,12 @@ class ChangeTrackerService(project: Project) {
             return Pair(mutableListOf(Pair("Working tree", workingTreeChange.afterPath)), Pair(link, workingTreeChange))
         }
 
+        val prop = PropertiesComponent.getInstance()
+        val threshold = prop.getValue("threshold", "60").toInt()
+        println("change tracker $threshold")
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
-            gitOperationManager.getAllChangesForFile(link, branchOrTagName = branchOrTagName, specificCommit = specificCommit)
+            gitOperationManager.getAllChangesForFile(link, threshold,
+                    branchOrTagName = branchOrTagName, specificCommit = specificCommit)
         val change: LinkChange = result.second
         when (change.changeType) {
             // this file's change type is invalid
