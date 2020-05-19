@@ -145,7 +145,9 @@ data class LinkInfo(
     val foundAtLineNumber: Int,
     val textOffset: Int,
     val fileName: String,
-    val project: Project
+    val project: Project,
+    val linkPathPrefix: String? = null,
+    val linkPathSuffix: String? = null
 ) {
 
     /**

@@ -65,7 +65,7 @@ class LinkUpdaterService(val project: Project) {
      * Dispatches updating the link to the type specific function.
      *
      * @param link the Link object to be updated
-     * @param fileChange the FileChange according to which to update the link
+     * @param linkChange the LinkChange object according to which to update the link
      */
     private fun updateLink(link: Link, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
         return when (link) {
@@ -77,6 +77,8 @@ class LinkUpdaterService(val project: Project) {
     }
 
     private fun updateWebLink(link: WebLink, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
+        // if the change comes from the working tree, do not update the link
+        if (linkChange.fromWorkingTree) return false
         if (linkChange.changeType == ChangeType.MOVED) {
             var afterPath: String = when (link) {
                 is WebLinkToFile -> {
@@ -100,11 +102,15 @@ class LinkUpdaterService(val project: Project) {
                 // can not update this link without a new commit being given
                 // something went wrong previously in fetching this commit SHA
                 // don't update the link
-                // if the change comes from the working tree, do not update the link
-                if (newCommit == null || linkChange.fromWorkingTree) return false
+                if (newCommit == null) return false
 
                 afterPath = afterPath.replace(link.getReferencingName(), newCommit)
             }
+
+            // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
+            if (link.linkInfo.linkPathPrefix != null) afterPath = "${link.linkInfo.linkPathPrefix}$afterPath"
+            if (link.linkInfo.linkPathSuffix != null) afterPath = "$afterPath${link.linkInfo.linkPathSuffix}"
+
             val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
             element.replace(newElement)
             return true
@@ -121,9 +127,12 @@ class LinkUpdaterService(val project: Project) {
      * @param fileChange the FileChange according to which to update the link
      * @return true if update succeeded, false otherwise
      */
-    private fun updateRelativeLink(link: RelativeLinkToFile, fileChange: LinkChange, element: PsiElement): Boolean {
-        if (fileChange.changeType == ChangeType.MOVED) {
-            var newPath: String = fileChange.afterPath
+    private fun updateRelativeLink(link: RelativeLinkToFile, linkChange: LinkChange, element: PsiElement): Boolean {
+        // don't update the link if the change is coming from the working tree
+        // allowing this could lead to strange behaviour upon consecutive runs
+        if (linkChange.fromWorkingTree) return false
+        if (linkChange.changeType == ChangeType.MOVED) {
+            var newPath: String = linkChange.afterPath
             // transform the path to the original format: this will mostly work for paths which
             // do not contain ../ or ./ in their original format
             newPath = link.linkInfo.getAfterPathToOriginalFormat(newPath)
