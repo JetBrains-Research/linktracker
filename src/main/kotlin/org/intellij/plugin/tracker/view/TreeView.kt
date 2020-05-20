@@ -47,11 +47,13 @@ class TreeView : JPanel(BorderLayout()) {
                     addNodeTree("Relative Path:", link.getPath(), linkTree)
                 }
 
+                val changeTree = DefaultMutableTreeNode("Change")
+                addNodeTree("Change Type:", change.changeType.toString(), changeTree)
+                if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
                 if (change.changeType.toString() == "MODIFIED" || change.changeType.toString() == "DELETED") {
-                    val changeTree = DefaultMutableTreeNode("Change")
-                    addNodeTree("Change Type:", change.changeType.toString(), changeTree)
-                    addNodeTree("After Path:", change.afterPath, changeTree)
-                    if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
+                    if (change.changeType.toString() == "MODIFIED") {
+                        addNodeTree("After Path:", change.afterPath, changeTree)
+                    }
                     addNodeTree("Accept", "", changeTree)
                     addNodeTree("Deny", "", changeTree)
                     linkTree.add(changeTree)
