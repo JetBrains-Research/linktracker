@@ -28,42 +28,40 @@ class TreeView : JPanel(BorderLayout()) {
         root.removeAllChildren()
 
         // Adds current links and their information
-        val curr = DefaultMutableTreeNode("Current Files & Links")
-        val links = changes.groupBy { it.first.linkInfo.proveniencePath }
+        val groupedLinks = changes.groupBy { it.first.linkInfo.proveniencePath }
 
-        for (linkList in links) {
+        for (linkList in groupedLinks) {
             val file = DefaultMutableTreeNode(linkList.key)
-            for (link in linkList.value) {
-                val linkTree = DefaultMutableTreeNode(link.first.linkInfo.getMarkdownDirectoryRelativeLinkPath())
-                addNodeTree("Link Text", link.first.linkInfo.linkText, linkTree)
-                addNodeTree("Link Path", link.first.linkInfo.linkPath, linkTree)
-                addNodeTree("Provenience Path", link.first.linkInfo.proveniencePath, linkTree)
-                addNodeTree("Found at Line", link.first.linkInfo.foundAtLineNumber.toString(), linkTree)
-                if (link.first is WebLink) {
-                    addNodeTree("Platform Name", (link.first as WebLink).getPlatformName(), linkTree)
-                    addNodeTree("Project Owner Name", (link.first as WebLink).getProjectOwnerName(), linkTree)
-                    addNodeTree("Project Name", (link.first as WebLink).getProjectName(), linkTree)
-                    addNodeTree("Relative Path", (link.first as WebLink).getPath(), linkTree)
+            for (links in linkList.value) {
+                val link = links.first
+                val change = links.second
+                val linkTree = DefaultMutableTreeNode(link.linkInfo.getMarkdownDirectoryRelativeLinkPath())
+                addNodeTree("Link Text:", link.linkInfo.linkText, linkTree)
+                addNodeTree("Link Path:", link.linkInfo.linkPath, linkTree)
+                addNodeTree("Provenience Path:", link.linkInfo.proveniencePath, linkTree)
+                addNodeTree("Found at Line:", link.linkInfo.foundAtLineNumber.toString(), linkTree)
+                if (link is WebLink) {
+                    addNodeTree("Platform Name:", link.getPlatformName(), linkTree)
+                    addNodeTree("Project Owner Name:", link.getProjectOwnerName(), linkTree)
+                    addNodeTree("Project Name:", link.getProjectName(), linkTree)
+                    addNodeTree("Relative Path:", link.getPath(), linkTree)
+                }
+
+                val changeTree = DefaultMutableTreeNode("Change")
+                addNodeTree("Change Type:", change.changeType.toString(), changeTree)
+                if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
+                if (change.changeType.toString() == "MODIFIED" || change.changeType.toString() == "DELETED") {
+                    if (change.changeType.toString() == "MODIFIED") {
+                        addNodeTree("After Path:", change.afterPath, changeTree)
+                    }
+                    addNodeTree("Accept", "", changeTree)
+                    addNodeTree("Deny", "", changeTree)
+                    linkTree.add(changeTree)
                 }
                 file.add(linkTree)
             }
-            curr.add(file)
+            root.add(file)
         }
-        root.add(curr)
-
-        // Add changes of links
-        val changeNode = DefaultMutableTreeNode("Changes")
-        for (change in changes) {
-            val linkChange = change.second
-            val file = DefaultMutableTreeNode(linkChange.changeType.toString())
-            addNodeTree("Change Type:", linkChange.changeType.toString(), file)
-            addNodeTree("After Path:", linkChange.afterPath, file)
-            if (linkChange.errorMessage != null) addNodeTree("Error message:", linkChange.errorMessage, file)
-            addNodeTree("Accept Change", "", file)
-            addNodeTree("Deny Change", "", file)
-            changeNode.add(file)
-        }
-        root.add(changeNode)
         (tree.model as DefaultTreeModel).reload()
     }
 
@@ -79,7 +77,7 @@ class TreeView : JPanel(BorderLayout()) {
         return TreeSelectionListener { e ->
             val pathCount: Int = e.path.pathCount
             val path: String = e.path.getPathComponent(pathCount - 1).toString()
-            if (path == "Accept Change ") {
+            if (path == "Accept ") {
                 val dialogResult = JOptionPane.showConfirmDialog(null,
                         "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
                 if (dialogResult == JOptionPane.YES_OPTION) {
@@ -87,7 +85,7 @@ class TreeView : JPanel(BorderLayout()) {
                     println("change accepted")
                 }
             }
-            if (path == "Deny Change ") {
+            if (path == "Deny ") {
                 val dialogResult = JOptionPane.showConfirmDialog(null,
                         "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
                 if (dialogResult == JOptionPane.YES_OPTION) {

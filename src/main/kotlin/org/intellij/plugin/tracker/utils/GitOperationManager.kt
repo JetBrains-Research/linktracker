@@ -198,7 +198,7 @@ class GitOperationManager(private val project: Project) {
     @Throws(VcsException::class)
     fun getAllChangesForFile(
         link: Link,
-        similarityThreshold: Int = 60,
+        similarityThreshold: Int,
         branchOrTagName: String? = null,
         specificCommit: String? = null
     ): Pair<MutableList<Pair<String, String>>, LinkChange> {
