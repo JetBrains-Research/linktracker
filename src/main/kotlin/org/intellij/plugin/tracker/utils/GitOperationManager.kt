@@ -19,18 +19,17 @@ import kotlin.math.min
 /**
  * Class that handles the logic of git operations
  */
-class GitOperationManager(private val project: Project) {
+open class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
-    private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
-
+    private val gitRepository: GitRepository? = GitRepositoryManager.getInstance(project).repositories.getOrNull(0)
 
     /**
      * Checks whether a reference name corresponds to a valid tag name
      *
      */
     fun isRefATag(ref: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.TAG)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.TAG)
         // list all tags for this project
         gitLineHandler.addParameters("-l")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
@@ -46,7 +45,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun isRefABranch(ref: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.BRANCH)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.BRANCH)
         // list all branch names for this project
         gitLineHandler.addParameters("-l")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
@@ -61,7 +60,7 @@ class GitOperationManager(private val project: Project) {
      * Checks whether a reference name corresponds to a valid commit SHA
      */
     fun isRefACommit(ref: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.REV_PARSE)
         gitLineHandler.addParameters(
             "--verify",
             "-q",
@@ -81,7 +80,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     private fun getDateOfCommit(commitSHA: String): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.SHOW)
         gitLineHandler.addParameters("-s", "--format=%ct", commitSHA)
         val timestampOutput: GitCommandResult = git.runCommand(gitLineHandler)
         return timestampOutput.getOutputOrThrow()
@@ -94,7 +93,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun getHeadCommitSHA(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.REV_PARSE)
         gitLineHandler.addParameters("--short", "HEAD")
         val output = git.runCommand(gitLineHandler)
         return output.getOutputOrThrow()
@@ -107,7 +106,7 @@ class GitOperationManager(private val project: Project) {
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
     fun getStartCommit(linkInfo: LinkInfo): String? {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.LOG)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
         if (outputLog.exitCode == 0)
@@ -156,7 +155,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun getFirstCommitSHA(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.REV_LIST)
         gitLineHandler.addParameters("--max-parents=0")
         gitLineHandler.addParameters("HEAD")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
@@ -174,7 +173,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun checkWorkingTreeChanges(link: Link): LinkChange? {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
         return processWorkingTreeChanges(link.getPath(), outputLog.getOutputOrThrow())
@@ -202,7 +201,7 @@ class GitOperationManager(private val project: Project) {
         branchOrTagName: String? = null,
         specificCommit: String? = null
     ): Pair<MutableList<Pair<String, String>>, LinkChange> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.LOG)
         // add a specific branch or tag on which to execute the `git log` command
         // this branch/tag name exists (it has been previously checked in the LinkProcessingRouter
         if (branchOrTagName != null) gitLineHandler.addParameters(branchOrTagName)
@@ -386,7 +385,7 @@ class GitOperationManager(private val project: Project) {
      * Runs git command `git config --get remote.origin.url`
      */
     fun getRemoteOriginUrl(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CONFIG)
+        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.CONFIG)
         gitLineHandler.addParameters("--get", "remote.origin.url")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
         return outputLog.getOutputOrThrow()
@@ -397,6 +396,6 @@ class GitOperationManager(private val project: Project) {
      * and the current working tree (includes also uncommitted files)
      */
     fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<com.intellij.openapi.vcs.changes.Change>? =
-        GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
+        GitChangeUtils.getDiffWithWorkingTree(gitRepository!!, commitSHA, true)
 
 }

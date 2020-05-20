@@ -12,7 +12,17 @@ import org.intellij.plugin.tracker.utils.GitOperationManager
 
 class ChangeTrackerService(project: Project) {
 
-    private val gitOperationManager = GitOperationManager(project = project)
+    private var gitOperationManager = GitOperationManager(project = project)
+    private var injected: Boolean = false
+
+    fun injectGitOperationManager(gitOperationManager: GitOperationManager) {
+        this.gitOperationManager = gitOperationManager
+        injected = true
+    }
+
+    fun getGitManager(): GitOperationManager {
+        return gitOperationManager
+    }
 
     /**
      * Main function for getting changes for a link to a file.
