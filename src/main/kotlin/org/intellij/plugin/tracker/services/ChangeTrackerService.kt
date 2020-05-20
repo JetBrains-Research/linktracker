@@ -20,11 +20,9 @@ import kotlin.math.min
 class ChangeTrackerService(project: Project) {
 
     private var gitOperationManager = GitOperationManager(project = project)
-    private var injected: Boolean = false
 
     fun injectGitOperationManager(gitOperationManager: GitOperationManager) {
         this.gitOperationManager = gitOperationManager
-        injected = true
     }
 
     fun getGitManager(): GitOperationManager {
