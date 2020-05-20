@@ -43,6 +43,6 @@ class CustomDialog internal constructor(canBeParent: Boolean) : DialogWrapper(ca
         panel.layout = GridLayout(0, 1)
         threshold = JTextField(20)
         panel.add(threshold)
-        panel.add(JLabel("Current threshold: ${prop.getValue("threshold")}"))
+        panel.add(JLabel("Current threshold: ${prop.getValue("threshold", "60")}"))
     }
 }

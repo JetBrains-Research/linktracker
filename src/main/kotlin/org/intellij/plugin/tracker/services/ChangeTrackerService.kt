@@ -32,7 +32,6 @@ class ChangeTrackerService(project: Project) {
 
         val prop = PropertiesComponent.getInstance()
         val threshold = prop.getValue("threshold", "60").toInt()
-        println("change tracker $threshold")
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
             gitOperationManager.getAllChangesForFile(link, threshold,
                     branchOrTagName = branchOrTagName, specificCommit = specificCommit)

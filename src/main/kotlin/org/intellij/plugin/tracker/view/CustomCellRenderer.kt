@@ -3,13 +3,14 @@ package org.intellij.plugin.tracker.view
 import java.awt.Color
 import java.awt.Component
 import java.awt.GridLayout
+import javax.swing.Icon
+import javax.swing.ImageIcon
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
-
 
 internal class CustomCellRenderer : TreeCellRenderer {
     private var titleLabel = JLabel("")
@@ -38,10 +39,19 @@ internal class CustomCellRenderer : TreeCellRenderer {
 
             if (check) titleLabel.foreground = Color.BLUE else titleLabel.foreground = Color.DARK_GRAY
 
-            if (userObject.toString() == "Accept Change ") titleLabel.foreground = Color.GREEN
-
-            if (userObject.toString() == "Deny Change ") titleLabel.foreground = Color.RED
-
+            when {
+                userObject.toString() == "Accept " -> {
+                    titleLabel.foreground = Color.GREEN
+                    val checkIcon: Icon = ImageIcon(javaClass.getResource("/images/check.png"))
+                    titleLabel.icon = checkIcon
+                }
+                userObject.toString() == "Deny " -> {
+                    titleLabel.foreground = Color.RED
+                    val crossIcon: Icon = ImageIcon(javaClass.getResource("/images/cross.png"))
+                    titleLabel.icon = crossIcon
+                }
+                else -> { titleLabel.icon = defaultRenderer.openIcon }
+            }
             renderer.isEnabled = tree.isEnabled
             returnValue = renderer
         }

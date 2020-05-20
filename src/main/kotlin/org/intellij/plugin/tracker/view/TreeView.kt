@@ -47,13 +47,13 @@ class TreeView : JPanel(BorderLayout()) {
                     addNodeTree("Relative Path:", link.getPath(), linkTree)
                 }
 
-                if (change.changeType.toString() == "MODIFIED") {
+                if (change.changeType.toString() == "MODIFIED" || change.changeType.toString() == "DELETED") {
                     val changeTree = DefaultMutableTreeNode("Change")
                     addNodeTree("Change Type:", change.changeType.toString(), changeTree)
                     addNodeTree("After Path:", change.afterPath, changeTree)
                     if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
-                    addNodeTree("Accept Change", "", changeTree)
-                    addNodeTree("Deny Change", "", changeTree)
+                    addNodeTree("Accept", "", changeTree)
+                    addNodeTree("Deny", "", changeTree)
                     linkTree.add(changeTree)
                 }
                 file.add(linkTree)
@@ -75,7 +75,7 @@ class TreeView : JPanel(BorderLayout()) {
         return TreeSelectionListener { e ->
             val pathCount: Int = e.path.pathCount
             val path: String = e.path.getPathComponent(pathCount - 1).toString()
-            if (path == "Accept Change ") {
+            if (path == "Accept ") {
                 val dialogResult = JOptionPane.showConfirmDialog(null,
                         "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
                 if (dialogResult == JOptionPane.YES_OPTION) {
@@ -83,7 +83,7 @@ class TreeView : JPanel(BorderLayout()) {
                     println("change accepted")
                 }
             }
-            if (path == "Deny Change ") {
+            if (path == "Deny ") {
                 val dialogResult = JOptionPane.showConfirmDialog(null,
                         "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
                 if (dialogResult == JOptionPane.YES_OPTION) {
