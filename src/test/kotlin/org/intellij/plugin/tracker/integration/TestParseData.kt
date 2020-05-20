@@ -2,19 +2,21 @@ package org.intellij.plugin.tracker.integration
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.anyOrNull
+import io.mockk.MockKAnnotations
+import io.mockk.every
+import io.mockk.impl.annotations.MockK
 import org.intellij.plugin.tracker.LinkTrackerAction
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito
+import org.junit.jupiter.api.Assertions
 
 /**
  * This class tests the parsing of links and changes.
@@ -22,11 +24,18 @@ import org.mockito.Mockito
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestParseData: BasePlatformTestCase() {
 
-    private var historyService: HistoryService? = null
-    private var linkService: LinkRetrieverService? = null
-    private var linkUpdateService: LinkUpdaterService? = null
-    private var uiService: UIService? = null
-    private var gitOperationManager: GitOperationManager? = null
+    @MockK
+    private lateinit var gitOperationManager: GitOperationManager
+    private lateinit var historyService: HistoryService
+    private lateinit var linkService: LinkRetrieverService
+    private lateinit var linkUpdateService: LinkUpdaterService
+    private lateinit var uiService: UIService
+    private lateinit var dataParsingTask: LinkTrackerAction.DataParsingTask
+    private val files = arrayOf(
+        "testParseRelativeLink.md",
+        "main/file.txt",
+        "testParseWebLink.md"
+    )
 
     @Override
     override fun getTestDataPath(): String {
@@ -36,59 +45,89 @@ class TestParseData: BasePlatformTestCase() {
     @BeforeAll
     override fun setUp() {
         super.setUp()
-        val files = arrayOf(
-            "TEST.md",
-            "src/file.txt"
-        )
         myFixture.configureByFiles(*files)
+        MockKAnnotations.init(this)
     }
 
     @BeforeEach
     fun init() {
-        gitOperationManager = Mockito.mock(GitOperationManager::class.java)
         historyService = HistoryService.getInstance(project)
         linkService = LinkRetrieverService.getInstance(project)
         linkUpdateService = LinkUpdaterService.getInstance(project)
         uiService = UIService.getInstance(project)
-        Mockito.`when`(gitOperationManager!!.checkWorkingTreeChanges(any())).thenReturn(null)
+        dataParsingTask = LinkTrackerAction.DataParsingTask(
+            currentProject = project,
+            linkService = linkService,
+            historyService = historyService,
+            gitOperationManager = gitOperationManager,
+            linkUpdateService = linkUpdateService,
+            uiService = uiService,
+            dryRun = true
+        )
     }
 
-    fun setupGitManagerForRelativeLinks() {
-        Mockito.`when`(gitOperationManager!!.isRefABranch(any())).thenReturn(false)
-        Mockito.`when`(gitOperationManager!!.isRefATag(any())).thenReturn(false)
-        Mockito.`when`(gitOperationManager!!.isRefACommit(any())).thenReturn(false)
-        Mockito.`when`(gitOperationManager!!.getHeadCommitSHA()).thenReturn("edbb2f5")
-        Mockito.`when`(gitOperationManager!!.getStartCommit(any())).thenReturn("edbb2f5")
+    private fun setupGitManagerForRelativeLinks() {
+        every { gitOperationManager.isRefABranch(any()) } returns false
+        every { gitOperationManager.isRefATag(any()) } returns false
+        every { gitOperationManager.isRefACommit(any()) } returns false
+        every { gitOperationManager.getHeadCommitSHA() } returns "edbb2f5"
+        every { gitOperationManager.getStartCommit(any()) } returns "edbb2f5"
+        ChangeTrackerService.getInstance(project).injectGitOperationManager(gitOperationManager)
     }
 
     @Test
-    fun testParseLinks() {
+    fun parseRelativeLinkCommittedMoved() {
+
         setupGitManagerForRelativeLinks()
         val gitFileChanges = Pair(
             mutableListOf(Pair("Commit: edbb2f5", "file.txt")),
-            LinkChange(changeType = ChangeType.MOVED, afterPath = "src/file.txt")
+            LinkChange(changeType = ChangeType.MOVED, afterPath = "src/main/file.txt")
         )
-        Mockito.`when`(gitOperationManager!!.getAllChangesForFile(anyOrNull(), anyInt(), anyString(), anyString())).thenReturn(gitFileChanges)
-        // Substitute the original gitOperationManager in ChangeTrackerService with the mocked version
-        ChangeTrackerService.getInstance(project).injectGitOperationManager(gitOperationManager!!)
-        val dataParsingTask = LinkTrackerAction.DataParsingTask(
-            currentProject = project,
-            linkService = linkService!!,
-            historyService = historyService!!,
-            gitOperationManager = gitOperationManager!!,
-            linkUpdateService = linkUpdateService!!,
-            uiService = uiService!!,
-            dryRun = true
-        )
+
+        every { gitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
+        every { gitOperationManager.checkWorkingTreeChanges(any()) } returns null
+
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
-        println(links)
-        // This should return gitFileChanges, but doesn't
-        println(ChangeTrackerService.getInstance(project).getGitManager().getAllChangesForFile(
-            links[0].first,
-            60,
-            null,
-            null
-        ))
+
+        val link = links.first{pair -> pair.first.linkInfo.linkText == "a relative link to a file"}.first
+        Assertions.assertTrue(link is RelativeLinkToFile)
+        Assertions.assertEquals("file.txt", link.linkInfo.linkPath)
+        Assertions.assertEquals("/src/testParseRelativeLink.md", link.linkInfo.proveniencePath)
+    }
+
+    @Test
+    fun parseRelativeLinkUncommittedAdded() {
+
+        setupGitManagerForRelativeLinks()
+        val linkChange = LinkChange(changeType = ChangeType.ADDED, afterPath = "src/main/file.txt")
+        val gitFileChanges = Pair(
+            mutableListOf(Pair("Working tree", "file.txt")),
+            linkChange
+        )
+
+        every { gitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
+        every { gitOperationManager.checkWorkingTreeChanges(any()) } returns linkChange
+
+        ProgressManager.getInstance().run(dataParsingTask)
+        val links = dataParsingTask.getLinks()
+
+        val link = links.first{pair -> pair.first.linkInfo.linkText == "a relative link to a file"}.first
+        Assertions.assertTrue(link is RelativeLinkToFile)
+        Assertions.assertEquals("file.txt", link.linkInfo.linkPath)
+        Assertions.assertEquals("/src/testParseRelativeLink.md", link.linkInfo.proveniencePath)
+    }
+
+    @Test
+    fun parseWebLinkToLine() {
+
+        setupGitManagerForRelativeLinks()
+        ProgressManager.getInstance().run(dataParsingTask)
+        val links = dataParsingTask.getLinks()
+
+        val link = links.first{pair -> pair.first.linkInfo.linkText == "a web link to a line"}.first
+        Assertions.assertTrue(link is WebLinkToLine)
+        Assertions.assertEquals("https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55", link.linkInfo.linkPath)
+        Assertions.assertEquals("/src/testParseWebLink.md", link.linkInfo.proveniencePath)
     }
 }
