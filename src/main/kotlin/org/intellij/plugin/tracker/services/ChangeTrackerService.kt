@@ -5,9 +5,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.DirectoryChange
+import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.utils.LinkPatterns
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.util.regex.Matcher
 
 
 class ChangeTrackerService(project: Project) {
@@ -138,6 +143,74 @@ class ChangeTrackerService(project: Project) {
             Pair(link, directoryChange)
         } else {
             Pair(link, DirectoryChange(ChangeType.ADDED, ""))
+        }
+    }
+
+    fun getLinkChange(link: Link): MutableList<LineChange> {
+
+        val fileChange: Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>>? = getFileChange(link)
+
+        val result = mutableListOf<LineChange>()
+
+        val changeList: MutableList<Pair<String, String>> = fileChange!!.first
+
+        for (x in 0 until changeList.size-1) {
+            val before = changeList.get(x).first.split("Commit: ").get(1)
+            val after = changeList.get(x+1).first.split("Commit: ").get(1)
+            val file  = changeList.get(x).second
+            val output = getDiffOutput(link.linkInfo.project.basePath + "  & git diff --unified=0 $before $after $file", file, before, after)
+            println(output)
+            result.add(output)
+        }
+        return result
+    }
+
+    private fun getDiffOutput(command: String, file:String, before: String, after: String): LineChange {
+        val builder = ProcessBuilder(
+            "cmd.exe", "/c", "cd $command"
+        )
+        builder.redirectErrorStream(true)
+        val p = builder.start()
+        val r = BufferedReader(InputStreamReader(p.inputStream))
+        var line: String?
+        val addedLines = mutableListOf<Int>()
+        val deletedLines = mutableListOf<Int>()
+        while (true) {
+            line = r.readLine()
+            if (line == null) {
+                break
+            }
+            if(line.startsWith("@@ ")) {
+                val info = line.split(" @@").get(0)
+                val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
+                if(matcher.matches()) {
+                    val startDeletedLine = matcher.group(1)
+                    val changeDeletedLine = matcher.group(5)
+                    deletedLines.addAll(getLineChange(startDeletedLine, changeDeletedLine))
+                    val startAddedLine = matcher.group(6)
+                    val changeAddedLine = matcher.group(10)
+                    addedLines.addAll(getLineChange(startAddedLine, changeAddedLine))
+                }
+            }
+        }
+        return LineChange(file, addedLines, deletedLines, before, after)
+    }
+
+    private fun getLineChange(start: String, change: String?): MutableList<Int> {
+        val startNum = start.toInt()
+        val result = mutableListOf(startNum)
+        if(change==null) {
+            return result
+        } else {
+            val changeNum = change.toInt()
+            if(changeNum==0){
+                return mutableListOf()
+            } else {
+                for (i in (startNum+1) until (startNum+changeNum) ) {
+                    result.add(i)
+                }
+                return result
+            }
         }
     }
 

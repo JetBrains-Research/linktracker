@@ -17,7 +17,8 @@ class LinkProcessingRouter {
 
             when(link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
-                is RelativeLinkToFile -> return changeTrackerService.getFileChange(link).second
+                is RelativeLinkToFile -> { println(changeTrackerService.getLinkChange(link));
+                    return changeTrackerService.getFileChange(link).second }
                 is RelativeLinkToLine -> {
                     val result = changeTrackerService.getFileChange(link)
                     println("FILE HISTORY LIST: ${result.first}")
