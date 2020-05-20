@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.actions
+package org.intellij.plugin.tracker
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
