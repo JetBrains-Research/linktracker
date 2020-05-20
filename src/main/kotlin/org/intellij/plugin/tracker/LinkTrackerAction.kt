@@ -88,6 +88,10 @@ class LinkTrackerAction : AnAction() {
         private val linksAndChangesList: MutableList<Pair<Link, LinkChange>> = mutableListOf()
         private val linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
+        fun getLinks(): MutableList<Pair<Link, LinkChange>> {
+            return linksAndChangesList
+        }
+
         /**
          * Parses links and related changes from the current project.
          */
@@ -109,6 +113,7 @@ class LinkTrackerAction : AnAction() {
 
                 try {
                     linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
+                    println("Changes parsed")
                     // temporary solution to ignoring not implemented stuff
                 } catch (e: NotImplementedError) {
                     continue
@@ -124,8 +129,6 @@ class LinkTrackerAction : AnAction() {
 
                 // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
             }
-            // Debug
-            println("Link tracking finished!")
 
             historyService.saveCommitSHA(gitOperationManager.getHeadCommitSHA())
         }
@@ -152,8 +155,6 @@ class LinkTrackerAction : AnAction() {
             // There should be a better way to wait for the Tracking Links task to finish
             ApplicationManager.getApplication().invokeLater {
                 WriteCommandAction.runWriteCommandAction(currentProject) {
-                    // Debug
-                    println("Finished waiting")
                     if (linksAndChangesList.size != 0) {
                         // Debug
                         println("All changes: ")
