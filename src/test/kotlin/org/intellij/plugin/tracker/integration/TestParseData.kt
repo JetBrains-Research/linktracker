@@ -2,8 +2,6 @@ package org.intellij.plugin.tracker.integration
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.anyOrNull
 import io.mockk.every
 import io.mockk.mockkConstructor
 import org.intellij.plugin.tracker.LinkTrackerAction
@@ -12,17 +10,18 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
-import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.services.UIService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.junit.jupiter.api.*
-import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito
 
 /**
  * This class tests the parsing of links and changes.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestParseData: BasePlatformTestCase() {
+class TestParseData : BasePlatformTestCase() {
 
     private lateinit var gitOperationManager: GitOperationManager
     private lateinit var historyService: HistoryService
@@ -85,13 +84,20 @@ class TestParseData: BasePlatformTestCase() {
             LinkChange(changeType = ChangeType.MOVED, afterPath = afterPath)
         )
 
-        every { anyConstructed<GitOperationManager>().getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
+        every {
+            anyConstructed<GitOperationManager>().getAllChangesForFile(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns gitFileChanges
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
 
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to file"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to file" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToFile)
@@ -142,7 +148,7 @@ class TestParseData: BasePlatformTestCase() {
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to directory"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to directory" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToDirectory)
@@ -158,10 +164,13 @@ class TestParseData: BasePlatformTestCase() {
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - web link to line"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - web link to line" }
         val link = pair.first
         Assertions.assertTrue(link is WebLinkToLine)
-        Assertions.assertEquals("https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55", link.linkInfo.linkPath)
+        Assertions.assertEquals(
+            "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55",
+            link.linkInfo.linkPath
+        )
         Assertions.assertEquals("/src/testParseWebLink.md", link.linkInfo.proveniencePath)
     }
 
@@ -170,7 +179,7 @@ class TestParseData: BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
-        val multiLinks = links.filter{pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md"}
+        val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
     }
 }

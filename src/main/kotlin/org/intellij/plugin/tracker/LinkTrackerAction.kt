@@ -113,7 +113,6 @@ class LinkTrackerAction : AnAction() {
 
                 try {
                     linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
-                    println("Changes parsed")
                     // temporary solution to ignoring not implemented stuff
                 } catch (e: NotImplementedError) {
                     continue
