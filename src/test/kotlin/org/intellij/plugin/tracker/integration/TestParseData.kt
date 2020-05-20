@@ -2,6 +2,8 @@ package org.intellij.plugin.tracker.integration
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
 import io.mockk.every
 import io.mockk.mockkConstructor
 import org.intellij.plugin.tracker.LinkTrackerAction
@@ -12,11 +14,9 @@ import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.*
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito
 
 /**
  * This class tests the parsing of links and changes.
@@ -170,7 +170,6 @@ class TestParseData: BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(dataParsingTask)
         val links = dataParsingTask.getLinks()
-
         val multiLinks = links.filter{pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md"}
         Assertions.assertEquals(3, multiLinks.size)
     }
