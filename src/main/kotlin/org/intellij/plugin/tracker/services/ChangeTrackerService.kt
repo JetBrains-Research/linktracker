@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
+import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.LineChange
@@ -10,8 +11,6 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.util.regex.Matcher
 
 
@@ -158,25 +157,23 @@ class ChangeTrackerService(project: Project) {
             val before = changeList.get(x).first.split("Commit: ").get(1)
             val after = changeList.get(x+1).first.split("Commit: ").get(1)
             val file  = changeList.get(x).second
-            val output = getDiffOutput(link.linkInfo.project.basePath + "  & git diff --unified=0 $before $after $file", file, before, after)
+            val output = getDiffOutput(before, after, file)
             println(output)
             result.add(output)
         }
         return result
     }
 
-    private fun getDiffOutput(command: String, file:String, before: String, after: String): LineChange {
-        val builder = ProcessBuilder(
-            "cmd.exe", "/c", "cd $command"
-        )
-        builder.redirectErrorStream(true)
-        val p = builder.start()
-        val r = BufferedReader(InputStreamReader(p.inputStream))
-        var line: String?
-        val addedLines = mutableListOf<Int>()
-        val deletedLines = mutableListOf<Int>()
-        while (true) {
-            line = r.readLine()
+    private fun getDiffOutput(before: String, after: String, file: String): LineChange {
+        val output = gitOperationManager.getDiffBetweenCommits(before, after)
+        val lines: List<String?> = output.lines()
+        val addedLines = mutableListOf<Line>()
+        val deletedLines = mutableListOf<Line>()
+        var startDeletedLine: Int
+        var startAddedLine: Int
+        var currentAddedLine = 0
+        var currentDeletedLine = 0
+        for(line in lines) {
             if (line == null) {
                 break
             }
@@ -184,14 +181,29 @@ class ChangeTrackerService(project: Project) {
                 val info = line.split(" @@").get(0)
                 val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
                 if(matcher.matches()) {
-                    val startDeletedLine = matcher.group(1)
-                    val changeDeletedLine = matcher.group(5)
-                    deletedLines.addAll(getLineChange(startDeletedLine, changeDeletedLine))
-                    val startAddedLine = matcher.group(6)
-                    val changeAddedLine = matcher.group(10)
-                    addedLines.addAll(getLineChange(startAddedLine, changeAddedLine))
+                    startDeletedLine = matcher.group(1).toInt()
+                    currentDeletedLine = startDeletedLine
+                    startAddedLine = matcher.group(6).toInt()
+                    currentAddedLine = startAddedLine
                 }
             }
+            if(line.startsWith("+") && !line.startsWith("+++")) {
+                val addedLine = Line(currentAddedLine, line.split("+").get(1), addedLines)
+                addedLines.add(addedLine)
+                currentAddedLine++
+            }
+            if(line.startsWith("-") && !line.startsWith("---")) {
+                val deletedLine = Line(currentDeletedLine, line.split("-").get(1), deletedLines)
+                deletedLines.add(deletedLine)
+                currentDeletedLine++
+            }
+        }
+        for (l in addedLines) {
+            l.contextLines = addedLines
+        }
+
+        for (l in deletedLines) {
+            l.contextLines = deletedLines
         }
         return LineChange(file, addedLines, deletedLines, before, after)
     }
