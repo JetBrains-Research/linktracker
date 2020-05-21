@@ -40,9 +40,9 @@
           <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
         </action>
         <action id="Manage Passwords" class="org.intellij.plugin.tracker.actions.PasswordManagingAction" text="Manage Passwords" description="Track links">
-          <keyboard-shortcut keymap="$default" first-keystroke="control alt Y"/>
-          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt Y"  remove="true"/>
-          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt Y"  replace-all="true"/>
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt H"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt H"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt H"  replace-all="true"/>
           <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
         </action>
       </group>
