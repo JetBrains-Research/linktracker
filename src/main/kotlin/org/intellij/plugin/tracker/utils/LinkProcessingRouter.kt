@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.utils
 
 import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.ChangeTrackerService
@@ -16,15 +17,13 @@ class LinkProcessingRouter {
         fun getChangesForLink(link: Link): Pair<Link, LinkChange> {
             val changeTrackerService: ChangeTrackerService = ChangeTrackerService.getInstance(link.linkInfo.project)
 
-            when(link) {
+            when (link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
                 is RelativeLinkToFile -> return changeTrackerService.getFileChange(link).second
                 is RelativeLinkToLine -> {
-                    val result = changeTrackerService.getFileChange(link)
-                    println("FILE HISTORY LIST: ${result.first}")
-                    // TODO: get the versions of the file using the file history list
-                    // result.first will contains a list of Pair<String, String>, where the first element
-                    // represents the commitSHA and the project relative path to the file
+                    val lineChangeList: MutableList<LineChange> = changeTrackerService.getLinkChange(link)
+                    // TODO: pass the line change list to the core to get the new line number
+
                     throw NotImplementedError("")
                 }
                 is RelativeLinkToLines -> {
