@@ -158,21 +158,19 @@ class ChangeTrackerService(project: Project) {
             val after = changeList.get(x+1).first.split("Commit: ").get(1)
             val file  = changeList.get(x).second
             val output = getDiffOutput(before, after, file)
-            println(output)
+            //println(output)
             result.add(output)
         }
         return result
     }
 
     private fun getDiffOutput(before: String, after: String, file: String): LineChange {
-        val output = gitOperationManager.getDiffBetweenCommits(before, after)
+        val output = gitOperationManager.getDiffBetweenCommits(before, after, file)
         val lines: List<String?> = output.lines()
         val addedLines = mutableListOf<Line>()
         val deletedLines = mutableListOf<Line>()
-        var startDeletedLine: Int
-        var startAddedLine: Int
-        var currentAddedLine = 0
-        var currentDeletedLine = 0
+        var secondStartLine: Int
+        var currentLine = 0
         for(line in lines) {
             if (line == null) {
                 break
@@ -181,22 +179,20 @@ class ChangeTrackerService(project: Project) {
                 val info = line.split(" @@").get(0)
                 val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
                 if(matcher.matches()) {
-                    startDeletedLine = matcher.group(1).toInt()
-                    currentDeletedLine = startDeletedLine
-                    startAddedLine = matcher.group(6).toInt()
-                    currentAddedLine = startAddedLine
+                    secondStartLine = matcher.group(6).toInt()
+                    currentLine = secondStartLine-1
                 }
             }
             if(line.startsWith("+") && !line.startsWith("+++")) {
-                val addedLine = Line(currentAddedLine, line.split("+").get(1), addedLines)
+                val addedLine = Line(currentLine, line.split("+").get(1), addedLines)
                 addedLines.add(addedLine)
-                currentAddedLine++
             }
             if(line.startsWith("-") && !line.startsWith("---")) {
-                val deletedLine = Line(currentDeletedLine, line.split("-").get(1), deletedLines)
+                val deletedLine = Line(currentLine, line.split("-").get(1), deletedLines)
                 deletedLines.add(deletedLine)
-                currentDeletedLine++
+                currentLine--
             }
+            currentLine++
         }
         for (l in addedLines) {
             l.contextLines = addedLines
@@ -205,25 +201,8 @@ class ChangeTrackerService(project: Project) {
         for (l in deletedLines) {
             l.contextLines = deletedLines
         }
+        println(LineChange(file, addedLines, deletedLines, before, after))
         return LineChange(file, addedLines, deletedLines, before, after)
-    }
-
-    private fun getLineChange(start: String, change: String?): MutableList<Int> {
-        val startNum = start.toInt()
-        val result = mutableListOf(startNum)
-        if(change==null) {
-            return result
-        } else {
-            val changeNum = change.toInt()
-            if(changeNum==0){
-                return mutableListOf()
-            } else {
-                for (i in (startNum+1) until (startNum+changeNum) ) {
-                    result.add(i)
-                }
-                return result
-            }
-        }
     }
 
     companion object {

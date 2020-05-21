@@ -9,8 +9,6 @@ data class Line(
     var contextLines: MutableList<Line>
 ) {
     override fun toString(): String {
-        return "line is \n" +
-                "$content \n" +
-                "with line number $lineNumber"
+        return "Line($lineNumber, $content ${contextLines.map { l->l.lineNumber }})"
     }
 }

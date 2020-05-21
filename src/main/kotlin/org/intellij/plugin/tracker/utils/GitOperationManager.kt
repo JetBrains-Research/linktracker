@@ -399,11 +399,11 @@ class GitOperationManager(private val project: Project) {
     fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<com.intellij.openapi.vcs.changes.Change>? =
         GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
 
-    fun getDiffBetweenCommits(commit1: String, commit2: String): String {
+    fun getDiffBetweenCommits(commit1: String, commit2: String, file: String): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
-        // list all tags for this project
-        gitLineHandler.addParameters(commit1, commit2)
+        gitLineHandler.addParameters(commit1, commit2, file)
         val output = git.runCommand(gitLineHandler)
+        println(output.getOutputOrThrow())
         return output.getOutputOrThrow()
     }
 
