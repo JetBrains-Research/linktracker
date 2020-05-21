@@ -145,7 +145,11 @@ class ChangeTrackerService(project: Project) {
         }
     }
 
-    fun getLinkChange(link: Link): MutableList<LineChange> {
+    /**
+     * Function for getting LineChange for a link between each commits of it
+     * Optionally you can give a linNo param to see changes just in that line
+     */
+    fun getLinkChange(link: Link, lineNo:Int=0): MutableList<LineChange> {
 
         val fileChange: Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>>? = getFileChange(link)
 
@@ -157,14 +161,16 @@ class ChangeTrackerService(project: Project) {
             val before = changeList.get(x).first.split("Commit: ").get(1)
             val after = changeList.get(x+1).first.split("Commit: ").get(1)
             val file  = changeList.get(x).second
-            val output = getDiffOutput(before, after, file)
-            //println(output)
+            val output = getDiffOutput(before, after, file, lineNo)
             result.add(output)
         }
         return result
     }
 
-    private fun getDiffOutput(before: String, after: String, file: String): LineChange {
+    /**
+     * Helper function to get LineChange between two commits
+     */
+    private fun getDiffOutput(before: String, after: String, file: String, lineNo: Int): LineChange {
         val output = gitOperationManager.getDiffBetweenCommits(before, after, file)
         val lines: List<String?> = output.lines()
         val addedLines = mutableListOf<Line>()
@@ -185,11 +191,15 @@ class ChangeTrackerService(project: Project) {
             }
             if(line.startsWith("+") && !line.startsWith("+++")) {
                 val addedLine = Line(currentLine, line.split("+").get(1), addedLines)
-                addedLines.add(addedLine)
+                if(lineNo==0 || (lineNo!=0 && currentLine==lineNo)) {
+                    addedLines.add(addedLine)
+                }
             }
             if(line.startsWith("-") && !line.startsWith("---")) {
                 val deletedLine = Line(currentLine, line.split("-").get(1), deletedLines)
-                deletedLines.add(deletedLine)
+                if(lineNo==0 || (lineNo!=0 && currentLine==lineNo)) {
+                    deletedLines.add(deletedLine)
+                }
                 currentLine--
             }
             currentLine++
