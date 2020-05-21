@@ -169,7 +169,6 @@ class ChangeTrackerService(project: Project) {
             val afterPath = changeList[x + 1].second
             val file = changeList[x].second
             val output = getDiffOutput(before, after, beforePath, afterPath, file)
-            println(output)
             result.add(output)
         }
         return result
@@ -230,13 +229,14 @@ class ChangeTrackerService(project: Project) {
         }
 
         // remove git-added warning lines
-        if (contextLinesAdded.last().content == "\\ No newline at end of file")
+        while (contextLinesAdded.last().content == "\\ No newline at end of file") {
             contextLinesAdded = contextLinesAdded.subList(0, contextLinesAdded.size - 1)
+        }
 
         // remove git-added warning lines
-        if (contextLinesDeleted.last().content == "\\ No newline at end of file")
+        while (contextLinesDeleted.last().content == "\\ No newline at end of file") {
             contextLinesDeleted = contextLinesDeleted.subList(0, contextLinesDeleted.size - 1)
-
+        }
 
         // populate the context lines properties of the added lines
         for (l: Line in addedLines) {
