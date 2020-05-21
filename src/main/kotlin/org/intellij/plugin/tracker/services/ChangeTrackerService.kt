@@ -155,10 +155,13 @@ class ChangeTrackerService(project: Project) {
 
         val fileChange: Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>>? = getFileChange(link)
 
-        // TODO: if the file change type is deleted, return immediately. There is no need to track the lines in a file
-        // that has been deleted
-
         val result = mutableListOf<LineChange>()
+
+        // if the file change type is deleted, return immediately.
+        // There is no need to track the lines in a file.
+        if(fileChange!!.second.second.changeType==ChangeType.DELETED) {
+            return result
+        }
 
         val changeList: MutableList<Pair<String, String>> = fileChange!!.first
 
