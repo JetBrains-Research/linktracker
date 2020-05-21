@@ -6,11 +6,11 @@ data class Line(
 
     val content: String,
 
-    var contextLines: MutableList<Line>
+    var contextLines: MutableList<Line>? = null
 ) {
     override fun toString(): String {
-        return "line is \n" +
-                "$content \n" +
+        return "line is " +
+                "$content and " +
                 "with line number $lineNumber"
     }
 }
