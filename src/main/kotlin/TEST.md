@@ -1,8 +1,6 @@
 # Test Markdown File
 
-[test space 1](../../../doc/Project Plan.pdf)
-
-[test 1](../kotlin)
+[test new line](org)
 
 [test 2](..)
 
