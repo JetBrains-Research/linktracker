@@ -12,6 +12,8 @@ import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.util.regex.Matcher
+import kotlin.math.max
+import kotlin.math.min
 
 
 class ChangeTrackerService(project: Project) {
@@ -34,7 +36,11 @@ class ChangeTrackerService(project: Project) {
         }
 
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
-            gitOperationManager.getAllChangesForFile(link, branchOrTagName = branchOrTagName, specificCommit = specificCommit)
+            gitOperationManager.getAllChangesForFile(
+                link,
+                branchOrTagName = branchOrTagName,
+                specificCommit = specificCommit
+            )
         val change: LinkChange = result.second
         when (change.changeType) {
             // this file's change type is invalid
@@ -149,76 +155,133 @@ class ChangeTrackerService(project: Project) {
 
         val fileChange: Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>>? = getFileChange(link)
 
+        // TODO: if the file change type is deleted, return immediately. There is no need to track the lines in a file
+        // that has been deleted
+
         val result = mutableListOf<LineChange>()
 
         val changeList: MutableList<Pair<String, String>> = fileChange!!.first
 
-        for (x in 0 until changeList.size-1) {
-            val before = changeList.get(x).first.split("Commit: ").get(1)
-            val after = changeList.get(x+1).first.split("Commit: ").get(1)
-            val file  = changeList.get(x).second
-            val output = getDiffOutput(before, after, file)
+        for (x in 0 until changeList.size - 1) {
+            val before = changeList[x].first.split("Commit: ")[1]
+            val beforePath = changeList[x].second
+            val after = changeList[x + 1].first.split("Commit: ")[1]
+            val afterPath = changeList[x + 1].second
+            val file = changeList[x].second
+            val output = getDiffOutput(before, after, beforePath, afterPath, file)
             println(output)
             result.add(output)
         }
         return result
     }
 
-    private fun getDiffOutput(before: String, after: String, file: String): LineChange {
-        val output = gitOperationManager.getDiffBetweenCommits(before, after)
-        val lines: List<String?> = output.lines()
-        val addedLines = mutableListOf<Line>()
-        val deletedLines = mutableListOf<Line>()
+    private fun getDiffOutput(
+        before: String,
+        after: String,
+        beforePath: String,
+        afterPath: String,
+        file: String,
+        contextLinesNumber: Int = 3
+    ): LineChange {
+        val output = gitOperationManager.getDiffBetweenCommits(before, after, beforePath, afterPath, contextLinesNumber)
+        // skip the git diff header (first 4 lines)
+        val lines: List<String?> = output.lines().subList(4, output.lines().size)
+        val addedLines: MutableList<Line> = mutableListOf()
+        val deletedLines: MutableList<Line> = mutableListOf()
         var startDeletedLine: Int
         var startAddedLine: Int
         var currentAddedLine = 0
         var currentDeletedLine = 0
-        for(line in lines) {
+        var contextLinesDeleted: MutableList<Line> = mutableListOf()
+        var contextLinesAdded: MutableList<Line> = mutableListOf()
+
+        for (line: String? in lines) {
             if (line == null) {
                 break
-            }
-            if(line.startsWith("@@ ")) {
-                val info = line.split(" @@").get(0)
+            // git hunk info header
+            } else if (line.startsWith("@@ ")) {
+                val info = line.split(" @@")[0]
                 val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
-                if(matcher.matches()) {
+                if (matcher.matches()) {
                     startDeletedLine = matcher.group(1).toInt()
                     currentDeletedLine = startDeletedLine
                     startAddedLine = matcher.group(6).toInt()
                     currentAddedLine = startAddedLine
                 }
-            }
-            if(line.startsWith("+") && !line.startsWith("+++")) {
-                val addedLine = Line(currentAddedLine, line.split("+").get(1), addedLines)
+            // added line
+            } else if (line.startsWith("+")) {
+                val addedLine = Line(currentAddedLine, line.split("+")[1])
                 addedLines.add(addedLine)
+                contextLinesAdded.add(addedLine)
                 currentAddedLine++
-            }
-            if(line.startsWith("-") && !line.startsWith("---")) {
-                val deletedLine = Line(currentDeletedLine, line.split("-").get(1), deletedLines)
+            // deleted line
+            } else if (line.startsWith("-")) {
+                val deletedLine = Line(currentDeletedLine, line.split("-")[1])
                 deletedLines.add(deletedLine)
+                contextLinesDeleted.add(deletedLine)
+                currentDeletedLine++
+            // this is an unchanged line: just add it to the context lines lists and increment the indices
+            } else {
+                contextLinesDeleted.add(Line(currentDeletedLine, line))
+                contextLinesAdded.add(Line(currentAddedLine, line))
+                currentAddedLine++
                 currentDeletedLine++
             }
         }
-        for (l in addedLines) {
-            l.contextLines = addedLines
+
+        // remove git-added warning lines
+        if (contextLinesAdded.last().content == "\\ No newline at end of file")
+            contextLinesAdded = contextLinesAdded.subList(0, contextLinesAdded.size - 1)
+
+        // remove git-added warning lines
+        if (contextLinesDeleted.last().content == "\\ No newline at end of file")
+            contextLinesDeleted = contextLinesDeleted.subList(0, contextLinesDeleted.size - 1)
+
+
+        // populate the context lines properties of the added lines
+        for (l: Line in addedLines) {
+            val maxContextLineNumber: Int = contextLinesAdded.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
+
+            // get all of the context lines on the upper side of the line:
+            // that is, the lines within [current_line_number - contextLinesNumber, current_line_number)
+            // as well as all of the context line on the lower side of the line:
+            // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
+            val contextLines: MutableList<Line> = contextLinesAdded.filter { line ->
+                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
+                 || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
+             }.toMutableList()
+            l.contextLines = contextLines
         }
 
-        for (l in deletedLines) {
-            l.contextLines = deletedLines
+        // populate the context lines properties of the deleted lines
+        for (l: Line in deletedLines) {
+            val maxContextLineNumber: Int = contextLinesDeleted.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
+
+            // get all of the context lines on the upper side of the line:
+            // that is, the lines within [current_line_number - contextLinesNumber, current_line_number)
+            // as well as all of the context line on the lower side of the line:
+            // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
+            val contextLines: MutableList<Line> = contextLinesDeleted.filter { line ->
+                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
+                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
+            }.toMutableList()
+            l.contextLines = contextLines
         }
+
         return LineChange(file, addedLines, deletedLines, before, after)
     }
 
     private fun getLineChange(start: String, change: String?): MutableList<Int> {
         val startNum = start.toInt()
         val result = mutableListOf(startNum)
-        if(change==null) {
+        if (change == null) {
             return result
         } else {
             val changeNum = change.toInt()
-            if(changeNum==0){
+            if (changeNum == 0) {
                 return mutableListOf()
             } else {
-                for (i in (startNum+1) until (startNum+changeNum) ) {
+                for (i in (startNum + 1) until (startNum + changeNum)) {
                     result.add(i)
                 }
                 return result
