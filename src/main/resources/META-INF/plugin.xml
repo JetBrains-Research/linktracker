@@ -24,15 +24,23 @@
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
   <actions>
-    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link tracker plugin" description="Track links">
+    <group id="outer" text="Sample" description="Sample desc">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
-      <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-      <!-- Except to the "Mac OS X" keymap and its children -->
-      <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
-      <!-- The "Mac OS X 10.5+" keymap and its children will have only this keyboard shortcut for this action.  -->
-      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
-      <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-    </action>
+      <group id="inner" text="Link Tracker Plugin" popup="true">
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Run" description="Track links">
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+        <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings" description="Track links">
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt G"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt G"  replace-all="true"/>
+          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+      </group>
+    </group>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">

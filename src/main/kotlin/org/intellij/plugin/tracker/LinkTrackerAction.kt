@@ -87,9 +87,6 @@ class LinkTrackerAction : AnAction() {
             }
         })
 
-        val statistics =
-            mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
-
         // Run linkUpdater thread
         // There should be a better way to wait for the Tracking Links task to finish
         ApplicationManager.getApplication().invokeLater {
@@ -115,6 +112,5 @@ class LinkTrackerAction : AnAction() {
         }
 
         uiService.updateView(currentProject, linksAndChangesList)
-        uiService.updateStatistics(currentProject, statistics)
     }
 }
