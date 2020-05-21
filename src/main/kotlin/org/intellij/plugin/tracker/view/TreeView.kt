@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.view
 
+import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
@@ -50,8 +51,8 @@ class TreeView : JPanel(BorderLayout()) {
                 val changeTree = DefaultMutableTreeNode("Change")
                 addNodeTree("Change Type:", change.changeType.toString(), changeTree)
                 if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
-                if (change.changeType.toString() == "MODIFIED" || change.changeType.toString() == "DELETED") {
-                    if (change.changeType.toString() == "MODIFIED") {
+                if (change.changeType == ChangeType.MOVED || change.changeType == ChangeType.DELETED) {
+                    if (change.changeType == ChangeType.MOVED) {
                         addNodeTree("After Path:", change.afterPath, changeTree)
                     }
                     addNodeTree("Accept", "", changeTree)
