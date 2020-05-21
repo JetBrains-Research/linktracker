@@ -17,7 +17,10 @@ class LinkProcessingRouter {
 
             when(link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
-                is RelativeLinkToFile -> { println(changeTrackerService.getLinkChange(link));
+                is RelativeLinkToFile -> {
+//                    if(link.linkInfo.linkPath=="build.gradle") {
+//                        println(changeTrackerService.getLinkChange(link))
+//                    }
                     return changeTrackerService.getFileChange(link).second }
                 is RelativeLinkToLine -> {
                     val result = changeTrackerService.getFileChange(link)
