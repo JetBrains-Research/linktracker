@@ -198,7 +198,7 @@ class GitOperationManager(private val project: Project) {
     @Throws(VcsException::class)
     fun getAllChangesForFile(
         link: Link,
-        similarityThreshold: Int = 60,
+        similarityThreshold: Int,
         branchOrTagName: String? = null,
         specificCommit: String? = null
     ): Pair<MutableList<Pair<String, String>>, LinkChange> {
@@ -398,5 +398,12 @@ class GitOperationManager(private val project: Project) {
      */
     fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<com.intellij.openapi.vcs.changes.Change>? =
         GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
+
+    fun getDiffBetweenCommits(commit1: String, commit2: String, beforePath: String, afterPath: String, contextLinesNumber: Int = 3): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
+        gitLineHandler.addParameters("-U$contextLinesNumber", "$commit1:$beforePath", "$commit2:$afterPath")
+        val output = git.runCommand(gitLineHandler)
+        return output.getOutputOrThrow()
+    }
 
 }
