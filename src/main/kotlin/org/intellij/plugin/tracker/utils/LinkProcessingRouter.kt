@@ -1,7 +1,6 @@
 package org.intellij.plugin.tracker.utils
 
 import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.ChangeTrackerService
