@@ -14,6 +14,7 @@ import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugin.tracker.view.PasswordManagingDialog
+import javax.swing.JOptionPane
 
 
 class PasswordManagingAction : AnAction() {
@@ -51,11 +52,15 @@ class PasswordManagingAction : AnAction() {
         val result: List<Pair<String, List<Pair<String, String>>>> = userInfoList.groupBy { it.first }
             .map { (e1, e2) -> Pair(e1, e2.map { element -> Pair(element.second, element.third) }) }
 
-        val dialog = PasswordManagingDialog(true, result);
+        if (result.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "There is no link requires password!")
+        } else {
+            val dialog = PasswordManagingDialog(true, result);
 
-        dialog.title = "Manage Passwords"
-        dialog.createCenterPanel()
-        dialog.show()
+            dialog.title = "Manage Passwords"
+            dialog.createCenterPanel()
+            dialog.show()
+        }
     }
 }
 

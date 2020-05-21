@@ -1,11 +1,20 @@
 package org.intellij.plugin.tracker.view
 
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTabbedPane
 import org.intellij.plugin.tracker.utils.CredentialsManager
+import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.GridLayout
 import java.awt.event.KeyEvent
-import javax.swing.*
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JOptionPane
+import javax.swing.JPanel
+import javax.swing.JTextArea
+import javax.swing.JTextField
+import javax.swing.ScrollPaneConstants
 
 
 class PasswordManagingDialog internal constructor(
@@ -46,15 +55,29 @@ class PasswordManagingDialog internal constructor(
         for (i in userInfoList.indices) {
             val userInfo = userInfoList[i]
             val panel = JPanel()
-            panel.add(JLabel("Enter the password for ${userInfo.first}:"))
+            val height = JPanel(BorderLayout())
+            height.add(JLabel("Enter the password for ${userInfo.first}: "), BorderLayout.LINE_START)
+            password = JTextField()
+            password.preferredSize = Dimension(100, 20)
+            height.add(password, BorderLayout.LINE_END)
+            panel.add(height, BorderLayout.CENTER)
             panel.layout = GridLayout(0, 1)
-            password = JTextField(20)
-            panel.add(password)
             tabbedPane.putClientProperty(userInfo.first, password)
             val infoList = userInfo.second
+            var text = ""
             for (pair in infoList) {
-                panel.add(JLabel("Needed for accessing link ${pair.second} to project name: ${pair.first}\n"))
+                text += " Needed for accessing link ${pair.second} to project name: ${pair.first} \n"
             }
+            panel.preferredSize = Dimension(350, 100)
+            panel.maximumSize = panel.preferredSize
+            panel.minimumSize = panel.preferredSize
+            val display = JTextArea(100, 20)
+            display.text = text
+            display.isEditable = false
+            val scroll = JBScrollPane(display)
+            scroll.verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
+            panel.add(scroll)
+
             tabbedPane.addTab(
                 "User ${i+1}", null, panel,
                 "${userInfo.first}'s password"
