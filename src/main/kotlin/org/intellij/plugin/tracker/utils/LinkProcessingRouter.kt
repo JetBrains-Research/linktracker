@@ -5,6 +5,7 @@ import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.services.GitHubChangeTrackerService
 
 class LinkProcessingRouter {
 
@@ -30,9 +31,17 @@ class LinkProcessingRouter {
                     println("FILE HISTORY LIST: ${result.first}")
                     throw NotImplementedError("")
                 }
-                is WebLinkToDirectory -> when {
-                    link.correspondsToLocalProject() -> return changeTrackerService.getDirectoryChange(link)
-                    else -> throw NotImplementedError("$link is not yet supported")
+                is WebLinkToDirectory-> return when {
+                    link.correspondsToLocalProject() -> changeTrackerService.getDirectoryChange(link)
+                    else -> {
+                        // only track web links which are hosted on github for now
+                        if (link.getPlatformName().contains("github")) {
+                            val gitHubChangeTrackerService: GitHubChangeTrackerService =
+                                GitHubChangeTrackerService.getInstance(link.linkInfo.project)
+                            gitHubChangeTrackerService.getDirectoryChanges(link)
+                        }
+                        throw NotImplementedError("")
+                    }
                 }
                 is WebLinkToFile -> return when {
                     link.correspondsToLocalProject() -> {
