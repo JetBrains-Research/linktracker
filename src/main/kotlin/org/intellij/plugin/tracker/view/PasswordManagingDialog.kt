@@ -12,6 +12,7 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JOptionPane
 import javax.swing.JPanel
+import javax.swing.JTabbedPane
 import javax.swing.JTextArea
 import javax.swing.JTextField
 import javax.swing.ScrollPaneConstants
@@ -51,6 +52,7 @@ class PasswordManagingDialog internal constructor(
 
     init {
         init()
+        tabbedPane.tabLayoutPolicy = JTabbedPane.SCROLL_TAB_LAYOUT
         var password: JTextField
         for (i in userInfoList.indices) {
             val userInfo = userInfoList[i]
