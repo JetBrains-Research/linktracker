@@ -163,7 +163,7 @@ class ChangeTrackerService(project: Project) {
             return result
         }
 
-        val changeList: MutableList<Pair<String, String>> = fileChange!!.first
+        val changeList: MutableList<Pair<String, String>> = fileChange.first
 
         for (x in 0 until changeList.size - 1) {
             val before = changeList[x].first.split("Commit: ")[1]

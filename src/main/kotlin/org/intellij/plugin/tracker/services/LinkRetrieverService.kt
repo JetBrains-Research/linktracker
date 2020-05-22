@@ -78,7 +78,7 @@ class LinkRetrieverService(private val project: Project?) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject, "<", ">"))
                     }
                     super.visitElement(element)
                 }
