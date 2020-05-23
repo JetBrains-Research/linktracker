@@ -11,7 +11,7 @@ enum class LinkPatterns(val pattern: Pattern) {
     /**
      * WebLink patterns
      */
-    WebLinkToLines(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+-L[0-9])")),
+    WebLinkToLines(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)-L([0-9]+)")),
     WebLinkToLine(Pattern.compile("((https?://)|(www\\.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-z0-9]+))|(-/blob))/([a-zA-Z0-9-_./]+)#L([0-9]+)")),
     WebLinkToFile(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((blob/([a-zA-Z-_.0-9]+))|(-/blob/([a-zA-Z-_.0-9]+)))/([a-zA-Z0-9-_./]+\\.[a-zA-Z0-9-_./]+)")),
     WebLinkToDirectory(Pattern.compile("((https?://)|(www.))([a-zA-Z.]+)/([a-zA-Z0-9-_./]+)/([a-zA-Z]+[a-zA-Z0-9-_.]+)/((tree/([a-zA-Z-_.0-9]+))|(-/tree/([a-zA-Z-_.0-9]+)))/([a-zA-Z0-9-_./]+)")),
@@ -21,6 +21,11 @@ enum class LinkPatterns(val pattern: Pattern) {
      * Relative link patterns
      */
     RelativeLinkToLines(Pattern.compile(".*[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+\\.[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+#L([0-9]+)-L([0-9]+)\$")),
-    RelativeLinkToLine(Pattern.compile(".*[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+\\.[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+#L([0-9]+)\$"))
+    RelativeLinkToLine(Pattern.compile(".*[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+\\.[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+#L([0-9]+)\$")),
+    GitDiffChangedLines(Pattern.compile("@@ -([0-9]+)(((,)([0-9]+))*) \\+([0-9]+)(((,)([0-9]+))*)")),
+    RelativeLinkWithDoubleDots(Pattern.compile("((([a-zA-Z./ ]+)/)*)(([a-zA-Z ]+)/../)([a-zA-Z./ ]+)")),
+    RelativeLinkWithDoubleDotsAtEnd(Pattern.compile("(([a-zA-Z/ ]+)/([a-zA-Z ]+)/..)")),
+    RelativeLinkWithSingleDot(Pattern.compile("(([a-zA-Z/ ]+)/./([a-zA-Z/. ]+))")),
+    RelativeLinkWithSingleDotAtEnd(Pattern.compile("(([a-zA-Z/ ]+)/.)"))
 
 }

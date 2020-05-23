@@ -24,15 +24,29 @@
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
   <actions>
-    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link tracker plugin" description="Track links">
+    <group id="outer" text="Sample" description="Sample desc">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
-      <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-      <!-- Except to the "Mac OS X" keymap and its children -->
-      <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
-      <!-- The "Mac OS X 10.5+" keymap and its children will have only this keyboard shortcut for this action.  -->
-      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
-      <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-    </action>
+      <group id="inner" text="Link Tracker Plugin" popup="true">
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Run" description="Track links">
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+        <action id="Settings" class="org.intellij.plugin.tracker.actions.SettingsAction" text="Settings" description="Track links">
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt G"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt G"  replace-all="true"/>
+          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+        <action id="Manage Passwords" class="org.intellij.plugin.tracker.actions.PasswordManagingAction" text="Manage Passwords" description="Track links">
+          <keyboard-shortcut keymap="$default" first-keystroke="control alt H"/>
+          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt H"  remove="true"/>
+          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt H"  replace-all="true"/>
+          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+      </group>
+    </group>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
@@ -40,7 +54,9 @@
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.GitHubChangeTrackerService"/>
   </extensions>
 
 </idea-plugin>

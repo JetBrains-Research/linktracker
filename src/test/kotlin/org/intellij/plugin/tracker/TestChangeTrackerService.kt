@@ -15,9 +15,9 @@ package org.intellij.plugin.tracker
 // import kotlin.test.assertEquals
 // import kotlin.test.assertTrue
 // import org.intellij.plugin.tracker.data.FileChange
-// import org.intellij.plugin.tracker.data.Link
-// import org.intellij.plugin.tracker.data.LinkType
-// import org.intellij.plugin.tracker.data.RelativeLink
+// import org.intellij.plugin.tracker.data.links.Link
+// import org.intellij.plugin.tracker.data.links.LinkType
+// import org.intellij.plugin.tracker.data.links.RelativeLink
 // import org.intellij.plugin.tracker.services.ChangeTrackerService
 // import org.junit.Test
 // import org.mockito.Mockito
