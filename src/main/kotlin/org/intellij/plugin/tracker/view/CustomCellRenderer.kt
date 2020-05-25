@@ -2,9 +2,8 @@ package org.intellij.plugin.tracker.view
 
 import java.awt.Color
 import java.awt.Component
+import java.awt.Font.PLAIN
 import java.awt.GridLayout
-import javax.swing.Icon
-import javax.swing.ImageIcon
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTree
@@ -26,31 +25,30 @@ internal class CustomCellRenderer : TreeCellRenderer {
         if (value is DefaultMutableTreeNode) {
             val userObject = value.userObject
             titleLabel.text = userObject.toString()
-            var check = false
 
-            if (value.parent?.parent?.toString() == "Markdown Files") {
-                val children = value.children()
-                for (child in children) {
-                    if (child.toString() == "Change") {
-                        check = true
-                    }
+            if (value.parent != null) {
+                val text = value.parent.toString()
+                println(text)
+                if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                    val texts = userObject.toString().split(" ")
+                    titleLabel.text = "<html><font color='blue'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
                 }
             }
 
-            if (check) titleLabel.foreground = Color.BLUE else titleLabel.foreground = Color.DARK_GRAY
-
             when {
-                userObject.toString() == "Accept " -> {
-                    titleLabel.foreground = Color.GREEN
-                    val checkIcon: Icon = ImageIcon(javaClass.getResource("/images/check.png"))
-                    titleLabel.icon = checkIcon
+                userObject.toString().contains("Changed Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(13) + "</font></html>"
                 }
-                userObject.toString() == "Deny " -> {
-                    titleLabel.foreground = Color.RED
-                    val crossIcon: Icon = ImageIcon(javaClass.getResource("/images/cross.png"))
-                    titleLabel.icon = crossIcon
+                userObject.toString().contains("Unchanged Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Unchanged Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(15) + "</font></html>"
                 }
-                else -> { titleLabel.icon = defaultRenderer.openIcon }
+                userObject.toString().contains("Invalid Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Invalid Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(13) + "</font></html>"
+                }
+                else -> { titleLabel.font = titleLabel.font.deriveFont(PLAIN) }
             }
             renderer.isEnabled = tree.isEnabled
             returnValue = renderer
