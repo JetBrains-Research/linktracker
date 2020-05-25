@@ -24,29 +24,13 @@
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
   <actions>
-    <group id="outer" text="Sample" description="Sample desc">
+    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker" description="Track links">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
-      <group id="inner" text="Link Tracker Plugin" popup="true">
-        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Run" description="Track links">
-          <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
-          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
-          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-        </action>
-        <action id="Settings" class="org.intellij.plugin.tracker.actions.SettingsAction" text="Settings" description="Track links">
-          <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
-          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt G"  remove="true"/>
-          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt G"  replace-all="true"/>
-          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-        </action>
-        <action id="Manage Passwords" class="org.intellij.plugin.tracker.actions.PasswordManagingAction" text="Manage Passwords" description="Track links">
-          <keyboard-shortcut keymap="$default" first-keystroke="control alt H"/>
-          <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt H"  remove="true"/>
-          <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt H"  replace-all="true"/>
-          <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-        </action>
-      </group>
-    </group>
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+      <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+    </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
