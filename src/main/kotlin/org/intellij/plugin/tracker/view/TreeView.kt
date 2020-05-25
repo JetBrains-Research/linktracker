@@ -6,10 +6,9 @@ import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
-import javax.swing.JOptionPane
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JTree
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import javax.swing.*
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -105,10 +104,33 @@ class TreeView : JPanel(BorderLayout()) {
         val mdFiles = DefaultMutableTreeNode("Markdown Files")
         tree = JTree(mdFiles)
         tree.addTreeSelectionListener(createSelectionListener());
+
+        // right click listener
+        val treePopup = TreePopup(tree)
+        tree.addMouseListener(object : MouseAdapter() {
+            override fun mouseReleased(e: MouseEvent) {
+                if (e.isPopupTrigger()) {
+                    treePopup.show(e.getComponent(), e.getX(), e.getY())
+                }
+            }
+        })
+
         val renderer: TreeCellRenderer = CustomCellRenderer()
         tree.cellRenderer = renderer
         val scrollPane = JScrollPane(tree)
         layout = BorderLayout()
         add(scrollPane, BorderLayout.CENTER)
+    }
+}
+
+internal class TreePopup(tree: JTree?) : JPopupMenu() {
+    init {
+        val add = JMenuItem("Accept")
+        val delete = JMenuItem("Deny")
+        add.addActionListener { println("Accept change") }
+        delete.addActionListener { println("Deny change") }
+        add(add)
+        add(JSeparator())
+        add(delete)
     }
 }
