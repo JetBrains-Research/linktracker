@@ -24,6 +24,40 @@ class GitOperationManager(private val project: Project) {
     private val git: Git = Git.getInstance()
     private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
 
+    /**
+     * Checks whether the commit represented by commitSHA1 is an ancestor of commitSHA2
+     * and returns a boolean indicating the result
+     *
+     * Runs git command `git merge-base --is-ancestor commitSHA1 commitSHA2`
+     */
+    @Throws(VcsException::class)
+    fun isAncestorOf(commitSHA1: String, commitSHA2: String): Boolean {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.MERGE_BASE)
+        gitLineHandler.addParameters(
+            "--is-ancestor",
+            commitSHA1,
+            commitSHA2
+        )
+        val result: GitCommandResult = git.runCommand(gitLineHandler)
+        println("IS $commitSHA1 an ancestor for $commitSHA2: ${result.exitCode}")
+        if (result.exitCode == 0) return true
+        return false
+    }
+
+    /**
+     * Returns the contents of a line in a specified file at a specified commit
+     *
+     * Runs git command `git show revision:path_to_file`
+     */
+    @Throws(VcsException::class)
+    fun getContentsOfLineInFileAtCommit(commitSHA: String, path: String, lineNumber: Int): String? {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
+        gitLineHandler.addParameters("$commitSHA:$path")
+        val result: GitCommandResult = git.runCommand(gitLineHandler)
+        val lines = result.getOutputOrThrow().lines()
+        if (lines.size >= lineNumber) return lines[lineNumber]
+        return null
+    }
 
     /**
      * Checks whether a reference name corresponds to a valid tag name
