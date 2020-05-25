@@ -1,6 +1,6 @@
 # Test Markdown File
 
-[test space 1](../../../doc/Project Plan.pdf)
+[test outside of the scope](../../../../template/.idea)
 
 [test 1](../kotlin)
 

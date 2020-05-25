@@ -71,8 +71,13 @@ fun checkRelativeLink(link: String): String {
 }
 
 fun checkDoubleDots(link: String): String {
+    println("double dot $link")
     var result = link
     while(result.contains("..")) {
+        if(result.startsWith("..")) {
+            println("not valid link $result")
+            return result
+        }
         val matcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDots.pattern.matcher(result)
         if(matcher.matches()) {
             val firstPart = matcher.group(2)
@@ -93,8 +98,9 @@ fun checkDoubleDots(link: String): String {
 }
 
 fun checkSingleDot(link: String): String {
+    println("single dot $link")
     var result = link
-    while(result.contains("/.")) {
+    while(result.contains("/./") || result.endsWith("/.")) {
         val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
         if(matcher.matches()) {
             val firstPart = matcher.group(2)
