@@ -1,5 +1,7 @@
 package org.intellij.plugin.tracker.utils
 
+import org.intellij.plugin.tracker.core.LineTracker
+import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
@@ -21,8 +23,11 @@ class LinkProcessingRouter {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
                 is RelativeLinkToFile -> return changeTrackerService.getFileChange(link).second
                 is RelativeLinkToLine -> {
-                    val lineChangeList: MutableList<LineChange> = changeTrackerService.getLinkChange(link)
-                    // TODO: pass the line change list to the core to get the new line number
+                    val lineChangeResult: Pair<String?, MutableList<LineChange>> = changeTrackerService.getLinkChange(link)
+
+                    if (lineChangeResult.first != null) {
+                        val newLine: Line? = LineTracker.trackLine(link, lineChangeResult.first!!, lineChangeResult.second)
+                    }
 
                     throw NotImplementedError("")
                 }
