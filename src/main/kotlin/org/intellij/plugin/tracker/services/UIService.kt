@@ -20,10 +20,14 @@ class UIService(val project: Project) {
 
         val treeWindow = toolWindowManager
                 .registerToolWindow(RegisterToolWindowTask("Markdown Files", ToolWindowAnchor.BOTTOM))
-        val treeContent = contentFactory.createContent(treeView, null, true)
+        val treeContent = contentFactory.createContent(treeView, "Links", true)
+        treeContent.isCloseable = false
         treeWindow.contentManager.addContent(treeContent)
+        val otherContent = contentFactory.createContent(TreeView(), "Other", true)
+        otherContent.isCloseable = false
+        treeWindow.contentManager.addContent(otherContent)
+        treeWindow.contentManager.setSelectedContent(treeContent)
     }
-
     /**
      * Update the view.
      * @param project the currently open project
