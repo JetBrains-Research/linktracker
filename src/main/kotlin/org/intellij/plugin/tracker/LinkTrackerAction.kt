@@ -50,6 +50,7 @@ class LinkTrackerAction : AnAction() {
 
         ApplicationManager.getApplication().runReadAction {
             linkService.getLinks(linkInfoList)
+//            linkService.getCommentLinks(linkInfoList)
         }
 
         var running = true
