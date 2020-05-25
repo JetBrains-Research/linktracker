@@ -12,6 +12,8 @@ import kotlin.experimental.and
  * is acceptable.  Do NOT use for cryptographic purposes.
  *
  * Java port by Gray Watson http://256.com/gray/
+ *
+ * Converted to Kotlin based on the Java port by Gray Watson http://256.com/gray/
  */
 class JenkinsHash {
 
