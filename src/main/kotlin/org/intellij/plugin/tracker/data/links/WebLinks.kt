@@ -78,7 +78,7 @@ data class WebLinkToLines(
         return linkInfo.linkPath
     }
 
-    fun getReferencedStartingLine(): Int = matcher.group(12).toInt()
+    public fun getReferencedStartingLine(): Int = matcher.group(12).toInt()
 
-    fun getReferencedEndingLine(): Int = matcher.group(13).toInt()
+    public fun getReferencedEndingLine(): Int = matcher.group(13).toInt()
 }
