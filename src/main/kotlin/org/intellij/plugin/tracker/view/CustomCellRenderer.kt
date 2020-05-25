@@ -1,5 +1,7 @@
 package org.intellij.plugin.tracker.view
 
+import com.intellij.icons.AllIcons
+import icons.MarkdownIcons
 import java.awt.Color
 import java.awt.Component
 import java.awt.Font.PLAIN
@@ -25,12 +27,14 @@ internal class CustomCellRenderer : TreeCellRenderer {
         if (value is DefaultMutableTreeNode) {
             val userObject = value.userObject
             titleLabel.text = userObject.toString()
+            titleLabel.icon = MarkdownIcons.EditorActions.Link
 
             if (value.parent != null) {
                 val text = value.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     val texts = userObject.toString().split(" ")
                     titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                    titleLabel.icon = MarkdownIcons.MarkdownPlugin
                 }
             }
 
@@ -38,7 +42,8 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 val text = value.parent.parent.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     val texts = userObject.toString().split(") ")
-                    titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(247, 152, 98)'>" + texts[1] + "</font></html>"
+                    titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                    titleLabel.icon = AllIcons.General.TodoDefault
                 }
             }
 
@@ -46,14 +51,17 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 userObject.toString().contains("Changed Links") -> {
                     titleLabel.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
                             userObject.toString().substring(13) + "</font></html>"
+                    titleLabel.icon = null
                 }
                 userObject.toString().contains("Unchanged Links") -> {
                     titleLabel.text = "<html>" + "<strong>Unchanged Links </strong></font> <font color='gray'>" +
                             userObject.toString().substring(15) + "</font></html>"
+                    titleLabel.icon = null
                 }
                 userObject.toString().contains("Invalid Links") -> {
                     titleLabel.text = "<html>" + "<strong>Invalid Links </strong></font> <font color='gray'>" +
                             userObject.toString().substring(13) + "</font></html>"
+                    titleLabel.icon = null
                 }
                 else -> { titleLabel.font = titleLabel.font.deriveFont(PLAIN) }
             }
