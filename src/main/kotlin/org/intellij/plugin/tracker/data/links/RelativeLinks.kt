@@ -61,9 +61,9 @@ data class RelativeLinkToLines(
         return linkInfo.linkPath
     }
 
-    fun getStartLineReferenced(): Int = matcher.group(1).toInt()
+    public fun getStartLineReferenced(): Int = matcher.group(1).toInt()
 
-    fun getEndLineReferenced(): Int = matcher.group(2).toInt()
+    public fun getEndLineReferenced(): Int = matcher.group(2).toInt()
 }
 
 fun checkRelativeLink(link: String): String {

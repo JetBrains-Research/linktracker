@@ -5,11 +5,14 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.VcsException
+import com.intellij.psi.PsiDocumentManager
+import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
@@ -19,6 +22,7 @@ import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugin.tracker.utils.LinkProcessingRouter
+import java.io.File
 
 
 class LinkTrackerAction : AnAction() {
@@ -46,14 +50,16 @@ class LinkTrackerAction : AnAction() {
 
         ApplicationManager.getApplication().runReadAction {
             linkService.getLinks(linkInfoList)
+//            linkService.getCommentLinks(linkInfoList)
         }
 
         var running = true
+        var headCommitSHA: String? = null
 
         ProgressManager.getInstance().run(object : Task.Modal(currentProject, "Tracking links..", true) {
             override fun run(indicator: ProgressIndicator) {
                 running = true
-                for (linkInfo in linkInfoList) {
+                for (linkInfo: LinkInfo in linkInfoList) {
                     indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
                     val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
 
@@ -82,14 +88,14 @@ class LinkTrackerAction : AnAction() {
                 // Debug
                 println("Link tracking finished!")
                 running = false
-
-                historyService.saveCommitSHA(GitOperationManager(currentProject).getHeadCommitSHA())
+                headCommitSHA = GitOperationManager(currentProject).getHeadCommitSHA()
+                historyService.saveCommitSHA(headCommitSHA!!)
             }
         })
 
         // Run linkUpdater thread
         // There should be a better way to wait for the Tracking Links task to finish
-        ApplicationManager.getApplication().invokeLater {
+        ApplicationManager.getApplication().runWriteAction {
             WriteCommandAction.runWriteCommandAction(currentProject) {
                 while (running) {
                     Thread.sleep(100L)
@@ -101,7 +107,7 @@ class LinkTrackerAction : AnAction() {
                     println("All changes: ")
                     // Debug
                     linksAndChangesList.map { pair -> println(pair) }
-                    val result = linkUpdateService.updateLinks(linksAndChangesList)
+                    val result: UpdateResult = linkUpdateService.updateLinks(linksAndChangesList, headCommitSHA)
                     // Debug
                     println("Update result: $result")
                 } else {

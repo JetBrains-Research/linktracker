@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
@@ -28,12 +29,13 @@ class LinkRetrieverService(private val project: Project?) {
     var linkFound = false
 
     /**
-     * Function to get the list of links.
+     * Function to get the list of links from MD files.
      */
     fun getLinks(linkInfoList: MutableList<LinkInfo>) {
         val currentProject = project
         val virtualFiles =
                 FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
+
         val psiDocumentManager = PsiDocumentManager.getInstance(project!!)
         noOfLinks = 0
         noOfFiles = 0
@@ -78,7 +80,7 @@ class LinkRetrieverService(private val project: Project?) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
                         textOffset = element.node.startOffset
                         lineNumber = document.getLineNumber(textOffset) + 1
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject, "<", ">"))
                     }
                     super.visitElement(element)
                 }
@@ -86,6 +88,31 @@ class LinkRetrieverService(private val project: Project?) {
             if (linkFound) {
                 noOfFilesWithLinks++
             }
+        }
+    }
+
+    /**
+     * Function to get the list of links from javadoc comments.
+     */
+    fun getCommentLinks(linkInfoList: MutableList<LinkInfo>) {
+        val currentProject = project
+
+        ProjectFileIndex.SERVICE.getInstance(project).iterateContent {
+            val proveniencePath = it.path.replace("${currentProject!!.basePath!!}/", "")
+            val psiFile = PsiManager.getInstance(currentProject).findFile(it)
+            val fileName = psiFile!!.name
+            psiFile.accept(object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement) {
+                    if (element.node != null) {
+                        val elemType = element.node.elementType.toString()
+                        if (elemType == "KDOC_TEXT" || elemType == "EOL_COMMENT" || elemType == "comment" || elemType == "line comment" || elemType == "<comment>") {
+//                            println(element.text)
+                        }
+                    }
+                    super.visitElement(element)
+                }
+            })
+            true
         }
     }
 

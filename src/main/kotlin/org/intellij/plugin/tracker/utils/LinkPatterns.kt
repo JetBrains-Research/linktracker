@@ -22,6 +22,8 @@ enum class LinkPatterns(val pattern: Pattern) {
      */
     RelativeLinkToLines(Pattern.compile(".*[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+\\.[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+#L([0-9]+)-L([0-9]+)\$")),
     RelativeLinkToLine(Pattern.compile(".*[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+\\.[^\\\\\\.\\/\\:\\*\\?\\\"\\<\\>]+#L([0-9]+)\$")),
+
+    GitDiffChangedLines(Pattern.compile("@@ -([0-9]+)(((,)([0-9]+))*) \\+([0-9]+)(((,)([0-9]+))*)")),
     RelativeLinkWithDoubleDots(Pattern.compile("((([a-zA-Z0-9%./\\- ]+)/)*)(([a-zA-Z0-9%\\- ]+)/../)([a-zA-Z0-9%./\\- ]+)")),
     RelativeLinkWithDoubleDotsAtEnd(Pattern.compile("(([a-zA-Z0-9%/\\- ]+)/([a-zA-Z0-9%\\- ]+)/..)")),
     RelativeLinkWithSingleDot(Pattern.compile("(([a-zA-Z0-9%/\\- ]+)/./([a-zA-Z0-9%/.\\- ]+))")),

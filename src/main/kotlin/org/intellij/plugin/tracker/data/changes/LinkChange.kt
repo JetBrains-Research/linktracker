@@ -11,9 +11,10 @@ enum class ChangeType(change: String) {
 open class LinkChange(
     open val changeType: ChangeType,
     open val afterPath: String,
-    open val errorMessage: String? = null
+    open val errorMessage: String? = null,
+    val fromWorkingTree: Boolean = false
 ) {
     override fun toString(): String {
-        return "Change type is $changeType and after path is $afterPath"
+        return "Change type is $changeType and after path is $afterPath with error message $errorMessage"
     }
 }
