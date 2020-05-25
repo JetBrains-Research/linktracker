@@ -39,8 +39,10 @@ class ChangeTrackerService(project: Project) {
         val prop = PropertiesComponent.getInstance()
         val threshold = prop.getValue("threshold", "60").toInt()
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
-            gitOperationManager.getAllChangesForFile(link, threshold,
-                    branchOrTagName = branchOrTagName, specificCommit = specificCommit)
+            gitOperationManager.getAllChangesForFile(
+                link, threshold,
+                branchOrTagName = branchOrTagName, specificCommit = specificCommit
+            )
         val change: LinkChange = result.second
         when (change.changeType) {
             // this file's change type is invalid
@@ -151,19 +153,41 @@ class ChangeTrackerService(project: Project) {
         }
     }
 
-    fun getLinkChange(link: Link): MutableList<LineChange> {
+    fun getLinkChange(link: Link): Pair<String?, MutableList<LineChange>> {
 
         val fileChange: Pair<MutableList<Pair<String, String>>, Pair<Link, LinkChange>> = getFileChange(link)
 
-        val result = mutableListOf<LineChange>()
+        val result: MutableList<LineChange> = mutableListOf()
 
         // if the file change type is deleted, return immediately.
         // There is no need to track the lines in a file.
-        if(fileChange.second.second.changeType==ChangeType.DELETED) {
-            return result
+        if (fileChange.second.second.changeType == ChangeType.DELETED) return Pair(null, result)
+
+        var changeList: MutableList<Pair<String, String>> = fileChange.first
+
+        // if we cannot get the start commit, return
+        val startCommit: String = gitOperationManager.getStartCommit(link.linkInfo) ?: return Pair(null, result)
+
+        // if we cannot get the original file contents, return
+        val originalLineContent: String =
+            gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.getPath(), link.getLineReferenced())
+                ?: return Pair(null, result)
+
+        // get the index of the first file change which has a commit
+        // that is a descendant of the start commit
+        val index: Int = changeList.indexOfFirst { change ->
+            gitOperationManager.isAncestorOf(
+                startCommit,
+                change.first.split("Commit: ")[1]
+            )
         }
 
-        val changeList: MutableList<Pair<String, String>> = fileChange.first
+        // if we cannot find such commit, return
+        if (index == -1) return Pair(null, result)
+
+        // else, trim the file history list to begin at the first commit which is an
+        // descendant of the start commit
+        changeList = changeList.subList(index, changeList.size)
 
         for (x in 0 until changeList.size - 1) {
             val before = changeList[x].first.split("Commit: ")[1]
@@ -174,7 +198,7 @@ class ChangeTrackerService(project: Project) {
             val output = getDiffOutput(before, after, beforePath, afterPath, file)
             result.add(output)
         }
-        return result
+        return Pair(originalLineContent, result)
     }
 
     private fun getDiffOutput(
@@ -200,7 +224,7 @@ class ChangeTrackerService(project: Project) {
         for (line: String? in lines) {
             if (line == null) {
                 break
-            // git hunk info header
+                // git hunk info header
             } else if (line.startsWith("@@ ")) {
                 val info = line.split(" @@")[0]
                 val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
@@ -210,19 +234,19 @@ class ChangeTrackerService(project: Project) {
                     startAddedLine = matcher.group(6).toInt()
                     currentAddedLine = startAddedLine
                 }
-            // added line
+                // added line
             } else if (line.startsWith("+")) {
                 val addedLine = Line(currentAddedLine, line.split("+")[1])
                 addedLines.add(addedLine)
                 contextLinesAdded.add(addedLine)
                 currentAddedLine++
-            // deleted line
+                // deleted line
             } else if (line.startsWith("-")) {
                 val deletedLine = Line(currentDeletedLine, line.split("-")[1])
                 deletedLines.add(deletedLine)
                 contextLinesDeleted.add(deletedLine)
                 currentDeletedLine++
-            // this is an unchanged line: just add it to the context lines lists and increment the indices
+                // this is an unchanged line: just add it to the context lines lists and increment the indices
             } else {
                 contextLinesDeleted.add(Line(currentDeletedLine, line))
                 contextLinesAdded.add(Line(currentAddedLine, line))
@@ -251,14 +275,18 @@ class ChangeTrackerService(project: Project) {
             // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
             val contextLines: MutableList<Line> = contextLinesAdded.filter { line ->
                 (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                 || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
-             }.toMutableList()
+                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
+                    l.lineNumber + contextLinesNumber,
+                    maxContextLineNumber
+                ))
+            }.toMutableList()
             l.contextLines = contextLines
         }
 
         // populate the context lines properties of the deleted lines
         for (l: Line in deletedLines) {
-            val maxContextLineNumber: Int = contextLinesDeleted.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
+            val maxContextLineNumber: Int =
+                contextLinesDeleted.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
 
             // get all of the context lines on the upper side of the line:
             // that is, the lines within [current_line_number - contextLinesNumber, current_line_number)
@@ -266,7 +294,10 @@ class ChangeTrackerService(project: Project) {
             // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
             val contextLines: MutableList<Line> = contextLinesDeleted.filter { line ->
                 (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
+                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
+                    l.lineNumber + contextLinesNumber,
+                    maxContextLineNumber
+                ))
             }.toMutableList()
             l.contextLines = contextLines
         }
