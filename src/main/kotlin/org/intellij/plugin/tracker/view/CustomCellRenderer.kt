@@ -30,7 +30,15 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 val text = value.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     val texts = userObject.toString().split(" ")
-                    titleLabel.text = "<html><font color='blue'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                    titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                }
+            }
+
+            if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
+                val text = value.parent.parent.parent.toString()
+                if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                    val texts = userObject.toString().split(") ")
+                    titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(247, 152, 98)'>" + texts[1] + "</font></html>"
                 }
             }
 

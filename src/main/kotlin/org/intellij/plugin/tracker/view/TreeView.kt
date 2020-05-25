@@ -53,7 +53,9 @@ class TreeView : JPanel(BorderLayout()) {
             }
             val file = DefaultMutableTreeNode("$fileName $path")
             for (links in linkList.value) {
-                file.add(DefaultMutableTreeNode(links.first.linkInfo.linkPath))
+                val link  = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
+                link.add(DefaultMutableTreeNode("(${links.first.linkInfo.foundAtLineNumber}, ${links.first.linkInfo.textOffset}) ${links.first.linkInfo.linkText}"))
+                file.add(link)
             }
             tree.add(file)
         }
