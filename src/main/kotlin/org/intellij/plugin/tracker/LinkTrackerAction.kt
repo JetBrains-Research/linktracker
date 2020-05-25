@@ -53,7 +53,7 @@ class LinkTrackerAction : AnAction() {
             gitOperationManager = gitOperationManager,
             linkUpdateService = linkUpdateService,
             uiService = uiService,
-            dryRun = false
+            dryRun = true
         )
 
         ProgressManager.getInstance().run(dataParsingTask)
