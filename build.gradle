@@ -18,6 +18,7 @@ repositories {
 dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
   implementation 'org.kohsuke:github-api:1.111'
+  implementation 'com.github.mpkorstanje:simmetrics-core:4.1.1'
   testImplementation "org.mockito:mockito-inline:2.13.0"
   testImplementation "org.mockito:mockito-core:3.0.0"
   testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
