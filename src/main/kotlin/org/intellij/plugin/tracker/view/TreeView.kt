@@ -4,6 +4,7 @@ import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.checkRelativeLink
 import java.awt.BorderLayout
 import javax.swing.JOptionPane
 import javax.swing.JPanel
@@ -36,7 +37,7 @@ class TreeView : JPanel(BorderLayout()) {
             for (links in linkList.value) {
                 val link = links.first
                 val change = links.second
-                val linkTree = DefaultMutableTreeNode(link.linkInfo.getMarkdownDirectoryRelativeLinkPath())
+                val linkTree = DefaultMutableTreeNode(checkRelativeLink(link.linkInfo.getMarkdownDirectoryRelativeLinkPath()))
                 addNodeTree("Link Text:", link.linkInfo.linkText, linkTree)
                 addNodeTree("Link Path:", link.linkInfo.linkPath, linkTree)
                 addNodeTree("Provenience Path:", link.linkInfo.proveniencePath, linkTree)
