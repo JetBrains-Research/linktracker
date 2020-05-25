@@ -28,7 +28,6 @@ internal class CustomCellRenderer : TreeCellRenderer {
 
             if (value.parent != null) {
                 val text = value.parent.toString()
-                println(text)
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     val texts = userObject.toString().split(" ")
                     titleLabel.text = "<html><font color='blue'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"

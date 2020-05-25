@@ -6,10 +6,12 @@ import org.intellij.plugin.tracker.data.links.Link
 import java.awt.BorderLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.MouseListener
 import javax.swing.*
 import javax.swing.event.TreeSelectionListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+
 
 /**
  * Class creating tree view
@@ -58,29 +60,6 @@ class TreeView : JPanel(BorderLayout()) {
         return tree
     }
 
-    private fun createSelectionListener(): TreeSelectionListener? {
-        return TreeSelectionListener { e ->
-            val pathCount: Int = e.path.pathCount
-            val path: String = e.path.getPathComponent(pathCount - 1).toString()
-            if (path == "Accept ") {
-                val dialogResult = JOptionPane.showConfirmDialog(null,
-                        "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    // TO DO : method saving change needs to be called
-                    println("change accepted")
-                }
-            }
-            if (path == "Deny ") {
-                val dialogResult = JOptionPane.showConfirmDialog(null,
-                        "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    // TO DO : method not saving change needs to be called
-                    println("change denied")
-                }
-            }
-        }
-    }
-
     /**
      * Constructor of class
      */
@@ -93,15 +72,22 @@ class TreeView : JPanel(BorderLayout()) {
         root.add(DefaultMutableTreeNode("Invalid Links"))
         (tree.model as DefaultTreeModel).reload()
         tree.isRootVisible = false
-        tree.addTreeSelectionListener(createSelectionListener())
         tree.cellRenderer = CustomCellRenderer()
 
         // right click listener
         val treePopup = TreePopup(tree)
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
-                if (e.isPopupTrigger) {
-                    treePopup.show(e.component, e.x, e.y)
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    val selRow = tree.getRowForLocation(e.x, e.y)
+                    val selPath = tree.getPathForLocation(e.x, e.y)
+                    if (selPath.pathCount == 4) {
+                        tree.selectionPath = selPath
+                        if (selRow > -1) {
+                            tree.setSelectionRow(selRow)
+                        }
+                        treePopup.show(e.component, e.x, e.y)
+                    }
                 }
             }
         })
@@ -113,8 +99,8 @@ class TreeView : JPanel(BorderLayout()) {
 
 internal class TreePopup(tree: JTree?) : JPopupMenu() {
     init {
-        val add = JMenuItem("Accept")
-        val delete = JMenuItem("Deny")
+        val add = JMenuItem("Accept Change")
+        val delete = JMenuItem("Deny Change")
         add.addActionListener { println("Accept change") }
         delete.addActionListener { println("Deny change") }
         add(add)
