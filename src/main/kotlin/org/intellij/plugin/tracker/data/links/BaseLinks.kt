@@ -44,6 +44,12 @@ abstract class Link(
      * Returns the relative path at which the referenced element is located.
      */
     abstract fun getPath(): String
+
+    abstract fun getLineReferenced(): Int
+
+    abstract fun getReferencedStartingLine(): Int
+
+    abstract fun getReferencedEndingLine(): Int
 }
 
 /**
@@ -124,9 +130,13 @@ data class NotSupportedLink(
     override var commitSHA: String? = null,
     val errorMessage: String? = null
 ) : Link(linkInfo, pattern) {
-    override fun getReferencedFileName(): String {
-        return ""
-    }
+    override fun getLineReferenced(): Int = -1
+
+    override fun getReferencedStartingLine(): Int = -1
+
+    override fun getReferencedEndingLine(): Int = -1
+
+    override fun getReferencedFileName(): String = ""
 
     override fun getPath(): String {
         return linkInfo.linkPath

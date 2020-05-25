@@ -10,16 +10,25 @@ data class RelativeLinkToDirectory(
         override val pattern: Pattern? = null,
         override var commitSHA: String? = null
         ) : RelativeLink(linkInfo, pattern) {
+    override fun getLineReferenced(): Int = -1
 
-    override fun getReferencedFileName(): String {
-        return ""
-    }
+    override fun getReferencedStartingLine(): Int = -1
+
+    override fun getReferencedEndingLine(): Int = -1
+
+    override fun getReferencedFileName(): String = ""
 }
 
 data class RelativeLinkToFile(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern? = null
 ) : RelativeLink(linkInfo, pattern) {
+    override fun getLineReferenced(): Int = -1
+
+    override fun getReferencedStartingLine(): Int = -1
+
+    override fun getReferencedEndingLine(): Int = -1
+
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name
@@ -31,6 +40,10 @@ data class RelativeLinkToLine(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern
         ): RelativeLink(linkInfo, pattern) {
+    override fun getReferencedStartingLine(): Int = -1
+
+    override fun getReferencedEndingLine(): Int = -1
+
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name.replace("#L${matcher.group(1)}", "")
@@ -42,13 +55,15 @@ data class RelativeLinkToLine(
         return linkInfo.linkPath
     }
 
-    fun getLineReferenced(): Int  = matcher.group(1).toInt()
+    override fun getLineReferenced(): Int  = matcher.group(1).toInt()
 }
 
 data class RelativeLinkToLines(
         override val linkInfo: LinkInfo,
         override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern
         ) : RelativeLink(linkInfo, pattern) {
+    override fun getLineReferenced(): Int = -1
+
     override fun getReferencedFileName(): String {
         val file = File(linkInfo.linkPath)
         return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
@@ -57,13 +72,13 @@ data class RelativeLinkToLines(
     override fun getPath(): String {
         if (matcher.matches())
             return linkInfo.linkPath.replace(
-                "#L${getStartLineReferenced()}-L${getEndLineReferenced()}", "")
+                "#L${getReferencedStartingLine()}-L${getReferencedEndingLine()}", "")
         return linkInfo.linkPath
     }
 
-    fun getStartLineReferenced(): Int = matcher.group(1).toInt()
+    override fun getReferencedStartingLine(): Int = matcher.group(1).toInt()
 
-    fun getEndLineReferenced(): Int = matcher.group(2).toInt()
+    override fun getReferencedEndingLine(): Int = matcher.group(2).toInt()
 }
 
 fun checkRelativeLink(link: String): String {
