@@ -125,7 +125,6 @@ class LinkTrackerAction : AnAction() {
                     linksAndChangesList.add(
                         Pair(link, LinkChange(ChangeType.INVALID, errorMessage = e.message, afterPath = link.linkInfo.linkPath)))
                 }
-
                 // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
             }
 
