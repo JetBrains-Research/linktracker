@@ -43,9 +43,14 @@ class TreeView : JPanel(BorderLayout()) {
         val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
                 .groupBy { it.first.linkInfo.proveniencePath }
 
-        val changed = DefaultMutableTreeNode("Changed Links ${changedOnes.size} links")
-        val unchanged = DefaultMutableTreeNode("Unchanged Links ${unchangedOnes.size} links")
-        val invalid = DefaultMutableTreeNode("Invalid Links ${invalidOnes.size} links")
+        var count = 0
+        for (changed in changedOnes) {
+            count += changed.value.size
+        }
+
+        val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
+        val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
+        val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
 
         val info = changes.map {
             mutableListOf(it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
@@ -78,6 +83,14 @@ class TreeView : JPanel(BorderLayout()) {
         }
 
         return node
+    }
+
+    private fun count(list: Map<String, List<Pair<Link, LinkChange>>>): Int {
+        var count = 0
+        for (el in list) {
+            count += el.value.size
+        }
+        return count
     }
 
     private fun callListener(info: List<MutableList<*>>) {
