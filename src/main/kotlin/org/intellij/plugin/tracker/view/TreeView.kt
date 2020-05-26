@@ -6,14 +6,17 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.ui.SideBorder
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
 import javax.swing.*
+import javax.swing.border.Border
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
@@ -124,6 +127,8 @@ class TreeView : JPanel(BorderLayout()) {
         tree.isRootVisible = false
         tree.cellRenderer = CustomCellRenderer()
         val scrollPane = JScrollPane(tree)
+        val border: Border = SideBorder(Color.LIGHT_GRAY, SideBorder.LEFT, 1)
+        scrollPane.border = border
         val actionManager: ActionManager = ActionManager.getInstance()
         val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
         actionGroup.add(ActionManager.getInstance().getAction("LinkTracker"))
