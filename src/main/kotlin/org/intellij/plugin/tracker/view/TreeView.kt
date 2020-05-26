@@ -41,7 +41,7 @@ class TreeView : JPanel(BorderLayout()) {
         val unchangedOnes = changes.filter { it.second.changeType == ChangeType.ADDED
                 || it.second.changeType == ChangeType.MODIFIED }.groupBy { it.first.linkInfo.proveniencePath }
         val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
-                .groupBy { it.first.linkInfo.proveniencePath }
+            .groupBy { it.first.linkInfo.proveniencePath }
 
         var count = 0
         for (changed in changedOnes) {
@@ -54,7 +54,7 @@ class TreeView : JPanel(BorderLayout()) {
 
         val info = changes.map {
             mutableListOf(it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
-                    it.first.linkInfo.foundAtLineNumber) }
+                it.first.linkInfo.foundAtLineNumber) }
 
         callListener(info)
 
@@ -97,30 +97,29 @@ class TreeView : JPanel(BorderLayout()) {
         val treePopup = TreePopup(tree)
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    val selRow = tree.getRowForLocation(e.x, e.y)
-                    val selPath = tree.getPathForLocation(e.x, e.y)
-                    if (selPath != null) {
-                        tree.selectionPath = selPath
-                        if (selRow > -1) {
-                            tree.setSelectionRow(selRow)
-                        }
-                        if (selPath.pathCount == 4) {
-                            treePopup.show(e.component, e.x, e.y)
-                        }
+                val selRow = tree.getRowForLocation(e.x, e.y)
+                val selPath = tree.getPathForLocation(e.x, e.y)
+                if (SwingUtilities.isRightMouseButton(e) && selPath != null && selPath.pathCount == 4) {
+                    tree.selectionPath = selPath
+                    treePopup.show(e.component, e.x, e.y)
+                    if (selRow > -1) {
+                        tree.setSelectionRow(selRow)
                     }
                 }
-                if (SwingUtilities.isLeftMouseButton(e)) {
-                    val selPath = tree.getPathForLocation(e.x, e.y)
-                    if (selPath != null && selPath.pathCount == 4) {
-                        val name = selPath.lastPathComponent.toString()
-                        for (information in info) {
-                            if (information[0].toString() == name) {
-                                val file = File(project.basePath + "/" + information[1])
-                                val virtualFile = VfsUtil.findFileByIoFile(file, true)
-                                OpenFileDescriptor(project, virtualFile!!, information[2] as Int - 1,
-                                        0).navigate(true)
-                            }
+                if (SwingUtilities.isLeftMouseButton(e) && selPath != null && selPath.pathCount == 4) {
+                    val name = selPath.lastPathComponent.toString()
+                    val prev = selPath.getPathComponent(selPath.path.size - 2).toString()
+                    val path = if (prev.contains("/")) {
+                        val paths = prev.split(" ")
+                        paths[1] + "/" + paths[0]
+                    } else { prev.replace(" ", "") }
+
+                    for (information in info) {
+                        if (information[0].toString() == name && information[1].toString() == path) {
+                            val file = File(project.basePath + "/" + information[1])
+                            val virtualFile = VfsUtil.findFileByIoFile(file, true)
+                            OpenFileDescriptor(project, virtualFile!!,
+                                information[2] as Int - 1, 0).navigate(true)
                         }
                     }
                 }
