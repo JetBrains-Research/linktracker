@@ -77,6 +77,12 @@ class TreeView : JPanel(BorderLayout()) {
                 val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
                 link.add(DefaultMutableTreeNode("(${links.first.linkInfo.foundAtLineNumber}) " +
                         links.first.linkInfo.linkText))
+                if (links.second.changeType == ChangeType.MOVED || links.second.changeType == ChangeType.DELETED) {
+                    link.add(DefaultMutableTreeNode(links.second.changeType.toString()))
+                } else if (links.second.changeType == ChangeType.INVALID) {
+                    link.add(DefaultMutableTreeNode("MESSAGE: " + links.second.errorMessage.toString()))
+                }
+
                 file.add(link)
             }
             node.add(file)
@@ -100,10 +106,12 @@ class TreeView : JPanel(BorderLayout()) {
                 val selRow = tree.getRowForLocation(e.x, e.y)
                 val selPath = tree.getPathForLocation(e.x, e.y)
                 if (SwingUtilities.isRightMouseButton(e) && selPath != null && selPath.pathCount == 4) {
-                    tree.selectionPath = selPath
-                    treePopup.show(e.component, e.x, e.y)
-                    if (selRow > -1) {
-                        tree.setSelectionRow(selRow)
+                    if (selPath.getPathComponent(1).toString().contains("Changed Links")) {
+                        tree.selectionPath = selPath
+                        treePopup.show(e.component, e.x, e.y)
+                        if (selRow > -1) {
+                            tree.setSelectionRow(selRow)
+                        }
                     }
                 }
                 if (SwingUtilities.isLeftMouseButton(e) && selPath != null && selPath.pathCount == 4) {

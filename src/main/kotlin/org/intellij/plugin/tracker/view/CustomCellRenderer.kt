@@ -29,21 +29,28 @@ internal class CustomCellRenderer : TreeCellRenderer {
             titleLabel.text = userObject.toString()
             titleLabel.icon = MarkdownIcons.EditorActions.Link
 
-            if (value.parent != null) {
-                val text = value.parent.toString()
-                if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
-                    val texts = userObject.toString().split(" ")
-                    titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
-                    titleLabel.icon = MarkdownIcons.MarkdownPlugin
+            if (titleLabel.text == "DELETED" || titleLabel.text == "MOVED") {
+                titleLabel.icon = AllIcons.General.BalloonInformation
+            } else if (titleLabel.text.contains("MESSAGE: ")) {
+                titleLabel.icon = AllIcons.General.BalloonWarning
+            } else {
+                if (value.parent != null) {
+                    val text = value.parent.toString()
+                    if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                        val texts = userObject.toString().split(" ")
+                        titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                        titleLabel.icon = MarkdownIcons.MarkdownPlugin
+                    }
                 }
-            }
 
-            if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
-                val text = value.parent.parent.parent.toString()
-                if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
-                    val texts = userObject.toString().split(") ")
-                    titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
-                    titleLabel.icon = AllIcons.General.TodoDefault
+                if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
+                    val text = value.parent.parent.parent.toString()
+                    if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                        val texts = userObject.toString().split(") ")
+                        titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                        titleLabel.icon = AllIcons.General.TodoDefault
+
+                    }
                 }
             }
 
