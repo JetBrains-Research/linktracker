@@ -3,6 +3,8 @@ package org.intellij.plugin.tracker.view
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VfsUtil
@@ -10,6 +12,7 @@ import com.intellij.ui.SideBorder
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.LinkUpdaterService
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.event.MouseAdapter
@@ -19,6 +22,7 @@ import javax.swing.*
 import javax.swing.border.Border
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreePath
 
 
 /**
@@ -27,7 +31,6 @@ import javax.swing.tree.DefaultTreeModel
 class TreeView : JPanel(BorderLayout()) {
 
     private var tree: JTree
-    private val project = ProjectManager.getInstance().openProjects[0]
 
     /**
      * Updating tree view
@@ -43,11 +46,6 @@ class TreeView : JPanel(BorderLayout()) {
         val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
             .groupBy { it.first.linkInfo.proveniencePath }
 
-        var count = 0
-        for (changed in changedOnes) {
-            count += changed.value.size
-        }
-
         val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
         val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
         val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
@@ -56,7 +54,7 @@ class TreeView : JPanel(BorderLayout()) {
             mutableListOf(it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
                 it.first.linkInfo.foundAtLineNumber) }
 
-        callListener(info)
+        callListener(info, changes)
 
         root.add(addNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
@@ -99,8 +97,10 @@ class TreeView : JPanel(BorderLayout()) {
         return count
     }
 
-    private fun callListener(info: List<MutableList<*>>) {
-        val treePopup = TreePopup(tree)
+    private fun callListener(
+        info: List<MutableList<*>>,
+        changes: MutableList<Pair<Link, LinkChange>>
+    ) {
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val selRow = tree.getRowForLocation(e.x, e.y)
@@ -108,6 +108,7 @@ class TreeView : JPanel(BorderLayout()) {
                 if (SwingUtilities.isRightMouseButton(e) && selPath != null && selPath.pathCount == 4) {
                     if (selPath.getPathComponent(1).toString().contains("Changed Links")) {
                         tree.selectionPath = selPath
+                        val treePopup = TreePopup(changes, info, selPath)
                         treePopup.show(e.component, e.x, e.y)
                         if (selRow > -1) {
                             tree.setSelectionRow(selRow)
@@ -124,6 +125,7 @@ class TreeView : JPanel(BorderLayout()) {
 
                     for (information in info) {
                         if (information[0].toString() == name && information[1].toString() == path) {
+                            val project = ProjectManager.getInstance().openProjects[0]
                             val file = File(project.basePath + "/" + information[1])
                             val virtualFile = VfsUtil.findFileByIoFile(file, true)
                             OpenFileDescriptor(project, virtualFile!!,
@@ -165,10 +167,26 @@ class TreeView : JPanel(BorderLayout()) {
     }
 }
 
-class TreePopup(tree: JTree?) : JPopupMenu() {
+class TreePopup(
+    changes: MutableList<Pair<Link, LinkChange>>,
+    info: List<MutableList<*>>,
+    selPath: TreePath
+) : JPopupMenu() {
     init {
-        val add = JMenuItem("Accept Change")
-        add.addActionListener { println("Accept change") }
-        add(add)
+        val item = JMenuItem("Accept Change")
+        item.addActionListener {
+            val project = ProjectManager.getInstance().openProjects[0]
+            val linkUpdaterService = LinkUpdaterService(project)
+            for ((counter, information) in info.withIndex()) {
+                if (information[0].toString() == selPath.lastPathComponent.toString()) {
+                    ApplicationManager.getApplication().runWriteAction {
+                        WriteCommandAction.runWriteCommandAction(project) {
+                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), null)
+                        }
+                    }
+                }
+            }
+        }
+        add(item)
     }
 }

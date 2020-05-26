@@ -20,7 +20,7 @@ class CheckBoxCellRenderer(private val nodesCheckingState: HashMap<TreePath, JCh
         val node = value as DefaultMutableTreeNode
         val obj = node.userObject
         val tp = TreePath(node.path)
-        val cn = nodesCheckingState!![tp] ?: return this
+        val cn = nodesCheckingState[tp] ?: return this
         checkBox.isSelected = cn.isSelected
         checkBox.text = obj.toString()
         checkBox.isOpaque = cn.isSelected && cn.hasChildren && !cn.allChildrenSelected
