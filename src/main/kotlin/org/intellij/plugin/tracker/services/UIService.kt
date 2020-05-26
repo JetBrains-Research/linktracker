@@ -1,5 +1,9 @@
 package org.intellij.plugin.tracker.services
 
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.RegisterToolWindowTask
@@ -8,7 +12,11 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.view.OtherView
 import org.intellij.plugin.tracker.view.TreeView
+import org.jdesktop.swingx.action.ActionManager
+import javax.swing.SwingConstants
+
 
 class UIService(val project: Project) {
 
@@ -23,7 +31,7 @@ class UIService(val project: Project) {
         val treeContent = contentFactory.createContent(treeView, "Links", true)
         treeContent.isCloseable = false
         treeWindow.contentManager.addContent(treeContent)
-        val otherContent = contentFactory.createContent(TreeView(), "Other", true)
+        val otherContent = contentFactory.createContent(OtherView(), "Other", true)
         otherContent.isCloseable = false
         treeWindow.contentManager.addContent(otherContent)
         treeWindow.contentManager.setSelectedContent(treeContent)

@@ -1,15 +1,14 @@
 package org.intellij.plugin.tracker.view
 
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VfsUtil
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
-import org.jdesktop.swingx.action.ActionManager
 import java.awt.BorderLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -25,6 +24,7 @@ import javax.swing.tree.DefaultTreeModel
 class TreeView : JPanel(BorderLayout()) {
 
     private var tree: JTree
+    private val project = ProjectManager.getInstance().openProjects[0]
 
     /**
      * Updating tree view
@@ -95,7 +95,6 @@ class TreeView : JPanel(BorderLayout()) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     val selPath = tree.getPathForLocation(e.x, e.y)
                     if (selPath.pathCount == 4) {
-                        val project = ProjectManager.getInstance().openProjects[0]
                         val name = selPath.lastPathComponent.toString()
                         for (information in info) {
                             if (information[0].toString() == name) {
@@ -125,7 +124,17 @@ class TreeView : JPanel(BorderLayout()) {
         tree.isRootVisible = false
         tree.cellRenderer = CustomCellRenderer()
         val scrollPane = JScrollPane(tree)
-        add(scrollPane, BorderLayout.CENTER)
+        val actionManager: ActionManager = ActionManager.getInstance()
+        val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
+        actionGroup.add(ActionManager.getInstance().getAction("LinkTracker"))
+        val actionToolbar: ActionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
+        actionToolbar.setOrientation(SwingConstants.VERTICAL)
+        add(actionToolbar.component, BorderLayout.PAGE_START)
+        val contentPane = JPanel()
+        contentPane.layout = BorderLayout()
+        contentPane.add(actionToolbar.component, BorderLayout.WEST)
+        contentPane.add(scrollPane, BorderLayout.CENTER)
+        add(contentPane, BorderLayout.CENTER)
     }
 }
 

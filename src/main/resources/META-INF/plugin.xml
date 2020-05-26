@@ -24,7 +24,8 @@
   <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
   <actions>
-    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker" description="Track links">
+    <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker"
+            description="Track links"  icon="AllIcons.Actions.Refresh">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
       <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
