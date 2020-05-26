@@ -100,17 +100,19 @@ class TreeView : JPanel(BorderLayout()) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     val selRow = tree.getRowForLocation(e.x, e.y)
                     val selPath = tree.getPathForLocation(e.x, e.y)
-                    if (selPath.pathCount == 4) {
+                    if (selPath != null) {
                         tree.selectionPath = selPath
                         if (selRow > -1) {
                             tree.setSelectionRow(selRow)
                         }
-                        treePopup.show(e.component, e.x, e.y)
+                        if (selPath.pathCount == 4) {
+                            treePopup.show(e.component, e.x, e.y)
+                        }
                     }
                 }
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     val selPath = tree.getPathForLocation(e.x, e.y)
-                    if (selPath.pathCount == 4) {
+                    if (selPath != null && selPath.pathCount == 4) {
                         val name = selPath.lastPathComponent.toString()
                         for (information in info) {
                             if (information[0].toString() == name) {
@@ -159,11 +161,7 @@ class TreeView : JPanel(BorderLayout()) {
 class TreePopup(tree: JTree?) : JPopupMenu() {
     init {
         val add = JMenuItem("Accept Change")
-        val delete = JMenuItem("Deny Change")
         add.addActionListener { println("Accept change") }
-        delete.addActionListener { println("Deny change") }
         add(add)
-        add(JSeparator())
-        add(delete)
     }
 }
