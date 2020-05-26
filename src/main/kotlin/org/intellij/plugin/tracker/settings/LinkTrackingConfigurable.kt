@@ -4,7 +4,7 @@ import com.intellij.openapi.options.SearchableConfigurable
 import javax.swing.JComponent
 
 
-class LinkTrackingSettingsConfigurable: SearchableConfigurable {
+class LinkTrackingConfigurable: SearchableConfigurable {
     private var linkTrackingSettingsForm: LinkTrackingSettingsForm? = null
 
     private fun getForm(): LinkTrackingSettingsForm {
