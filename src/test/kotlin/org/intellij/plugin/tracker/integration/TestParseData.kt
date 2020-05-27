@@ -100,6 +100,7 @@ class TestParseData : BasePlatformTestCase() {
             )
         } returns gitFileChanges
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
+        every { anyConstructed<GitOperationManager>().getRemoteOriginUrl() } returns ""
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()

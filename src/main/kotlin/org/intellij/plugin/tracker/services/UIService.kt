@@ -11,7 +11,6 @@ import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.view.OtherView
 import org.intellij.plugin.tracker.view.TreeView
 
-
 class UIService(val project: Project) {
 
     private val treeView: TreeView = TreeView()
@@ -34,15 +33,11 @@ class UIService(val project: Project) {
 
     /**
      * Update the view.
-     * @param project the currently open project
      * @param scanResult changes in the currently open MD file
      */
-    fun updateView(project: Project?, scanResult: ScanResult) {
-        val toolWindow =
-            ToolWindowManager.getInstance(project!!).getToolWindow("Markdown Files")
+    fun updateView(scanResult: ScanResult) {
         val linkChanges = scanResult.linkChanges
         treeView.updateModel(linkChanges)
-        toolWindow!!.hide(null)
     }
 
     /**

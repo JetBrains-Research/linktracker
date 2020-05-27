@@ -104,14 +104,17 @@ class LinkTrackerAction : AnAction() {
          * Parses links and related changes from the current project.
          */
         override fun run(indicator: ProgressIndicator) {
+
             ApplicationManager.getApplication().runReadAction {
                 myLinkService.getLinks(linkInfoList)
             }
-            for (linkInfo: LinkInfo in linkInfoList) {
+
+            for (linkInfo in linkInfoList) {
                 indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
                 val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
 
-                println("LINK IS: $link")
+                println("[ DataParsingTask ][ run() ] - LINK IS: $link")
+
 
                 if (link is NotSupportedLink) {
                     continue
@@ -146,7 +149,6 @@ class LinkTrackerAction : AnAction() {
                             )
                         )
                     )
-                    // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                 }
             }
 
@@ -182,7 +184,7 @@ class LinkTrackerAction : AnAction() {
                 }
             }, Disposable { })
 
-            myUiService.updateView(currentProject, scanResult)
+            myUiService.updateView(scanResult)
         }
 
         /**
@@ -213,8 +215,9 @@ class LinkTrackerAction : AnAction() {
                     }
                 }
             }
+
             myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA()!!)
-            myUiService.updateView(project, scanResult)
+            myUiService.updateView(scanResult)
         }
     }
 }
