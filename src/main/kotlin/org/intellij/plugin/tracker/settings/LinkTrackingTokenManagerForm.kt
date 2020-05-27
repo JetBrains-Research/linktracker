@@ -38,7 +38,7 @@ class LinkTrackingTokenManagerForm {
 
             for (i in 0 until mainTable!!.rowCount) {
                 val username = mainTable!!.getValueAt(i, 0) as String
-                val token = mainTable!!.getValueAt(i, 1) as String
+                val token = mainTable!!.getValueAt(i, 1) as String?
                 val platform = mainTable!!.getValueAt(i, 2) as String
 
                 list.add(UserInfo(username, token, platform))
@@ -67,7 +67,7 @@ class LinkTrackingTokenManagerForm {
         model.addColumn(PLATFORM_COLUMN)
         mainTable!!.model = model
 
-        if (list.size == 0) return
+        if (list.isEmpty()) return
 
         val centerRenderer = DefaultTableCellRenderer()
         centerRenderer.horizontalAlignment = JLabel.CENTER
@@ -87,9 +87,9 @@ class LinkTrackingTokenManagerForm {
 
     companion object {
 
-        private val USERNAME_COLUMN = "Username"
-        private val TOKEN_COLUMN = "Token"
-        private val PLATFORM_COLUMN = "Platform"
+        private const val USERNAME_COLUMN = "Username"
+        private const val TOKEN_COLUMN = "Token"
+        private const val PLATFORM_COLUMN = "Platform"
     }
 }
 

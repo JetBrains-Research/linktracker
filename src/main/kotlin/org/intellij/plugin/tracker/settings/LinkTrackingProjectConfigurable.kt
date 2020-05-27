@@ -71,10 +71,19 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
     }
 
     override fun apply() {
-        val currentState: List<UserInfo> = getForm().currentState
+        val form: LinkTrackingTokenManagerForm = getForm()
+        val savedState: List<UserInfo> = form.savedState
+        val currentState: List<UserInfo> = form.currentState
         for (userInfo: UserInfo in currentState) {
-            if (userInfo.token != null && userInfo.token.isNotBlank())
-                CredentialsManager.storeCredentials(userInfo.platform, userInfo.username, userInfo.token)
+            if (userInfo.token != null) {
+                if (userInfo.token.isNotBlank() || (userInfo.token.isBlank() && savedState.any { info ->
+                        info.username == userInfo.username
+                                && info.platform == userInfo.platform
+                                && info.token != null
+                                && info.token.isNotBlank()
+                    }))
+                    CredentialsManager.storeCredentials(userInfo.platform, userInfo.username, userInfo.token)
+            }
         }
     }
 
