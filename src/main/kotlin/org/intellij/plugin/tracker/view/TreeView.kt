@@ -177,8 +177,14 @@ class TreePopup(
         item.addActionListener {
             val project = ProjectManager.getInstance().openProjects[0]
             val linkUpdaterService = LinkUpdaterService(project)
+            val name = selPath.lastPathComponent.toString()
+            val prev = selPath.getPathComponent(selPath.path.size - 2).toString()
+            val path = if (prev.contains("/")) {
+                val paths = prev.split(" ")
+                paths[1] + "/" + paths[0]
+            } else { prev.replace(" ", "") }
             for ((counter, information) in info.withIndex()) {
-                if (information[0].toString() == selPath.lastPathComponent.toString()) {
+                if (information[0].toString() == name && information[1].toString() == path) {
                     ApplicationManager.getApplication().runWriteAction {
                         WriteCommandAction.runWriteCommandAction(project) {
                             linkUpdaterService.updateLinks(mutableListOf(changes[counter]), null)
