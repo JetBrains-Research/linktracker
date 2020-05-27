@@ -159,6 +159,7 @@ class TestParseData : BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val links = myDataParsingTask.getLinks()
+
         val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
     }

@@ -154,6 +154,7 @@ class LinkTrackerAction : AnAction() {
             if (!dryRun) {
                 updateLinks()
             }
+
             uiService.updateView(currentProject, linksAndChangesList)
         }
 
