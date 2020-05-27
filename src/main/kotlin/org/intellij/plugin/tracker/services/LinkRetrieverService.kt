@@ -42,6 +42,7 @@ class LinkRetrieverService(private val project: Project?) {
         noOfFilesWithLinks = 0
 
         for (virtualFile in virtualFiles) {
+
             linkFound = false
             noOfFiles++
 

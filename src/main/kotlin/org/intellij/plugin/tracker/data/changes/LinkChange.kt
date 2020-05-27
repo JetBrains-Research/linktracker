@@ -15,6 +15,10 @@ open class LinkChange(
     val fromWorkingTree: Boolean = false
 ) {
     override fun toString(): String {
-        return "Change type is $changeType and after path is $afterPath with error message $errorMessage"
+        return if (errorMessage != null) {
+            "Change type is $changeType and after path is $afterPath, error message: $errorMessage"
+        } else {
+            "Change type is $changeType and after path is $afterPath"
+        }
     }
 }

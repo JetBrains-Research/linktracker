@@ -19,7 +19,15 @@ import kotlin.math.min
 
 class ChangeTrackerService(project: Project) {
 
-    private val gitOperationManager = GitOperationManager(project = project)
+    private var gitOperationManager = GitOperationManager(project = project)
+
+    fun injectGitOperationManager(gitOperationManager: GitOperationManager) {
+        this.gitOperationManager = gitOperationManager
+    }
+
+    fun getGitManager(): GitOperationManager {
+        return gitOperationManager
+    }
 
     /**
      * Main function for getting changes for a link to a file.
