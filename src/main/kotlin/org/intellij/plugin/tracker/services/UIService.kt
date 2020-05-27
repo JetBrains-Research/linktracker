@@ -38,14 +38,10 @@ class UIService(val project: Project) {
     }
     /**
      * Update the view.
-     * @param project the currently open project
      * @param fileChanges changes in the currently open MD file
      */
-    fun updateView(project: Project?, fileChanges: MutableList<Pair<Link, LinkChange>>) {
-        val toolWindow =
-            ToolWindowManager.getInstance(project!!).getToolWindow("Markdown Files")
+    fun updateView(fileChanges: MutableList<Pair<Link, LinkChange>>) {
         treeView.updateModel(fileChanges)
-        toolWindow!!.hide(null)
     }
 
     /**

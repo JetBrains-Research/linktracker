@@ -9,10 +9,14 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
+import groovyjarjarantlr.StringUtils
+import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.HistoryService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.event.MouseAdapter
@@ -97,39 +101,37 @@ class TreeView : JPanel(BorderLayout()) {
         return count
     }
 
-    private fun callListener(
-        info: List<MutableList<*>>,
-        changes: MutableList<Pair<Link, LinkChange>>
-    ) {
+    private fun callListener(info: List<MutableList<*>>, changes: MutableList<Pair<Link, LinkChange>>) {
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val selRow = tree.getRowForLocation(e.x, e.y)
                 val selPath = tree.getPathForLocation(e.x, e.y)
-                if (SwingUtilities.isRightMouseButton(e) && selPath != null && selPath.pathCount == 4) {
-                    if (selPath.getPathComponent(1).toString().contains("Changed Links")) {
+                if (selPath != null && selPath.pathCount == 5) {
+                    val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
+                    val name = selPath.parentPath.lastPathComponent.toString()
+                    val line = substringBetween(selPath.toString(), "(", ")")
+                    val paths = selPath.parentPath.parentPath.lastPathComponent.toString().split(" ")
+                    var path = paths[0]
+                    if (paths[1].toCharArray().isNotEmpty()) {
+                        path = paths[1] + "/" + paths[0]
+                    }
+                    if (SwingUtilities.isRightMouseButton(e) && changed && name != "MOVED" && name != "DELETED") {
                         tree.selectionPath = selPath
-                        val treePopup = TreePopup(changes, info, selPath)
+                        val treePopup = TreePopup(changes, info, name, line, path)
                         treePopup.show(e.component, e.x, e.y)
                         if (selRow > -1) {
                             tree.setSelectionRow(selRow)
                         }
                     }
-                }
-                if (SwingUtilities.isLeftMouseButton(e) && selPath != null && selPath.pathCount == 4) {
-                    val name = selPath.lastPathComponent.toString()
-                    val prev = selPath.getPathComponent(selPath.path.size - 2).toString()
-                    val path = if (prev.contains("/")) {
-                        val paths = prev.split(" ")
-                        paths[1] + "/" + paths[0]
-                    } else { prev.replace(" ", "") }
-
-                    for (information in info) {
-                        if (information[0].toString() == name && information[1].toString() == path) {
-                            val project = ProjectManager.getInstance().openProjects[0]
-                            val file = File(project.basePath + "/" + information[1])
-                            val virtualFile = VfsUtil.findFileByIoFile(file, true)
-                            OpenFileDescriptor(project, virtualFile!!,
-                                information[2] as Int - 1, 0).navigate(true)
+                    if (SwingUtilities.isLeftMouseButton(e) && name != "MOVED" && name != "DELETED") {
+                        for (information in info) {
+                            if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                                val project = ProjectManager.getInstance().openProjects[0]
+                                val file = File(project.basePath + "/" + information[1])
+                                val virtualFile = VfsUtil.findFileByIoFile(file, true)
+                                OpenFileDescriptor(project, virtualFile!!,
+                                    information[2] as Int - 1, 0).navigate(true)
+                            }
                         }
                     }
                 }
@@ -170,24 +172,20 @@ class TreeView : JPanel(BorderLayout()) {
 class TreePopup(
     changes: MutableList<Pair<Link, LinkChange>>,
     info: List<MutableList<*>>,
-    selPath: TreePath
+    name: String, line: String, path: String
 ) : JPopupMenu() {
     init {
         val item = JMenuItem("Accept Change")
         item.addActionListener {
             val project = ProjectManager.getInstance().openProjects[0]
             val linkUpdaterService = LinkUpdaterService(project)
-            val name = selPath.lastPathComponent.toString()
-            val prev = selPath.getPathComponent(selPath.path.size - 2).toString()
-            val path = if (prev.contains("/")) {
-                val paths = prev.split(" ")
-                paths[1] + "/" + paths[0]
-            } else { prev.replace(" ", "") }
             for ((counter, information) in info.withIndex()) {
-                if (information[0].toString() == name && information[1].toString() == path) {
+                if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
                     ApplicationManager.getApplication().runWriteAction {
                         WriteCommandAction.runWriteCommandAction(project) {
-                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), null)
+                            val historyService = HistoryService()
+                            val sha = historyService.stateObject.commitSHA
+                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), sha)
                         }
                     }
                 }

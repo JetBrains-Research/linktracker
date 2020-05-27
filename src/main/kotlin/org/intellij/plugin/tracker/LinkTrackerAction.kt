@@ -144,7 +144,7 @@ class LinkTrackerAction : AnAction() {
             }
 
             historyService.saveCommitSHA(gitOperationManager.getHeadCommitSHA())
-            uiService.updateView(currentProject, linksAndChangesList)
+            uiService.updateView(linksAndChangesList)
         }
     }
 }
