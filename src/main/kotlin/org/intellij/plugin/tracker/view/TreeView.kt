@@ -6,15 +6,20 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.ThrowableComputable
+import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
 import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
 import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.event.MouseAdapter
@@ -39,10 +44,14 @@ class TreeView : JPanel(BorderLayout()) {
         val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
-        val changedOnes = changes.filter { it.second.changeType == ChangeType.DELETED
-                || it.second.changeType == ChangeType.MOVED}.groupBy { it.first.linkInfo.proveniencePath }
-        val unchangedOnes = changes.filter { it.second.changeType == ChangeType.ADDED
-                || it.second.changeType == ChangeType.MODIFIED }.groupBy { it.first.linkInfo.proveniencePath }
+        val changedOnes = changes.filter {
+            it.second.changeType == ChangeType.DELETED
+                    || it.second.changeType == ChangeType.MOVED
+        }.groupBy { it.first.linkInfo.proveniencePath }
+        val unchangedOnes = changes.filter {
+            it.second.changeType == ChangeType.ADDED
+                    || it.second.changeType == ChangeType.MODIFIED
+        }.groupBy { it.first.linkInfo.proveniencePath }
         val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
             .groupBy { it.first.linkInfo.proveniencePath }
 
@@ -51,8 +60,11 @@ class TreeView : JPanel(BorderLayout()) {
         val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
 
         val info = changes.map {
-            mutableListOf(it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
-                it.first.linkInfo.foundAtLineNumber) }
+            mutableListOf(
+                it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
+                it.first.linkInfo.foundAtLineNumber
+            )
+        }
 
         callListener(info, changes)
 
@@ -73,8 +85,12 @@ class TreeView : JPanel(BorderLayout()) {
             val file = DefaultMutableTreeNode("$fileName $path")
             for (links in linkList.value) {
                 val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
-                link.add(DefaultMutableTreeNode("(${links.first.linkInfo.foundAtLineNumber}) " +
-                        links.first.linkInfo.linkText))
+                link.add(
+                    DefaultMutableTreeNode(
+                        "(${links.first.linkInfo.foundAtLineNumber}) " +
+                                links.first.linkInfo.linkText
+                    )
+                )
                 if (links.second.changeType == ChangeType.MOVED || links.second.changeType == ChangeType.DELETED) {
                     link.add(DefaultMutableTreeNode(links.second.changeType.toString()))
                 } else if (links.second.changeType == ChangeType.INVALID) {
@@ -125,8 +141,10 @@ class TreeView : JPanel(BorderLayout()) {
                                 val project = ProjectManager.getInstance().openProjects[0]
                                 val file = File(project.basePath + "/" + information[1])
                                 val virtualFile = VfsUtil.findFileByIoFile(file, true)
-                                OpenFileDescriptor(project, virtualFile!!,
-                                    information[2] as Int - 1, 0).navigate(true)
+                                OpenFileDescriptor(
+                                    project, virtualFile!!,
+                                    information[2] as Int - 1, 0
+                                ).navigate(true)
                             }
                         }
                     }
@@ -178,11 +196,29 @@ class TreePopup(
             val linkUpdaterService = LinkUpdaterService(project)
             for ((counter, information) in info.withIndex()) {
                 if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                    var headCommitSHA: String? = null
+                    val link: Link = changes[counter].first
+                    if (link is WebLink && link.referenceType == WebLinkReferenceType.COMMIT) {
+                        try {
+                            headCommitSHA =
+                                ProgressManager.getInstance()
+                                    .runProcessWithProgressSynchronously<String?, VcsException>(
+                                        object : ThrowableComputable<String?, VcsException> {
+                                            override fun compute(): String? {
+                                                return GitOperationManager(project).getHeadCommitSHA()
+                                            }
+                                        },
+                                        "Getting head commit SHA..",
+                                        true,
+                                        project
+                                    )
+                        } catch (e: VcsException) {
+                            headCommitSHA = null
+                        }
+                    }
                     ApplicationManager.getApplication().runWriteAction {
                         WriteCommandAction.runWriteCommandAction(project) {
-                            val historyService = HistoryService()
-                            val sha = historyService.stateObject.commitSHA
-                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), sha)
+                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), headCommitSHA)
                         }
                     }
                 }
