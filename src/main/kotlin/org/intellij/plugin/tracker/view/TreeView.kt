@@ -9,14 +9,12 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
-import groovyjarjarantlr.StringUtils
 import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.HistoryService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.event.MouseAdapter
@@ -26,8 +24,6 @@ import javax.swing.*
 import javax.swing.border.Border
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.TreePath
-
 
 /**
  * Class creating tree view
@@ -158,6 +154,7 @@ class TreeView : JPanel(BorderLayout()) {
         val actionManager: ActionManager = ActionManager.getInstance()
         val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
         actionGroup.add(ActionManager.getInstance().getAction("LinkTracker"))
+        actionGroup.add(ActionManager.getInstance().getAction("Settings"))
         val actionToolbar: ActionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
         actionToolbar.setOrientation(SwingConstants.VERTICAL)
         add(actionToolbar.component, BorderLayout.PAGE_START)

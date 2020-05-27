@@ -32,6 +32,9 @@
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
       <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
     </action>
+    <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings"
+            description="Settings"  icon="AllIcons.Ide.Notification.GearHover">
+    </action>
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">

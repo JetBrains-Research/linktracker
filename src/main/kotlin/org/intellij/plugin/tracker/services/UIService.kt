@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.services
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -26,8 +27,8 @@ class UIService(val project: Project) {
         val toolWindowManager = ToolWindowManager.getInstance(project)
         val contentFactory = ContentFactory.SERVICE.getInstance()
 
-        val treeWindow = toolWindowManager
-                .registerToolWindow(RegisterToolWindowTask("Markdown Files", ToolWindowAnchor.BOTTOM))
+        val treeWindow = toolWindowManager.registerToolWindow(
+            RegisterToolWindowTask("Markdown Files", ToolWindowAnchor.BOTTOM, icon = AllIcons.Vcs.ShowUnversionedFiles))
         val treeContent = contentFactory.createContent(treeView, "Links", true)
         treeContent.isCloseable = false
         treeWindow.contentManager.addContent(treeContent)
