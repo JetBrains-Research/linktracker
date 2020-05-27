@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -11,6 +12,10 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.VcsException
+import com.intellij.openapi.vfs.AsyncFileListener
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
+import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
@@ -47,11 +52,11 @@ class LinkTrackerAction : AnAction() {
 
         val dataParsingTask = DataParsingTask(
             currentProject = currentProject,
-            linkService = linkService,
-            historyService = historyService,
-            gitOperationManager = gitOperationManager,
-            linkUpdateService = linkUpdateService,
-            uiService = uiService,
+            myLinkService = linkService,
+            myHistoryService = historyService,
+            myGitOperationManager = gitOperationManager,
+            myLinkUpdateService = linkUpdateService,
+            myUiService = uiService,
             dryRun = true
         )
 
@@ -66,29 +71,33 @@ class LinkTrackerAction : AnAction() {
      * according to the found changes.
      *
      * @param currentProject the IntelliJ Project object on which the plugin is being run.
-     * @param linkService the service tasked with retrieving links from files
-     * @param historyService the service tasked with storing information about past runs of the plugin
-     * @param gitOperationManager the service tasked with retrieving information about version control history
-     * @param linkUpdateService the service tasked with updating outdated links
-     * @param uiService the service tasked with displaying results of the plugin's operation
+     * @param myLinkService the service tasked with retrieving links from files
+     * @param myHistoryService the service tasked with storing information about past runs of the plugin
+     * @param myGitOperationManager the service tasked with retrieving information about version control history
+     * @param myLinkUpdateService the service tasked with updating outdated links
+     * @param myUiService the service tasked with displaying results of the plugin's operation
      * @param dryRun if true the task will not automatically update links once data retrieval is complete
      */
     class DataParsingTask(
         private val currentProject: Project,
-        private val linkService: LinkRetrieverService,
-        private val historyService: HistoryService,
-        private val gitOperationManager: GitOperationManager,
-        private val linkUpdateService: LinkUpdaterService,
-        private val uiService: UIService,
+        private val myLinkService: LinkRetrieverService,
+        private val myHistoryService: HistoryService,
+        private val myGitOperationManager: GitOperationManager,
+        private val myLinkUpdateService: LinkUpdaterService,
+        private val myUiService: UIService,
         private val dryRun: Boolean
     ) : Task.Backgroundable(currentProject, "Tracking links", true) {
 
         // initialize lists
         private val linksAndChangesList: MutableList<Pair<Link, LinkChange>> = mutableListOf()
         private val linkInfoList: MutableList<LinkInfo> = mutableListOf()
+        private val scanResult: ScanResult = ScanResult(
+            linkChanges = linksAndChangesList,
+            isValid = true
+        )
 
-        fun getLinks(): MutableList<Pair<Link, LinkChange>> {
-            return linksAndChangesList
+        fun getResult(): ScanResult {
+            return scanResult
         }
 
         /**
@@ -98,13 +107,13 @@ class LinkTrackerAction : AnAction() {
 
             ApplicationManager.getApplication().runReadAction {
 
-                linkService.getLinks(linkInfoList)
+                myLinkService.getLinks(linkInfoList)
 
                 for (linkInfo in linkInfoList) {
                     indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-                    val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
+                    val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
 
-                    println("LINK IS: $link")
+                    println("[ DataParsingTask ][ run() ] - LINK IS: $link")
 
                     if (link is NotSupportedLink) {
                         continue
@@ -144,7 +153,7 @@ class LinkTrackerAction : AnAction() {
                 }
             }
 
-            historyService.saveCommitSHA(gitOperationManager.getHeadCommitSHA())
+            myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
         }
 
         /**
@@ -155,7 +164,28 @@ class LinkTrackerAction : AnAction() {
                 updateLinks()
             }
 
-            uiService.updateView(currentProject, linksAndChangesList)
+            // Setup change listener to detect changes that might invalidate the scanned links' info
+            VirtualFileManager.getInstance().addAsyncFileListener(object : AsyncFileListener {
+                override fun prepareChange(events: MutableList<out VFileEvent>): AsyncFileListener.ChangeApplier? {
+                    if (!scanResult.isValid) {
+                        return null
+                    }
+                    for (event in events) {
+                        for (fileRelativePath in scanResult.files) {
+                            if (event.path.endsWith(fileRelativePath)) {
+                                return object : AsyncFileListener.ChangeApplier {
+                                    override fun beforeVfsChange() {
+                                        scanResult.isValid = false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return null
+                }
+            }, Disposable { })
+
+            myUiService.updateView(currentProject, scanResult)
         }
 
         /**
@@ -163,7 +193,7 @@ class LinkTrackerAction : AnAction() {
          */
         fun updateLinks() {
             val statistics =
-                mutableListOf<Any>(linkService.noOfFiles, linkService.noOfLinks, linkService.noOfFilesWithLinks)
+                mutableListOf<Any>(myLinkService.noOfFiles, myLinkService.noOfLinks, myLinkService.noOfFilesWithLinks)
 
             // Run linkUpdater thread
             // There should be a better way to wait for the Tracking Links task to finish
@@ -171,18 +201,18 @@ class LinkTrackerAction : AnAction() {
                 WriteCommandAction.runWriteCommandAction(currentProject) {
                     if (linksAndChangesList.size != 0) {
                         // Debug
-                        println("All changes: ")
+                        println("[ DataParsingTask ][ updateLinks() ] - All changes: ")
                         // Debug
                         linksAndChangesList.map { pair -> println(pair) }
-                        val result = linkUpdateService.updateLinks(
+                        val result = myLinkUpdateService.updateLinks(
                             linksAndChangesList,
-                            gitOperationManager.getHeadCommitSHA()
+                            myGitOperationManager.getHeadCommitSHA()
                         )
                         // Debug
-                        println("Update result: $result")
+                        println("[ DataParsingTask ][ updateLinks() ] - Update result: $result")
                     } else {
                         // Debug
-                        println("No links to update...")
+                        println("[ DataParsingTask ][ updateLinks() ] - No links to update...")
                     }
                 }
             }

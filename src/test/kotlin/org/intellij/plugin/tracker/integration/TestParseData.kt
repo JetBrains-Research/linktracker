@@ -19,6 +19,8 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Assertions
 
 /**
+ * @author Tommaso Brandirali
+ *
  * This class tests the parsing of links and changes.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -58,11 +60,11 @@ class TestParseData: BasePlatformTestCase() {
         uiService = UIService.getInstance(project)
         dataParsingTask = LinkTrackerAction.DataParsingTask(
             currentProject = project,
-            linkService = linkService,
-            historyService = historyService,
-            gitOperationManager = gitOperationManager,
-            linkUpdateService = linkUpdateService,
-            uiService = uiService,
+            myLinkService = linkService,
+            myHistoryService = historyService,
+            myGitOperationManager = gitOperationManager,
+            myLinkUpdateService = linkUpdateService,
+            myUiService = uiService,
             dryRun = true
         )
     }
@@ -89,7 +91,8 @@ class TestParseData: BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
 
         ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        val result = dataParsingTask.getResult()
+        val links = result.linkChanges
 
         val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to file"}
         val link = pair.first
@@ -115,7 +118,8 @@ class TestParseData: BasePlatformTestCase() {
         every { gitOperationManager.checkWorkingTreeChanges(any()) } returns linkChange
 
         ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        val result = dataParsingTask.getResult()
+        val links = result.linkChanges
 
         val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to directory"}
         val link = pair.first
@@ -131,7 +135,8 @@ class TestParseData: BasePlatformTestCase() {
     fun parseWebLinkToLine() {
 
         ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        val result = dataParsingTask.getResult()
+        val links = result.linkChanges
 
         val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - web link to line"}
         val link = pair.first
@@ -144,7 +149,8 @@ class TestParseData: BasePlatformTestCase() {
     fun parseMultipleLinks() {
 
         ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        val result = dataParsingTask.getResult()
+        val links = result.linkChanges
 
         val multiLinks = links.filter{pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md"}
         Assertions.assertEquals(3, multiLinks.size)
