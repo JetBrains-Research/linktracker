@@ -34,20 +34,6 @@
                     <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F" replace-all="true"/>
                     <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
                 </action>
-                <action id="Settings" class="org.intellij.plugin.tracker.actions.SettingsAction" text="Settings"
-                        description="Track links">
-                    <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
-                    <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt G" remove="true"/>
-                    <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt G" replace-all="true"/>
-                    <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-                </action>
-                <action id="Manage Passwords" class="org.intellij.plugin.tracker.actions.PasswordManagingAction"
-                        text="Manage Passwords" description="Track links">
-                    <keyboard-shortcut keymap="$default" first-keystroke="control alt H"/>
-                    <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt H" remove="true"/>
-                    <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt H" replace-all="true"/>
-                    <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-                </action>
             </group>
         </group>
     </actions>
@@ -62,10 +48,18 @@
         <projectService serviceImplementation="org.intellij.plugin.tracker.services.GitHubChangeTrackerService"/>
 
         <applicationConfigurable
-                groupId="tools"
-                id="org.intellij.plugin.tracker.settings.SettingsConfigurable"
+                parentId="tools"
+                id="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
                 displayName="Link Tracking"
                 instance="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+                childrenEPName="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+        />
+
+        <projectConfigurable
+                parentId="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+                id="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+                displayName="Token Manager"
+                instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
         />
     </extensions>
 
