@@ -10,27 +10,26 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
-import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.services.UIService
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.*
 
 /**
  * This class tests the parsing of links and changes.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestParseData: BasePlatformTestCase() {
+class TestParseData : BasePlatformTestCase() {
 
-    private lateinit var gitOperationManager: GitOperationManager
-    private lateinit var historyService: HistoryService
-    private lateinit var linkService: LinkRetrieverService
-    private lateinit var linkUpdateService: LinkUpdaterService
-    private lateinit var uiService: UIService
-    private lateinit var dataParsingTask: LinkTrackerAction.DataParsingTask
-    private val files = arrayOf(
+    private lateinit var myGitOperationManager: GitOperationManager
+    private lateinit var myHistoryService: HistoryService
+    private lateinit var myLinkService: LinkRetrieverService
+    private lateinit var myLinkUpdateService: LinkUpdaterService
+    private lateinit var myUiService: UIService
+    private lateinit var myDataParsingTask: LinkTrackerAction.DataParsingTask
+    private val myFiles = arrayOf(
         "testParseRelativeLinks.md",
         "main/file.txt",
         "testParseWebLink.md",
@@ -45,24 +44,29 @@ class TestParseData: BasePlatformTestCase() {
     @BeforeAll
     override fun setUp() {
         super.setUp()
-        myFixture.configureByFiles(*files)
+        myFixture.configureByFiles(*myFiles)
         setupGitManager()
+    }
+
+    @AfterAll
+    override fun tearDown() {
+        super.tearDown()
     }
 
     @BeforeEach
     fun init() {
-        gitOperationManager = GitOperationManager(project)
-        historyService = HistoryService.getInstance(project)
-        linkService = LinkRetrieverService.getInstance(project)
-        linkUpdateService = LinkUpdaterService.getInstance(project)
-        uiService = UIService.getInstance(project)
-        dataParsingTask = LinkTrackerAction.DataParsingTask(
+        myGitOperationManager = GitOperationManager(project)
+        myHistoryService = HistoryService.getInstance(project)
+        myLinkService = LinkRetrieverService.getInstance(project)
+        myLinkUpdateService = LinkUpdaterService.getInstance(project)
+        myUiService = UIService.getInstance(project)
+        myDataParsingTask = LinkTrackerAction.DataParsingTask(
             currentProject = project,
-            linkService = linkService,
-            historyService = historyService,
-            gitOperationManager = gitOperationManager,
-            linkUpdateService = linkUpdateService,
-            uiService = uiService,
+            linkService = myLinkService,
+            historyService = myHistoryService,
+            gitOperationManager = myGitOperationManager,
+            linkUpdateService = myLinkUpdateService,
+            uiService = myUiService,
             dryRun = true
         )
     }
@@ -85,13 +89,20 @@ class TestParseData: BasePlatformTestCase() {
             LinkChange(changeType = ChangeType.MOVED, afterPath = afterPath)
         )
 
-        every { anyConstructed<GitOperationManager>().getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
+        every {
+            anyConstructed<GitOperationManager>().getAllChangesForFile(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns gitFileChanges
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
 
-        ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        ProgressManager.getInstance().run(myDataParsingTask)
+        val links = myDataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to file"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to file" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToFile)
@@ -111,13 +122,13 @@ class TestParseData: BasePlatformTestCase() {
             linkChange
         )
 
-        every { gitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
-        every { gitOperationManager.checkWorkingTreeChanges(any()) } returns linkChange
+        every { myGitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
+        every { myGitOperationManager.checkWorkingTreeChanges(any()) } returns linkChange
 
-        ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        ProgressManager.getInstance().run(myDataParsingTask)
+        val links = myDataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to directory"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to directory" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToDirectory)
@@ -130,23 +141,26 @@ class TestParseData: BasePlatformTestCase() {
     @Test
     fun parseWebLinkToLine() {
 
-        ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        ProgressManager.getInstance().run(myDataParsingTask)
+        val links = myDataParsingTask.getLinks()
 
-        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - web link to line"}
+        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - web link to line" }
         val link = pair.first
         Assertions.assertTrue(link is WebLinkToLine)
-        Assertions.assertEquals("https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55", link.linkInfo.linkPath)
+        Assertions.assertEquals(
+            "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55",
+            link.linkInfo.linkPath
+        )
         Assertions.assertEquals("/src/testParseWebLink.md", link.linkInfo.proveniencePath)
     }
 
     @Test
     fun parseMultipleLinks() {
 
-        ProgressManager.getInstance().run(dataParsingTask)
-        val links = dataParsingTask.getLinks()
+        ProgressManager.getInstance().run(myDataParsingTask)
+        val links = myDataParsingTask.getLinks()
 
-        val multiLinks = links.filter{pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md"}
+        val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
     }
 }
