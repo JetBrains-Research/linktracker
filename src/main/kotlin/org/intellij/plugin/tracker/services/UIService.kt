@@ -10,6 +10,7 @@ import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.TreeView
 
+
 class UIService(val project: Project) {
 
     private val treeView: TreeView = TreeView()

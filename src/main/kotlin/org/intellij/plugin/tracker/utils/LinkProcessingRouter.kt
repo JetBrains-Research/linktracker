@@ -16,35 +16,33 @@ class LinkProcessingRouter {
          */
         fun getChangesForLink(link: Link): Pair<Link, LinkChange> {
             val changeTrackerService: ChangeTrackerService = ChangeTrackerService.getInstance(link.linkInfo.project)
+            val gitRemoteOriginUrl: String = GitOperationManager(link.linkInfo.project).getRemoteOriginUrl()
 
             when (link) {
                 is RelativeLinkToDirectory -> return changeTrackerService.getDirectoryChange(link)
                 is RelativeLinkToFile -> return changeTrackerService.getFileChange(link).second
                 is RelativeLinkToLine -> {
                     val lineChangeList: MutableList<LineChange> = changeTrackerService.getLinkChange(link)
-                    // TODO: pass the line change list to the core to get the new line number
-
                     throw NotImplementedError("")
                 }
                 is RelativeLinkToLines -> {
                     val result = changeTrackerService.getFileChange(link)
-                    println("FILE HISTORY LIST: ${result.first}")
                     throw NotImplementedError("")
                 }
                 is WebLinkToDirectory-> return when {
-                    link.correspondsToLocalProject() -> changeTrackerService.getDirectoryChange(link)
+                    link.correspondsToLocalProject(gitRemoteOriginUrl) -> changeTrackerService.getDirectoryChange(link)
                     else -> {
                         // only track web links which are hosted on github for now
                         if (link.getPlatformName().contains("github")) {
                             val gitHubChangeTrackerService: GitHubChangeTrackerService =
                                 GitHubChangeTrackerService.getInstance(link.linkInfo.project)
-                            gitHubChangeTrackerService.getDirectoryChanges(link)
+                            val here = gitHubChangeTrackerService.getDirectoryChanges(link)
                         }
                         throw NotImplementedError("")
                     }
                 }
                 is WebLinkToFile -> return when {
-                    link.correspondsToLocalProject() -> {
+                    link.correspondsToLocalProject(gitRemoteOriginUrl) -> {
                         val webLinkReferenceType: WebLinkReferenceType = link.getWebLinkReferenceType()
 
                         // match on the web link reference type and call the methods with the right parameters
@@ -59,7 +57,7 @@ class LinkProcessingRouter {
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToLine -> when {
-                    link.correspondsToLocalProject() -> {
+                    link.correspondsToLocalProject(gitRemoteOriginUrl) -> {
                         val result = changeTrackerService.getFileChange(link)
                         println("FILE HISTORY LIST: ${result.first}")
                         // TODO: get the versions of the file using the file history list
@@ -70,7 +68,7 @@ class LinkProcessingRouter {
                     else -> throw NotImplementedError("$link is not yet supported")
                 }
                 is WebLinkToLines -> when {
-                    link.correspondsToLocalProject() -> {
+                    link.correspondsToLocalProject(gitRemoteOriginUrl) -> {
                         val result = changeTrackerService.getFileChange(link)
                         println("FILE HISTORY LIST: ${result.first}")
                         throw NotImplementedError("")

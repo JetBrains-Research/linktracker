@@ -10,6 +10,7 @@ import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
+import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.util.regex.Matcher
@@ -44,8 +45,8 @@ class ChangeTrackerService(project: Project) {
             return Pair(mutableListOf(Pair("Working tree", workingTreeChange.afterPath)), Pair(link, workingTreeChange))
         }
 
-        val prop = PropertiesComponent.getInstance()
-        val threshold = prop.getValue("threshold", "60").toInt()
+        val similarityThresholdSettings: SimilarityThresholdSettings = SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+        val threshold: Int = similarityThresholdSettings.fileSimilarity
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
             gitOperationManager.getAllChangesForFile(link, threshold,
                     branchOrTagName = branchOrTagName, specificCommit = specificCommit)
