@@ -1,4 +1,4 @@
-image: gradle:6.0.1-jdk8
+image: gradle:6.0.1-jdk11
 
 stages:
 #  - Lint
@@ -22,4 +22,4 @@ build:
 test:
   stage: Test
   script:
-    - gradle test --info
+    - gradle test
