@@ -22,4 +22,4 @@ build:
 test:
   stage: Test
   script:
-    - gradle test --debug
+    - gradle test --info
