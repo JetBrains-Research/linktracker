@@ -9,6 +9,6 @@ class SettingsAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
         val currentProject = event.getData(PlatformDataKeys.PROJECT)
-        ShowSettingsUtil.getInstance().showSettingsDialog(currentProject, "Tools")
+        ShowSettingsUtil.getInstance().showSettingsDialog(currentProject, "Link Tracking")
     }
 }

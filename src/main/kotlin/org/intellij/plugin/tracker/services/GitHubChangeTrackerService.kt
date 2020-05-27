@@ -19,14 +19,15 @@ class GitHubChangeTrackerService {
         // initialize the GitHub client
         val githubBuilder = GitHubBuilder()
 
+        val platformName: String = link.getPlatformName()
         val username: String = link.getProjectOwnerName()
-        val password: String? = CredentialsManager.getCredentials(username)
-        // see whether a password exists for this user: if so, use it
-        // otherwise, proceed without a password being given
+        val token: String? = CredentialsManager.getCredentials(platformName, username)
+        // see whether a token exists for this user: if so, use it
+        // otherwise, proceed without a token being given
         // if the repo is private, it will fail
         // if the repo is public but too many requests are being made, it will also fail
-        if (password != null) {
-            githubBuilder.withPassword(username, password)
+        if (token != null) {
+            githubBuilder.withOAuthToken(token)
         }
 
         val github: GitHub = githubBuilder.build()
@@ -97,7 +98,7 @@ class GitHubChangeTrackerService {
             Pair(
                 link,
                 DirectoryChange(ChangeType.INVALID, afterPath = link.linkInfo.linkPath,
-                errorMessage = e.message)
+                    errorMessage = e.message)
             )
         }
     }

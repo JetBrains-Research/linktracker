@@ -8,10 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import git4idea.GitUtil
 import git4idea.changes.GitChangeUtils
-import git4idea.commands.Git
-import git4idea.commands.GitCommand
-import git4idea.commands.GitCommandResult
-import git4idea.commands.GitLineHandler
+import git4idea.commands.*
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.changes.ChangeType
@@ -53,8 +50,8 @@ open class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.BRANCH)
         // list all branch names for this project
         gitLineHandler.addParameters("-l")
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val outputString: String = output.getOutputOrThrow()
+        val gitCommandResult: GitCommandResult = git.runCommand(gitLineHandler)
+        val outputString: String = gitCommandResult.getOutputOrThrow()
         var branchList: List<String> = outputString.split("\n")
         branchList = branchList.map { line -> line.trim() }
         branchList = branchList.map { line -> line.replace("* ", "") }
@@ -71,8 +68,8 @@ open class GitOperationManager(private val project: Project) {
             "-q",
             "$ref^{commit}"
         )
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        if (output.exitCode == 0) return true
+        val gitCommandResult: GitCommandResult = git.runCommand(gitLineHandler)
+        if (gitCommandResult.exitCode == 0) return true
         return false
     }
 
@@ -387,8 +384,9 @@ open class GitOperationManager(private val project: Project) {
     fun getRemoteOriginUrl(): String {
         val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.CONFIG)
         gitLineHandler.addParameters("--get", "remote.origin.url")
-        val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return outputLog.getOutputOrThrow()
+
+        val gitCommandResult: GitCommandResult = git.runCommand(gitLineHandler)
+        return gitCommandResult.getOutputOrThrow()
     }
 
     /**
