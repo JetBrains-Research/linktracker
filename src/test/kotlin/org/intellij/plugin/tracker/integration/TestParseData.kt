@@ -101,31 +101,6 @@ class TestParseData: BasePlatformTestCase() {
         Assertions.assertEquals(afterPath, change.afterPath)
     }
 
-//    @Test
-//    fun parseRelativeLinkToLine() {
-//
-//        val afterPath = "src/main/file.txt#L1"
-//        val gitFileChanges = Pair(
-//            mutableListOf(Pair("Commit: edbb2f5", "file.txt")),
-//            LinkChange(changeType = ChangeType.MOVED, afterPath = afterPath)
-//        )
-//
-//        every { gitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns gitFileChanges
-//        every { gitOperationManager.checkWorkingTreeChanges(any()) } returns null
-//
-//        ProgressManager.getInstance().run(dataParsingTask)
-//        val links = dataParsingTask.getLinks()
-//
-//        val pair = links.first{pair -> pair.first.linkInfo.linkText == "single - relative link to line"}
-//        val link = pair.first
-//        val change = pair.second
-//        Assertions.assertTrue(link is RelativeLinkToLine)
-//        Assertions.assertEquals("file.txt", link.linkInfo.linkPath)
-//        Assertions.assertEquals("/src/testParseRelativeLinks.md", link.linkInfo.proveniencePath)
-//        Assertions.assertEquals(ChangeType.MOVED, change.changeType)
-//        Assertions.assertEquals(afterPath, change.afterPath)
-//    }
-
     @Test
     fun parseRelativeLinkToDirectory() {
 
