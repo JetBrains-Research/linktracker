@@ -100,10 +100,9 @@ abstract class WebLink(
 
     fun getReferencingName(): String = matcher.group(9) ?: matcher.group(11)
 
-    // TODO: check the web reference type
-    fun correspondsToLocalProject(): Boolean {
+    fun correspondsToLocalProject(gitRemoteOriginUrl: String): Boolean {
         val remoteOriginUrl = "https://${getPlatformName()}/${getProjectOwnerName()}/${getProjectName()}.git"
-        return GitOperationManager(linkInfo.project).getRemoteOriginUrl() == remoteOriginUrl
+        return gitRemoteOriginUrl == remoteOriginUrl
     }
 
     abstract fun updateLink(

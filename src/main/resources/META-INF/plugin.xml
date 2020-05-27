@@ -45,6 +45,21 @@
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.GitHubChangeTrackerService"/>
+
+    <applicationConfigurable
+            parentId="tools"
+            id="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+            displayName="Link Tracking"
+            instance="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+            childrenEPName="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+    />
+
+    <projectConfigurable
+            parentId="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+            id="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+            displayName="Token Manager"
+            instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+    />
   </extensions>
 
 </idea-plugin>
