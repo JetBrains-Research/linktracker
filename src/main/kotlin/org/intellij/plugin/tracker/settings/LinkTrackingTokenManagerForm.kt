@@ -10,10 +10,10 @@ import javax.swing.table.DefaultTableModel
 import java.util.*
 
 class LinkTrackingTokenManagerForm {
-    private val mainPanel: JPanel? = null
-    private val mainTable: JTable? = null
-    private val linksToCodeThatTextPane: JTextPane? = null
-    private val model = DefaultTableModel()
+    private var mainPanel: JPanel? = null
+    private var mainTable: JTable? = null
+    private var linksToCodeThatTextPane: JTextPane? = null
+    private var model = DefaultTableModel()
 
 
     val component: JComponent?
@@ -24,8 +24,8 @@ class LinkTrackingTokenManagerForm {
             val list = ArrayList<UserInfo>()
 
             for (i in 0 until mainTable!!.rowCount) {
-                val username = mainTable.getValueAt(i, 0) as String
-                val platformName = mainTable.getValueAt(i, 2) as String
+                val username = mainTable!!.getValueAt(i, 0) as String
+                val platformName = mainTable!!.getValueAt(i, 2) as String
                 val token = CredentialsManager.getCredentials(platformName, username)
                 list.add(UserInfo(username, token, platformName))
             }
@@ -37,9 +37,9 @@ class LinkTrackingTokenManagerForm {
             val list = ArrayList<UserInfo>()
 
             for (i in 0 until mainTable!!.rowCount) {
-                val username = mainTable.getValueAt(i, 0) as String
-                val token = mainTable.getValueAt(i, 1) as String
-                val platform = mainTable.getValueAt(i, 2) as String
+                val username = mainTable!!.getValueAt(i, 0) as String
+                val token = mainTable!!.getValueAt(i, 1) as String
+                val platform = mainTable!!.getValueAt(i, 2) as String
 
                 list.add(UserInfo(username, token, platform))
             }
@@ -49,12 +49,12 @@ class LinkTrackingTokenManagerForm {
     fun updateTable() {
         val list = savedState
         for (i in 0 until mainTable!!.rowCount) {
-            val username = mainTable.getValueAt(i, 0) as String
-            val platform = mainTable.getValueAt(i, 2) as String
+            val username = mainTable!!.getValueAt(i, 0) as String
+            val platform = mainTable!!.getValueAt(i, 2) as String
 
             for ((username1, token, platform1) in list) {
                 if (platform1 == platform && username1 == username) {
-                    mainTable.setValueAt(token, i, 1)
+                    mainTable!!.setValueAt(token, i, 1)
                     break
                 }
             }
@@ -72,8 +72,8 @@ class LinkTrackingTokenManagerForm {
         val centerRenderer = DefaultTableCellRenderer()
         centerRenderer.horizontalAlignment = JLabel.CENTER
 
-        for (i in 0 until mainTable.columnCount) {
-            mainTable.getColumn(mainTable.getColumnName(i)).cellRenderer = centerRenderer
+        for (i in 0 until mainTable!!.columnCount) {
+            mainTable!!.getColumn(mainTable!!.getColumnName(i)).cellRenderer = centerRenderer
         }
 
         for ((first, second) in list) {

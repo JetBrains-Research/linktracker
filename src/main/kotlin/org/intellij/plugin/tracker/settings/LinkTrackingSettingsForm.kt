@@ -3,14 +3,14 @@ package org.intellij.plugin.tracker.settings
 import javax.swing.*
 
 class LinkTrackingSettingsForm {
-    private val mainPanel: JPanel? = null
-    private val fileSimilaritySlider: JSlider? = null
-    private val similarityThresholdLabel: JLabel? = null
-    private val fileSimilarityLabel: JLabel? = null
-    private val directorySimilarityLabel: JLabel? = null
-    private val directorySimilaritySlider: JSlider? = null
-    private val lineSimilarityLabel: JLabel? = null
-    private val lineSimilaritySlider: JSlider? = null
+    private var mainPanel: JPanel? = null
+    private var fileSimilaritySlider: JSlider? = null
+    private var similarityThresholdLabel: JLabel? = null
+    private var fileSimilarityLabel: JLabel? = null
+    private var directorySimilarityLabel: JLabel? = null
+    private var directorySimilaritySlider: JSlider? = null
+    private var lineSimilarityLabel: JLabel? = null
+    private var lineSimilaritySlider: JSlider? = null
 
     val component: JComponent?
         get() {
