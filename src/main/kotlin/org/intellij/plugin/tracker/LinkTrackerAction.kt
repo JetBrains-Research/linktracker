@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -94,56 +95,51 @@ class LinkTrackerAction : AnAction() {
          * Parses links and related changes from the current project.
          */
         override fun run(indicator: ProgressIndicator) {
-
             ApplicationManager.getApplication().runReadAction {
-
                 linkService.getLinks(linkInfoList)
+            }
+            for (linkInfo: LinkInfo in linkInfoList) {
+                indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
+                val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
 
-                for (linkInfo in linkInfoList) {
-                    indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-                    val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
+                println("LINK IS: $link")
 
-                    println("LINK IS: $link")
+                if (link is NotSupportedLink) {
+                    continue
+                }
 
-                    if (link is NotSupportedLink) {
-                        continue
-                    }
-
-                    try {
-                        linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
-                        // temporary solution to ignoring not implemented stuff
-                    } catch (e: NotImplementedError) {
-                        continue
-                        // catch any errors that might result from using vcs commands (git).
-                    } catch (e: VcsException) {
-                        linksAndChangesList.add(
-                            Pair(
-                                link,
-                                LinkChange(
-                                    ChangeType.INVALID,
-                                    errorMessage = e.message,
-                                    afterPath = link.linkInfo.linkPath
-                                )
+                try {
+                    linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
+                    // temporary solution to ignoring not implemented stuff
+                } catch (e: NotImplementedError) {
+                    continue
+                    // catch any errors that might result from using vcs commands (git).
+                } catch (e: VcsException) {
+                    linksAndChangesList.add(
+                        Pair(
+                            link,
+                            LinkChange(
+                                ChangeType.INVALID,
+                                errorMessage = e.message,
+                                afterPath = link.linkInfo.linkPath
                             )
                         )
-                        // horrible generic exception catch: just in case.
-                    } catch (e: Exception) {
-                        linksAndChangesList.add(
-                            Pair(
-                                link,
-                                LinkChange(
-                                    ChangeType.INVALID,
-                                    errorMessage = e.message,
-                                    afterPath = link.linkInfo.linkPath
-                                )
+                    )
+                    // horrible generic exception catch: just in case.
+                } catch (e: Exception) {
+                    linksAndChangesList.add(
+                        Pair(
+                            link,
+                            LinkChange(
+                                ChangeType.INVALID,
+                                errorMessage = e.message,
+                                afterPath = link.linkInfo.linkPath
                             )
                         )
-                    }
-                    // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
+                    )
                 }
             }
-
-            historyService.saveCommitSHA(gitOperationManager.getHeadCommitSHA())
+            historyService.saveCommitSHA(gitOperationManager.getHeadCommitSHA()!!)
             uiService.updateView(linksAndChangesList)
         }
     }
