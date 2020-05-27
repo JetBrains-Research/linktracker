@@ -13,16 +13,16 @@ class CredentialsManager {
             return CredentialAttributes(generateServiceName("Link tracker", key))
         }
 
-        fun storeCredentials(username: String, password: String) {
-            val credentialAttributes: CredentialAttributes =  createCredentialAttributes(username)
+        fun storeCredentials(platform: String, username: String, token: String) {
+            val credentialAttributes: CredentialAttributes =  createCredentialAttributes("$platform-$username")
             val passwordSafe: PasswordSafe = PasswordSafe.instance
-            val credentials = Credentials(username, password)
+            val credentials = Credentials(username, token)
             passwordSafe.set(credentialAttributes, credentials)
-            println("password for $username is $password")
+            println("token for $username is $token")
         }
 
-        fun getCredentials(username: String): String? {
-            val credentialAttributes: CredentialAttributes = createCredentialAttributes(username)
+        fun getCredentials(platform: String, username: String): String? {
+            val credentialAttributes: CredentialAttributes = createCredentialAttributes("$platform-$username")
             val credentials: Credentials? = PasswordSafe.instance.get(credentialAttributes)
             if (credentials != null) {
                 return credentials.getPasswordAsString()
