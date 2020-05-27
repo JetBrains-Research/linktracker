@@ -80,7 +80,7 @@ class LinkUpdaterService(val project: Project) {
     private fun updateWebLink(link: WebLink, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
         // if the change comes from the working tree, do not update the link
         // let the user do it via the UI!
-        if (linkChange.fromWorkingTree) return false
+        // if (linkChange.fromWorkingTree) return false
         if (linkChange.changeType == ChangeType.MOVED) {
             var afterPath: String = when (link) {
                 is WebLinkToFile -> {
