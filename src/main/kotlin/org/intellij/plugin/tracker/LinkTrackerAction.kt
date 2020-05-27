@@ -154,6 +154,7 @@ class LinkTrackerAction : AnAction() {
             if (!dryRun) {
                 updateLinks()
             }
+            uiService.updateView(currentProject, linksAndChangesList)
         }
 
         /**
@@ -184,7 +185,6 @@ class LinkTrackerAction : AnAction() {
                     }
                 }
             }
-            uiService.updateView(currentProject, linksAndChangesList)
         }
     }
 }

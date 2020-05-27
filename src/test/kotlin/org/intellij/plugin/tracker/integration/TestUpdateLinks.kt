@@ -10,7 +10,6 @@ import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.junit.jupiter.api.*
 
-
 /**
  * This class is a template for testing updating links.
  * In order to create tests with a new project instance per test
