@@ -24,18 +24,17 @@
     <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
     <actions>
-        <group id="outer" text="Sample" description="Sample desc">
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker"
+                description="Track links"  icon="AllIcons.Actions.Refresh">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <group id="inner" text="Link Tracker Plugin" popup="true">
-                <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Run"
-                        description="Track links">
-                    <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-                    <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F" remove="true"/>
-                    <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F" replace-all="true"/>
-                    <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
-                </action>
-            </group>
-        </group>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+            <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+        <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings"
+                description="Settings"  icon="AllIcons.Ide.Notification.GearHover">
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
