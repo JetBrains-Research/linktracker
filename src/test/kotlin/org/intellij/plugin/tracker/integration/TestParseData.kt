@@ -98,7 +98,7 @@ class TestParseData: BasePlatformTestCase() {
         Assertions.assertEquals("file.txt", link.linkInfo.linkPath)
         Assertions.assertEquals("/src/testParseRelativeLinks.md", link.linkInfo.proveniencePath)
 //        Assertions.assertEquals(ChangeType.MOVED, change.changeType)
-        Assertions.assertEquals(afterPath, change.afterPath)
+//        Assertions.assertEquals(afterPath, change.afterPath)
     }
 
     @Test
