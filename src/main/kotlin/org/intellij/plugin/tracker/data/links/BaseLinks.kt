@@ -159,7 +159,7 @@ data class LinkInfo(
     fun getAfterPathToOriginalFormat(afterPath: String): String {
         val targetPath = Paths.get(afterPath)
         val sourcePath = Paths.get(proveniencePath).parent ?: Paths.get(".")
-        return sourcePath?.relativize(targetPath).toString().replace("\\", "/")
+        return sourcePath.relativize(targetPath).toString().replace("\\", "/")
     }
 
     private fun getMarkdownDirectoryPath(): String {
