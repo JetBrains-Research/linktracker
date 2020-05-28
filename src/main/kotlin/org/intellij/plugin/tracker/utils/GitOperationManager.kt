@@ -1,7 +1,12 @@
 package org.intellij.plugin.tracker.utils
 
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.progress.runModalTask
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import git4idea.GitUtil
 import git4idea.changes.GitChangeUtils
 import git4idea.commands.*
 import git4idea.repo.GitRepository
@@ -86,15 +91,10 @@ open class GitOperationManager(private val project: Project) {
     /**
      * Get the commit SHA which points to the current HEAD
      *
-     * Runs git command `git rev-parse --short HEAD`
+     * Runs git command `git rev-parse HEAD`
      */
     @Throws(VcsException::class)
-    fun getHeadCommitSHA(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository!!.root, GitCommand.REV_PARSE)
-        gitLineHandler.addParameters("--short", "HEAD")
-        val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
-    }
+    fun getHeadCommitSHA(): String? = GitUtil.getHead(gitRepository!!).toString()
 
     /**
      * Get the commit at which a line containing the information in linkInfo was created
@@ -280,7 +280,7 @@ open class GitOperationManager(private val project: Project) {
                 lineSplit[2]
             }
             // line containing a commit along with the commit description
-            content.matches("[a-z0-9]{6}.*".toRegex()) -> {
+            content.matches("[a-fA-F0-9]{6}.*".toRegex()) -> {
                 val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"

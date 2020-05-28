@@ -11,7 +11,6 @@ import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.*
-import org.intellij.plugins.markdown.lang.MarkdownElementTypes
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 import org.intellij.plugins.markdown.lang.MarkdownTokenTypes.GFM_AUTOLINK
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
@@ -81,7 +80,7 @@ class LinkUpdaterService(val project: Project) {
     private fun updateWebLink(link: WebLink, linkChange: LinkChange, element: PsiElement, newCommit: String?): Boolean {
         // if the change comes from the working tree, do not update the link
         // let the user do it via the UI!
-        if (linkChange.fromWorkingTree) return false
+        // if (linkChange.fromWorkingTree) return false
         if (linkChange.changeType == ChangeType.MOVED) {
             var afterPath: String = when (link) {
                 is WebLinkToFile -> {
@@ -134,7 +133,7 @@ class LinkUpdaterService(val project: Project) {
         // don't update the link if the change is coming from the working tree
         // allowing this could lead to strange behaviour upon consecutive runs
         // let the user do it via the UI!
-        if (linkChange.fromWorkingTree) return false
+        // if (linkChange.fromWorkingTree) return false
         if (linkChange.changeType == ChangeType.MOVED) {
             var newPath: String = linkChange.afterPath
             // transform the path to the original format: this will mostly work for paths which

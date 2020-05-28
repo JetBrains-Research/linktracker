@@ -49,7 +49,7 @@ class ChangeTrackerService(project: Project) {
         val threshold: Int = similarityThresholdSettings.fileSimilarity
         val result: Pair<MutableList<Pair<String, String>>, LinkChange> =
             gitOperationManager.getAllChangesForFile(link, threshold,
-                    branchOrTagName = branchOrTagName, specificCommit = specificCommit)
+                branchOrTagName = branchOrTagName, specificCommit = specificCommit)
         val change: LinkChange = result.second
         when (change.changeType) {
             // this file's change type is invalid
@@ -209,7 +209,7 @@ class ChangeTrackerService(project: Project) {
         for (line: String? in lines) {
             if (line == null) {
                 break
-            // git hunk info header
+                // git hunk info header
             } else if (line.startsWith("@@ ")) {
                 val info = line.split(" @@")[0]
                 val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
@@ -219,19 +219,19 @@ class ChangeTrackerService(project: Project) {
                     startAddedLine = matcher.group(6).toInt()
                     currentAddedLine = startAddedLine
                 }
-            // added line
+                // added line
             } else if (line.startsWith("+")) {
                 val addedLine = Line(currentAddedLine, line.split("+")[1])
                 addedLines.add(addedLine)
                 contextLinesAdded.add(addedLine)
                 currentAddedLine++
-            // deleted line
+                // deleted line
             } else if (line.startsWith("-")) {
                 val deletedLine = Line(currentDeletedLine, line.split("-")[1])
                 deletedLines.add(deletedLine)
                 contextLinesDeleted.add(deletedLine)
                 currentDeletedLine++
-            // this is an unchanged line: just add it to the context lines lists and increment the indices
+                // this is an unchanged line: just add it to the context lines lists and increment the indices
             } else {
                 contextLinesDeleted.add(Line(currentDeletedLine, line))
                 contextLinesAdded.add(Line(currentAddedLine, line))
@@ -260,8 +260,8 @@ class ChangeTrackerService(project: Project) {
             // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
             val contextLines: MutableList<Line> = contextLinesAdded.filter { line ->
                 (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                 || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
-             }.toMutableList()
+                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber, maxContextLineNumber))
+            }.toMutableList()
             l.contextLines = contextLines
         }
 

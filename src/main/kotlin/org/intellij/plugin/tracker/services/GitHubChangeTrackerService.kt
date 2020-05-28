@@ -98,7 +98,7 @@ class GitHubChangeTrackerService {
             Pair(
                 link,
                 DirectoryChange(ChangeType.INVALID, afterPath = link.linkInfo.linkPath,
-                errorMessage = e.message)
+                    errorMessage = e.message)
             )
         }
     }
