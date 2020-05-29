@@ -154,7 +154,7 @@ class LinkUpdaterService(val project: Project) {
      */
     private fun getLinkElements(list: MutableCollection<Pair<Link, LinkChange>>):
             MutableCollection<Triple<Link, LinkChange, PsiElement?>> {
-        return list.map { pair -> Triple(pair.first, pair.second, getLinkElement(pair.first)) }.toMutableList()
+        return list.map { Triple(it.first, it.second, getLinkElement(it.first)) }.toMutableList()
     }
 
     /**
@@ -172,7 +172,7 @@ class LinkUpdaterService(val project: Project) {
             link.linkInfo.fileName,
             GlobalSearchScope.projectScope(project)
         )
-        matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
+        matchingFiles.filter { it.virtualFile.path.endsWith(relativePath) }
         // Assume only one valid result
         assert(matchingFiles.size == 1)
         val psiFile: PsiFile = matchingFiles[0]

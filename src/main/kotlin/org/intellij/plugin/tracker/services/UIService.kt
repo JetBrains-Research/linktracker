@@ -36,8 +36,7 @@ class UIService(val project: Project) {
      * @param scanResult changes in the currently open MD file
      */
     fun updateView(scanResult: ScanResult) {
-        val linkChanges = scanResult.linkChanges
-        treeView.updateModel(linkChanges)
+        treeView.updateModel(scanResult)
     }
 
     /**

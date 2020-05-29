@@ -29,7 +29,7 @@ class LinkProcessingRouter {
                     val result = changeTrackerService.getFileChange(link)
                     throw NotImplementedError("")
                 }
-                is WebLinkToDirectory-> return when {
+                is WebLinkToDirectory -> return when {
                     link.correspondsToLocalProject(gitRemoteOriginUrl) -> changeTrackerService.getDirectoryChange(link)
                     else -> {
                         // only track web links which are hosted on github for now
@@ -47,11 +47,24 @@ class LinkProcessingRouter {
 
                         // match on the web link reference type and call the methods with the right parameters
                         when (webLinkReferenceType) {
-                            WebLinkReferenceType.COMMIT -> changeTrackerService.getFileChange(link, specificCommit = link.getReferencingName()).second
+                            WebLinkReferenceType.COMMIT -> changeTrackerService.getFileChange(
+                                link,
+                                specificCommit = link.getReferencingName()
+                            ).second
                             WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
-                                changeTrackerService.getFileChange(link, branchOrTagName = link.getReferencingName()).second
+                                changeTrackerService.getFileChange(
+                                    link,
+                                    branchOrTagName = link.getReferencingName()
+                                ).second
                             WebLinkReferenceType.INVALID ->
-                                Pair(link, LinkChange(ChangeType.INVALID, errorMessage = "Web link reference name is invalid", afterPath = link.linkInfo.linkPath))
+                                Pair(
+                                    link,
+                                    LinkChange(
+                                        ChangeType.INVALID,
+                                        errorMessage = "Web link reference name is invalid",
+                                        afterPath = link.linkInfo.linkPath
+                                    )
+                                )
                         }
                     }
                     else -> throw NotImplementedError("$link is not yet supported")
