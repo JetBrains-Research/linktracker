@@ -4,7 +4,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.mockk.every
 import io.mockk.mockkConstructor
-import org.intellij.plugin.tracker.LinkTrackerAction
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
@@ -14,6 +13,7 @@ import org.intellij.plugin.tracker.services.HistoryService
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.services.UIService
+import org.intellij.plugin.tracker.utils.DataParsingTask
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.junit.jupiter.api.*
 
@@ -30,7 +30,7 @@ class TestParseData : BasePlatformTestCase() {
     private lateinit var myLinkService: LinkRetrieverService
     private lateinit var myLinkUpdateService: LinkUpdaterService
     private lateinit var myUiService: UIService
-    private lateinit var myDataParsingTask: LinkTrackerAction.DataParsingTask
+    private lateinit var myDataParsingTask: DataParsingTask
     private val myFiles = arrayOf(
         "testParseRelativeLinks.md",
         "main/file.txt",
@@ -62,7 +62,7 @@ class TestParseData : BasePlatformTestCase() {
         myLinkService = LinkRetrieverService.getInstance(project)
         myLinkUpdateService = LinkUpdaterService.getInstance(project)
         myUiService = UIService.getInstance(project)
-        myDataParsingTask = LinkTrackerAction.DataParsingTask(
+        myDataParsingTask = DataParsingTask(
             currentProject = project,
             myLinkService = myLinkService,
             myHistoryService = myHistoryService,
@@ -104,9 +104,9 @@ class TestParseData : BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()
-        val links = result.linkChanges
+        val links = result.myLinkChanges
 
-        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to file" }
+        val pair = links.first { it.first.linkInfo.linkText == "single - relative link to file" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToFile)
@@ -131,9 +131,9 @@ class TestParseData : BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()
-        val links = result.linkChanges
+        val links = result.myLinkChanges
 
-        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to directory" }
+        val pair = links.first { it.first.linkInfo.linkText == "single - relative link to directory" }
         val link = pair.first
         val change = pair.second
         Assertions.assertTrue(link is RelativeLinkToDirectory)
@@ -148,9 +148,9 @@ class TestParseData : BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()
-        val links = result.linkChanges
+        val links = result.myLinkChanges
 
-        val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - web link to line" }
+        val pair = links.first { it.first.linkInfo.linkText == "single - web link to line" }
         val link = pair.first
         Assertions.assertTrue(link is WebLinkToLine)
         Assertions.assertEquals(
@@ -165,9 +165,9 @@ class TestParseData : BasePlatformTestCase() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()
-        val links = result.linkChanges
+        val links = result.myLinkChanges
 
-        val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
+        val multiLinks = links.filter { it.first.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
     }
 }
