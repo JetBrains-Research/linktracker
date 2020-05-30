@@ -92,7 +92,7 @@ class LinkRetrieverService(private val project: Project?) {
                     if (element.node != null) {
                         val elemType = element.node.elementType.toString()
                         if (elemType == "KDOC_TEXT" || elemType == "EOL_COMMENT" || elemType == "comment" || elemType == "line comment" || elemType == "<comment>") {
-//                            println(element.text)
+
                         }
                     }
                     super.visitElement(element)

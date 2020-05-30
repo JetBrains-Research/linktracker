@@ -4,11 +4,22 @@ import com.intellij.openapi.vcs.changes.Change as Change1
 
 
 data class DirectoryChange(
-    override var changeType: ChangeType,
+    var changeType: FileChangeType,
     override val afterPath: String = "",
     override val errorMessage: String? = null,
     val directoryName: String? = null
 ) : Change {
+    override val changes: MutableList<ChangeType>
+        get() {
+            return mutableListOf(changeType)
+        }
+    override val requiresUpdate: Boolean
+        get() {
+            if (changeType == FileChangeType.MOVED || changeType == FileChangeType.DELETED)
+                return true
+            return false
+        }
+
     override fun hasWorkingTreeChanges(): Boolean {
         // for now return false
         return false
@@ -25,11 +36,11 @@ data class DirectoryChange(
         fun changeToDirectoryChange(change: Change1): DirectoryChange {
             val directoryChangeBuilder = Builder()
 
-            val changeType: ChangeType = when (change.type) {
-                Change1.Type.MOVED -> ChangeType.MOVED
-                Change1.Type.MODIFICATION -> ChangeType.MODIFIED
-                Change1.Type.NEW -> ChangeType.ADDED
-                Change1.Type.DELETED -> ChangeType.DELETED
+            val changeType: FileChangeType = when (change.type) {
+                Change1.Type.MOVED -> FileChangeType.MOVED
+                Change1.Type.MODIFICATION -> FileChangeType.MODIFIED
+                Change1.Type.NEW -> FileChangeType.ADDED
+                Change1.Type.DELETED -> FileChangeType.DELETED
             }
 
             directoryChangeBuilder.changeType = changeType
@@ -46,7 +57,7 @@ data class DirectoryChange(
     }
 
     class Builder {
-        var changeType: ChangeType = ChangeType.INVALID
+        var changeType: FileChangeType = FileChangeType.INVALID
         var afterPath: String = ""
         var directoryName: String? = null
         var errorMessage: String? = null

@@ -25,7 +25,6 @@ class LineTracker {
             var lineToTrack: Int = link.lineReferenced
             var addedLines: MutableList<Line> = mutableListOf()
             var modifications = 0
-
             var lineIsDeleted = false
 
             for (diffOutput: DiffOutput in diffOutputMultipleRevisions.diffOutputList) {
@@ -137,7 +136,7 @@ class LineTracker {
             var line: Line? = addedLines.find { line -> line.lineNumber == lineToTrack }
             val lineChangeType: LineChangeType
             lineChangeType = if (lineIsDeleted) LineChangeType.DELETED
-            else LineChangeType.CHANGED
+            else LineChangeType.MOVED
             if (line == null) line = Line(lineToTrack, originalLineContent)
             return LineChange(fileChange, lineChangeType, newLine = line)
         }

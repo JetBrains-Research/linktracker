@@ -35,7 +35,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         val workingTreeChange: FileChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
-        if (workingTreeChange != null && workingTreeChange.changeType == ChangeType.ADDED) {
+        if (workingTreeChange != null && workingTreeChange.fileChangeType == FileChangeType.ADDED) {
             val fileHistory = FileHistory(path = workingTreeChange.afterPath, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
@@ -73,8 +73,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // (calculated using the unchanged path retrieved from the markdown files),
             // use this change instead of the one found from `git log` command (it overrides it).
             // Otherwise, return the change found from `git log` command.
-            return when (workingTreeChange.changeType) {
-                ChangeType.DELETED, ChangeType.MOVED -> {
+            return when (workingTreeChange.fileChangeType) {
+                FileChangeType.DELETED, FileChangeType.MOVED -> {
                     change.fileHistoryList.add(
                         FileHistory(
                             path = workingTreeChange.afterPath,
@@ -105,7 +105,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
             directoryChange
         } else {
-            DirectoryChange(ChangeType.ADDED, "")
+            DirectoryChange(FileChangeType.ADDED, "")
         }
     }
 
@@ -116,17 +116,17 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     ) : Change {
         // if we cannot get the start commit, return
         val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo) ?: throw CommitSHAIsNullException(fileChange = FileChange(ChangeType.INVALID, ""))
+            gitOperationManager.getStartCommit(link.linkInfo) ?: throw CommitSHAIsNullException(fileChange = FileChange(FileChangeType.INVALID, ""))
 
         val originalLineContent: String =
             gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
-                ?: throw OriginalLineContentsNotFoundException(fileChange = FileChange(ChangeType.INVALID, ""))
+                ?: throw OriginalLineContentsNotFoundException(fileChange = FileChange(FileChangeType.INVALID, ""))
 
         try {
             val fileChange: FileChange = getLocalFileChanges(link, specificCommit = startCommit) as FileChange
             // if the file change type is deleted, throw an exception.
             // There is no need to track the lines in this file.
-            if (fileChange.changeType == ChangeType.DELETED)
+            if (fileChange.fileChangeType == FileChangeType.DELETED)
                 throw FileHasBeenDeletedException(fileChange = fileChange)
 
 
@@ -155,7 +155,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             }
             throw NotImplementedError("TODO: get diff with working tree version of a file")
         } catch (e: FileChangeGatheringException) {
-            throw InvalidFileChangeException(fileChange = FileChange(ChangeType.INVALID, "", e.message))
+            throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
         }
     }
 
@@ -246,13 +246,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
 
                 if (similarityPair.second >= similarityThreshold) {
-                    return DirectoryChange(ChangeType.MOVED, afterPath = similarityPair.first)
+                    return DirectoryChange(FileChangeType.MOVED, afterPath = similarityPair.first)
                 }
-                return DirectoryChange(ChangeType.DELETED, afterPath = link.path)
+                return DirectoryChange(FileChangeType.DELETED, afterPath = link.path)
             }
 
             // as long as there is something in the directory, we can declare it valid
-            DirectoryChange(ChangeType.ADDED, afterPath = link.path)
+            DirectoryChange(FileChangeType.ADDED, afterPath = link.path)
         } catch (e: IOException) {
             throw UnableToFetchRemoteDirectoryChangesException(e.message)
         }
@@ -275,7 +275,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val currPath = change.afterRevision?.file?.parentPath
             if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(change)
         }
-        return DirectoryChange(ChangeType.ADDED, "")
+        return DirectoryChange(FileChangeType.ADDED, "")
     }
 
     private fun getDiffOutput(
@@ -387,7 +387,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     }
 
     companion object {
-        fun getInstance(project: Project): ChangeTrackerService =
-            ServiceManager.getService(project, ChangeTrackerService::class.java)
+        fun getInstance(project: Project): ChangeTrackerServiceImpl =
+            ServiceManager.getService(project, ChangeTrackerServiceImpl::class.java)
     }
 }
