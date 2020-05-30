@@ -15,13 +15,11 @@ class OtherView : JPanel(BorderLayout()) {
         val cbt = JCheckBoxTree()
         cbt.addCheckChangeEventListener(object : JCheckBoxTree.CheckChangeEventListener {
             override fun checkStateChanged(event: JCheckBoxTree.CheckChangeEvent?) {
-                println("event")
                 val paths: Array<TreePath> = cbt.getCheckedPaths()
                 for (tp in paths) {
                     for (pathPart in tp.getPath()) {
                         print("$pathPart,")
                     }
-                    println()
                 }
             }
         })

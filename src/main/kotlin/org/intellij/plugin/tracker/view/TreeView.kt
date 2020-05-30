@@ -45,14 +45,12 @@ class TreeView : JPanel(BorderLayout()) {
         root.removeAllChildren()
 
         val changedOnes = changes.filter {
-            it.second.changeType == ChangeType.DELETED
-                    || it.second.changeType == ChangeType.MOVED
+            it.second.requiresUpdate
         }.groupBy { it.first.linkInfo.proveniencePath }
         val unchangedOnes = changes.filter {
-            it.second.changeType == ChangeType.ADDED
-                    || it.second.changeType == ChangeType.MODIFIED
+            !it.second.requiresUpdate && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
-        val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
+        val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
         val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
@@ -91,10 +89,17 @@ class TreeView : JPanel(BorderLayout()) {
                                 links.first.linkInfo.linkText
                     )
                 )
-                if (links.second.changeType == ChangeType.MOVED || links.second.changeType == ChangeType.DELETED) {
-                    link.add(DefaultMutableTreeNode(links.second.changeType.toString()))
-                } else if (links.second.changeType == ChangeType.INVALID) {
-                    link.add(DefaultMutableTreeNode("MESSAGE: " + links.second.errorMessage.toString()))
+                if (links.second.requiresUpdate) {
+                    var displayString = ""
+                    for ((index: Int, changeType: ChangeType) in links.second.changes.withIndex()) {
+                        displayString += changeType.changeTypeString
+                        if (index != links.second.changes.size - 1) {
+                            displayString += " and "
+                        }
+                    }
+                    link.add(DefaultMutableTreeNode(displayString))
+                } else if (links.second.errorMessage != null) {
+                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
                 }
 
                 file.add(link)
@@ -127,7 +132,7 @@ class TreeView : JPanel(BorderLayout()) {
                     if (paths[1].toCharArray().isNotEmpty()) {
                         path = paths[1] + "/" + paths[0]
                     }
-                    if (SwingUtilities.isRightMouseButton(e) && changed && name != "MOVED" && name != "DELETED") {
+                    if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains("DELETED")) {
                         tree.selectionPath = selPath
                         val treePopup = TreePopup(changes, info, name, line, path)
                         treePopup.show(e.component, e.x, e.y)
@@ -135,7 +140,7 @@ class TreeView : JPanel(BorderLayout()) {
                             tree.setSelectionRow(selRow)
                         }
                     }
-                    if (SwingUtilities.isLeftMouseButton(e) && name != "MOVED" && name != "DELETED") {
+                    if (SwingUtilities.isLeftMouseButton(e) && !name.contains("MOVED") && !name.contains("DELETED")) {
                         for (information in info) {
                             if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
                                 val project = ProjectManager.getInstance().openProjects[0]
