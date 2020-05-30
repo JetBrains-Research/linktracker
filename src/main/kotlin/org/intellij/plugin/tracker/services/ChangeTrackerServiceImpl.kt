@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.ex.compareLines
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.*
@@ -141,8 +142,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     val afterCommitSHA: String = fileHistoryList[x + 1].revision
                     val afterPath: String = fileHistoryList[x + 1].path
 
-                    val output: DiffOutput = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
-                    diffOutputList.add(output)
+                    val output: DiffOutput? = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
+                    if (output != null) {
+                        diffOutputList.add(output)
+                    }
                 }
                 val diffOutputMultipleRevisions =
                     DiffOutputMultipleRevisions(
@@ -284,10 +287,11 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         beforePath: String,
         afterPath: String,
         contextLinesNumber: Int = 3
-    ): DiffOutput {
+    ): DiffOutput? {
         val output: String =
             gitOperationManager.getDiffBetweenCommits(before, after, beforePath, afterPath, contextLinesNumber)
         // skip the git diff header (first 4 lines)
+        if (output.isEmpty()) return null
         // filter out all git-added "No newline at end of file" lines
         val lines: List<String?> = output.lines()
             .subList(4, output.lines().size)
