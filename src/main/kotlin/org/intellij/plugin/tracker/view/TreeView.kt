@@ -45,10 +45,10 @@ class TreeView : JPanel(BorderLayout()) {
         root.removeAllChildren()
 
         val changedOnes = changes.filter {
-            it.second.requiresUpdate
+            (it.second.requiresUpdate || it.first.markdownFileMoved(it.second.afterPath)) && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
         val unchangedOnes = changes.filter {
-            !it.second.requiresUpdate && it.second.errorMessage == null
+            !it.second.requiresUpdate && it.second.errorMessage == null && !it.first.markdownFileMoved(it.second.afterPath)
         }.groupBy { it.first.linkInfo.proveniencePath }
         val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }

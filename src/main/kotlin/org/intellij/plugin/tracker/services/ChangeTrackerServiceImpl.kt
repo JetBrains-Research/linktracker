@@ -1,9 +1,7 @@
 package org.intellij.plugin.tracker.services
 
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vcs.ex.compareLines
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.*

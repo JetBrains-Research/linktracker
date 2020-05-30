@@ -57,6 +57,8 @@ abstract class Link(
     abstract fun visit(visitor: ChangeTrackerService): Change
 
     abstract fun copyWithAfterPath(link: Link, afterPath: String): Link
+
+    abstract fun markdownFileMoved(afterPath: String): Boolean
 }
 
 /**
@@ -70,6 +72,8 @@ abstract class RelativeLink<in T : Change>(
 
     override val path: String
         get() = linkInfo.linkPath
+
+    override fun markdownFileMoved(afterPath: String): Boolean = linkInfo.getAfterPathToOriginalFormat(afterPath) != afterPath
 
     abstract fun updateLink(change: T, commitSHA: String?): String?
 }
@@ -141,6 +145,8 @@ abstract class WebLink<in T : Change>(
     }
 
     abstract fun generateNewPath(change: T, newPath: String): String?
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 /**
@@ -153,7 +159,6 @@ data class NotSupportedLink (
     override var commitSHA: String? = null,
     val errorMessage: String? = null
 ) : Link(linkInfo, pattern) {
-
     override val lineReferenced: Int
         get() = -1
 
@@ -177,6 +182,8 @@ data class NotSupportedLink (
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
     }
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 
