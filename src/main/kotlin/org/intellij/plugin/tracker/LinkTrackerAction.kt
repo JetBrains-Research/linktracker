@@ -103,8 +103,6 @@ class LinkTrackerAction : AnAction() {
                 indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
                 val link: Link = LinkFactory.createLink(linkInfo, historyService.stateObject.commitSHA)
 
-                println("LINK IS: $link")
-
                 if (link is NotSupportedLink) {
                     continue
                 }
@@ -115,11 +113,16 @@ class LinkTrackerAction : AnAction() {
                 } catch (e: NotImplementedError) {
                     continue
                 } catch (e: FileChangeGatheringException) {
-                    linksAndChangesList.add(Pair(link, FileChange(ChangeType.INVALID, afterPath = "", errorMessage = e.message)))
+                    linksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPath = "", errorMessage = e.message)))
                 } catch (e: DirectoryChangeGatheringException) {
-                    linksAndChangesList.add(Pair(link, DirectoryChange(ChangeType.INVALID, errorMessage = e.message)))
+                    linksAndChangesList.add(Pair(link, DirectoryChange(FileChangeType.INVALID, errorMessage = e.message)))
                 } catch (e: LineChangeGatheringException) {
-                    linksAndChangesList.add(Pair(link, LineChange(fileChange = e.fileChange, errorMessage = e.message)))
+                    val lineChange = LineChange(
+                        fileChange = e.fileChange,
+                        lineChangeType = LineChangeType.INVALID,
+                        errorMessage = e.message
+                    )
+                    linksAndChangesList.add(Pair(link, lineChange))
                 // catch any errors that might result from using vcs commands (git).
                 } catch (e: VcsException) {
 
