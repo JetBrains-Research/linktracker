@@ -1,10 +1,11 @@
 package org.intellij.plugin.tracker.view
 
+import com.intellij.icons.AllIcons
+import icons.MarkdownIcons
 import java.awt.Color
 import java.awt.Component
+import java.awt.Font.PLAIN
 import java.awt.GridLayout
-import javax.swing.Icon
-import javax.swing.ImageIcon
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTree
@@ -26,31 +27,50 @@ internal class CustomCellRenderer : TreeCellRenderer {
         if (value is DefaultMutableTreeNode) {
             val userObject = value.userObject
             titleLabel.text = userObject.toString()
-            var check = false
+            titleLabel.icon = MarkdownIcons.EditorActions.Link
 
-            if (value.parent?.parent?.toString() == "Markdown Files") {
-                val children = value.children()
-                for (child in children) {
-                    if (child.toString() == "Change") {
-                        check = true
+            if (titleLabel.text == "DELETED" || titleLabel.text == "MOVED") {
+                titleLabel.icon = AllIcons.General.BalloonInformation
+            } else if (titleLabel.text.contains("MESSAGE: ")) {
+                titleLabel.icon = AllIcons.General.BalloonWarning
+            } else {
+                if (value.parent != null) {
+                    val text = value.parent.toString()
+                    if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                        val texts = userObject.toString().split(" ")
+                        titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                        titleLabel.icon = MarkdownIcons.MarkdownPlugin
+                    }
+                }
+
+                if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
+                    val text = value.parent.parent.parent.toString()
+                    if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                        val texts = userObject.toString().split(") ")
+                        titleLabel.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                        titleLabel.icon = AllIcons.General.TodoDefault
+
                     }
                 }
             }
 
-            if (check) titleLabel.foreground = Color.BLUE else titleLabel.foreground = Color.DARK_GRAY
-
             when {
-                userObject.toString() == "Accept " -> {
-                    titleLabel.foreground = Color.GREEN
-                    val checkIcon: Icon = ImageIcon(javaClass.getResource("/images/check.png"))
-                    titleLabel.icon = checkIcon
+                userObject.toString().contains("Changed Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(13) + "</font></html>"
+                    titleLabel.icon = null
                 }
-                userObject.toString() == "Deny " -> {
-                    titleLabel.foreground = Color.RED
-                    val crossIcon: Icon = ImageIcon(javaClass.getResource("/images/cross.png"))
-                    titleLabel.icon = crossIcon
+                userObject.toString().contains("Unchanged Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Unchanged Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(15) + "</font></html>"
+                    titleLabel.icon = null
                 }
-                else -> { titleLabel.icon = defaultRenderer.openIcon }
+                userObject.toString().contains("Invalid Links") -> {
+                    titleLabel.text = "<html>" + "<strong>Invalid Links </strong></font> <font color='gray'>" +
+                            userObject.toString().substring(13) + "</font></html>"
+                    titleLabel.icon = null
+                }
+                else -> { titleLabel.font = titleLabel.font.deriveFont(PLAIN) }
             }
             renderer.isEnabled = tree.isEnabled
             returnValue = renderer

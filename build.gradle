@@ -9,7 +9,7 @@ plugins {
 group 'org.intellij.sdk'
 version '2.0.0'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 
 repositories {
   mavenCentral()
@@ -23,7 +23,10 @@ dependencies {
   testImplementation "org.mockito:mockito-core:3.0.0"
   testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
   testImplementation("io.mockk:mockk:1.10.0")
+  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 }
+
 
 
 sourceSets {
@@ -37,8 +40,12 @@ intellij {
 }
 
 compileKotlin {
-  kotlinOptions.jvmTarget = "1.8"
+  kotlinOptions.jvmTarget = "11"
 }
 compileTestKotlin {
-  kotlinOptions.jvmTarget = "1.8"
+  kotlinOptions.jvmTarget = "11"
+}
+
+test {
+  useJUnitPlatform()
 }

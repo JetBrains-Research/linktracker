@@ -31,7 +31,13 @@ class LinkFactory {
                     link = WebLinkToLine(linkInfo = linkInfo)
                 }
                 webLinkToLinesMatcher.matches() -> {
-                    link = WebLinkToLines(linkInfo = linkInfo)
+                    val startLine = WebLinkToLines(linkInfo = linkInfo).getReferencedStartingLine()
+                    val endLine = WebLinkToLines(linkInfo = linkInfo).getReferencedEndingLine()
+                    link = if (startLine > endLine) {
+                        NotSupportedLink(linkInfo = linkInfo, errorMessage = "Invalid start and end lines")
+                    } else {
+                        WebLinkToLines(linkInfo = linkInfo)
+                    }
                 }
                 webLinkToFileMatcher.matches() -> {
                     link = WebLinkToFile(linkInfo = linkInfo)
@@ -44,7 +50,13 @@ class LinkFactory {
                         NotSupportedLink(linkInfo = linkInfo, errorMessage = "This type of web link is not supported")
                 }
                 relativeLinkToLinesMatcher.matches() -> {
-                    link = RelativeLinkToLines(linkInfo = linkInfo)
+                    val startLine = RelativeLinkToLines(linkInfo = linkInfo).getStartLineReferenced()
+                    val endLine = RelativeLinkToLines(linkInfo = linkInfo).getEndLineReferenced()
+                    link = if (startLine > endLine) {
+                        NotSupportedLink(linkInfo = linkInfo, errorMessage = "Invalid start and end lines")
+                    } else {
+                        RelativeLinkToLines(linkInfo = linkInfo)
+                    }
                 }
                 relativeLinkToLineMatcher.matches() -> {
                     link = RelativeLinkToLine(linkInfo = linkInfo)

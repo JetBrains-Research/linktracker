@@ -1,113 +1,229 @@
 package org.intellij.plugin.tracker.view
 
-import org.intellij.plugin.tracker.data.changes.Change
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.ThrowableComputable
+import com.intellij.openapi.vcs.VcsException
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.ui.SideBorder
+import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.awt.BorderLayout
-import javax.swing.JOptionPane
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JTree
-import javax.swing.event.TreeSelectionListener
+import java.awt.Color
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.io.File
+import javax.swing.*
+import javax.swing.border.Border
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.TreeCellRenderer
-
 
 /**
  * Class creating tree view
  */
 class TreeView : JPanel(BorderLayout()) {
+
     private var tree: JTree
 
     /**
      * Updating tree view
      */
-    fun updateModel(changes: MutableList<Pair<Link, Change>>) {
+    fun updateModel(changes: MutableList<Pair<Link, LinkChange>>) {
         val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
-        // Adds current links and their information
-        val groupedLinks = changes.groupBy { it.first.linkInfo.proveniencePath }
+        val changedOnes = changes.filter {
+            it.second.changeType == ChangeType.DELETED
+                    || it.second.changeType == ChangeType.MOVED
+        }.groupBy { it.first.linkInfo.proveniencePath }
+        val unchangedOnes = changes.filter {
+            it.second.changeType == ChangeType.ADDED
+                    || it.second.changeType == ChangeType.MODIFIED
+        }.groupBy { it.first.linkInfo.proveniencePath }
+        val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
+            .groupBy { it.first.linkInfo.proveniencePath }
 
-        for (linkList in groupedLinks) {
-            val file = DefaultMutableTreeNode(linkList.key)
-            for (links in linkList.value) {
-                val link = links.first
-                val change = links.second
-                val linkTree = DefaultMutableTreeNode(link.linkInfo.getMarkdownDirectoryRelativeLinkPath())
-                addNodeTree("Link Text:", link.linkInfo.linkText, linkTree)
-                addNodeTree("Link Path:", link.linkInfo.linkPath, linkTree)
-                addNodeTree("Provenience Path:", link.linkInfo.proveniencePath, linkTree)
-                addNodeTree("Found at Line:", link.linkInfo.foundAtLineNumber.toString(), linkTree)
-                if (link is WebLink<*>) {
-                    addNodeTree("Platform Name:", link.platformName, linkTree)
-                    addNodeTree("Project Owner Name:", link.projectOwnerName, linkTree)
-                    addNodeTree("Project Name:", link.projectName, linkTree)
-                    addNodeTree("Relative Path:", link.path, linkTree)
-                }
+        val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
+        val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
+        val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
 
-                val changeTree = DefaultMutableTreeNode("Change")
-                addNodeTree("Change Type:", change.changeType.toString(), changeTree)
-                if (change.errorMessage != null) addNodeTree("Error message:", change.errorMessage, changeTree)
-                if (change.changeType == ChangeType.MOVED || change.changeType == ChangeType.DELETED) {
-                    if (change.changeType == ChangeType.MOVED) {
-                        addNodeTree("After Path:", change.afterPath, changeTree)
-                    }
-                    addNodeTree("Accept", "", changeTree)
-                    addNodeTree("Deny", "", changeTree)
-                    linkTree.add(changeTree)
-                }
-                file.add(linkTree)
-            }
-            root.add(file)
+        val info = changes.map {
+            mutableListOf(
+                it.first.linkInfo.linkPath, it.first.linkInfo.proveniencePath,
+                it.first.linkInfo.foundAtLineNumber
+            )
         }
+
+        callListener(info, changes)
+
+        root.add(addNodeTree(changedOnes, changed))
+        root.add(addNodeTree(unchangedOnes, unchanged))
+        root.add(addNodeTree(invalidOnes, invalid))
         (tree.model as DefaultTreeModel).reload()
     }
 
-    /**
-     * Adds new node to tree
-     */
-    private fun addNodeTree(name: String, value: String?, file: DefaultMutableTreeNode) {
-        val tree = DefaultMutableTreeNode("$name $value")
-        file.add(tree)
+    private fun addNodeTree(changeList: Map<String, List<Pair<Link, LinkChange>>>, node: DefaultMutableTreeNode):
+            DefaultMutableTreeNode {
+        for (linkList in changeList) {
+            val fileName = linkList.value[0].first.linkInfo.fileName
+            var path = linkList.key.replace(fileName, "")
+            if (path.endsWith("/")) {
+                path = path.dropLast(1)
+            }
+            val file = DefaultMutableTreeNode("$fileName $path")
+            for (links in linkList.value) {
+                val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
+                link.add(
+                    DefaultMutableTreeNode(
+                        "(${links.first.linkInfo.foundAtLineNumber}) " +
+                                links.first.linkInfo.linkText
+                    )
+                )
+                if (links.second.changeType == ChangeType.MOVED || links.second.changeType == ChangeType.DELETED) {
+                    link.add(DefaultMutableTreeNode(links.second.changeType.toString()))
+                } else if (links.second.changeType == ChangeType.INVALID) {
+                    link.add(DefaultMutableTreeNode("MESSAGE: " + links.second.errorMessage.toString()))
+                }
+
+                file.add(link)
+            }
+            node.add(file)
+        }
+
+        return node
     }
 
-    private fun createSelectionListener(): TreeSelectionListener? {
-        return TreeSelectionListener { e ->
-            val pathCount: Int = e.path.pathCount
-            val path: String = e.path.getPathComponent(pathCount - 1).toString()
-            if (path == "Accept ") {
-                val dialogResult = JOptionPane.showConfirmDialog(null,
-                        "Would you like to save the change?", "Accept Change", JOptionPane.YES_NO_OPTION)
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    // TO DO : method saving change needs to be called
-                    println("change accepted")
-                }
-            }
-            if (path == "Deny ") {
-                val dialogResult = JOptionPane.showConfirmDialog(null,
-                        "Change will not be saved.", "Deny Change", JOptionPane.YES_NO_OPTION)
-                if (dialogResult == JOptionPane.YES_OPTION) {
-                    // TO DO : method not saving change needs to be called
-                    println("change denied")
-                }
-            }
+    private fun count(list: Map<String, List<Pair<Link, LinkChange>>>): Int {
+        var count = 0
+        for (el in list) {
+            count += el.value.size
         }
+        return count
+    }
+
+    private fun callListener(info: List<MutableList<*>>, changes: MutableList<Pair<Link, LinkChange>>) {
+        tree.addMouseListener(object : MouseAdapter() {
+            override fun mouseReleased(e: MouseEvent) {
+                val selRow = tree.getRowForLocation(e.x, e.y)
+                val selPath = tree.getPathForLocation(e.x, e.y)
+                if (selPath != null && selPath.pathCount == 5) {
+                    val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
+                    val name = selPath.parentPath.lastPathComponent.toString()
+                    val line = substringBetween(selPath.toString(), "(", ")")
+                    val paths = selPath.parentPath.parentPath.lastPathComponent.toString().split(" ")
+                    var path = paths[0]
+                    if (paths[1].toCharArray().isNotEmpty()) {
+                        path = paths[1] + "/" + paths[0]
+                    }
+                    if (SwingUtilities.isRightMouseButton(e) && changed && name != "MOVED" && name != "DELETED") {
+                        tree.selectionPath = selPath
+                        val treePopup = TreePopup(changes, info, name, line, path)
+                        treePopup.show(e.component, e.x, e.y)
+                        if (selRow > -1) {
+                            tree.setSelectionRow(selRow)
+                        }
+                    }
+                    if (SwingUtilities.isLeftMouseButton(e) && name != "MOVED" && name != "DELETED") {
+                        for (information in info) {
+                            if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                                val project = ProjectManager.getInstance().openProjects[0]
+                                val file = File(project.basePath + "/" + information[1])
+                                val virtualFile = VfsUtil.findFileByIoFile(file, true)
+                                OpenFileDescriptor(
+                                    project, virtualFile!!,
+                                    information[2] as Int - 1, 0
+                                ).navigate(true)
+                            }
+                        }
+                    }
+                }
+            }
+        })
     }
 
     /**
      * Constructor of class
      */
     init {
-        val mdFiles = DefaultMutableTreeNode("Markdown Files")
-        tree = JTree(mdFiles)
-        tree.addTreeSelectionListener(createSelectionListener());
-        val renderer: TreeCellRenderer = CustomCellRenderer()
-        tree.cellRenderer = renderer
+        tree = JTree(DefaultMutableTreeNode("markdown"))
+        val root = tree.model.root as DefaultMutableTreeNode
+        root.removeAllChildren()
+        root.add(DefaultMutableTreeNode("Changed Links"))
+        root.add(DefaultMutableTreeNode("Unchanged Links"))
+        root.add(DefaultMutableTreeNode("Invalid Links"))
+        (tree.model as DefaultTreeModel).reload()
+        tree.isRootVisible = false
+        tree.cellRenderer = CustomCellRenderer()
         val scrollPane = JScrollPane(tree)
-        layout = BorderLayout()
-        add(scrollPane, BorderLayout.CENTER)
+        val border: Border = SideBorder(Color.LIGHT_GRAY, SideBorder.LEFT, 1)
+        scrollPane.border = border
+        val actionManager: ActionManager = ActionManager.getInstance()
+        val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
+        actionGroup.add(ActionManager.getInstance().getAction("LinkTracker"))
+        actionGroup.add(ActionManager.getInstance().getAction("Settings"))
+        val actionToolbar: ActionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
+        actionToolbar.setOrientation(SwingConstants.VERTICAL)
+        add(actionToolbar.component, BorderLayout.PAGE_START)
+        val contentPane = JPanel()
+        contentPane.layout = BorderLayout()
+        contentPane.add(actionToolbar.component, BorderLayout.WEST)
+        contentPane.add(scrollPane, BorderLayout.CENTER)
+        add(contentPane, BorderLayout.CENTER)
+    }
+}
+
+class TreePopup(
+    changes: MutableList<Pair<Link, LinkChange>>,
+    info: List<MutableList<*>>,
+    name: String, line: String, path: String
+) : JPopupMenu() {
+    init {
+        val item = JMenuItem("Accept Change")
+        item.addActionListener {
+            val project = ProjectManager.getInstance().openProjects[0]
+            val linkUpdaterService = LinkUpdaterService(project)
+            for ((counter, information) in info.withIndex()) {
+                if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                    var headCommitSHA: String? = null
+                    val link: Link = changes[counter].first
+                    if (link is WebLink && link.referenceType == WebLinkReferenceType.COMMIT) {
+                        try {
+                            headCommitSHA =
+                                ProgressManager.getInstance()
+                                    .runProcessWithProgressSynchronously<String?, VcsException>(
+                                        object : ThrowableComputable<String?, VcsException> {
+                                            override fun compute(): String? {
+                                                return GitOperationManager(project).getHeadCommitSHA()
+                                            }
+                                        },
+                                        "Getting head commit SHA..",
+                                        true,
+                                        project
+                                    )
+                        } catch (e: VcsException) {
+                            headCommitSHA = null
+                        }
+                    }
+                    ApplicationManager.getApplication().runWriteAction {
+                        WriteCommandAction.runWriteCommandAction(project) {
+                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), headCommitSHA)
+                        }
+                    }
+                }
+            }
+        }
+        add(item)
     }
 }
