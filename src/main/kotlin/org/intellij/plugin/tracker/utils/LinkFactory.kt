@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.utils
 
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.*
 import java.nio.file.Path
 import java.util.regex.Matcher

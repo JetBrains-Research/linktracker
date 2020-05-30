@@ -43,8 +43,8 @@ class PasswordManagingAction : AnAction() {
             override fun run(indicator: ProgressIndicator) {
                 for (linkInfo: LinkInfo in linkInfoList) {
                     val link: Link = LinkFactory.createLink(linkInfo)
-                    if (link is WebLink && !link.correspondsToLocalProject()) {
-                        userInfoList.add(Triple(link.getProjectOwnerName(), link.getProjectName(), link.linkInfo.linkPath))
+                    if (link is WebLink<*> && !link.correspondsToLocalProject()) {
+                        userInfoList.add(Triple(link.projectOwnerName, link.projectName, link.linkInfo.linkPath))
                     }
                 }
             }})

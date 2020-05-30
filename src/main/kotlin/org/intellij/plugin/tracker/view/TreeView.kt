@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.view
 
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import java.awt.BorderLayout
@@ -24,7 +24,7 @@ class TreeView : JPanel(BorderLayout()) {
     /**
      * Updating tree view
      */
-    fun updateModel(changes: MutableList<Pair<Link, LinkChange>>) {
+    fun updateModel(changes: MutableList<Pair<Link, Change>>) {
         val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
@@ -41,11 +41,11 @@ class TreeView : JPanel(BorderLayout()) {
                 addNodeTree("Link Path:", link.linkInfo.linkPath, linkTree)
                 addNodeTree("Provenience Path:", link.linkInfo.proveniencePath, linkTree)
                 addNodeTree("Found at Line:", link.linkInfo.foundAtLineNumber.toString(), linkTree)
-                if (link is WebLink) {
-                    addNodeTree("Platform Name:", link.getPlatformName(), linkTree)
-                    addNodeTree("Project Owner Name:", link.getProjectOwnerName(), linkTree)
-                    addNodeTree("Project Name:", link.getProjectName(), linkTree)
-                    addNodeTree("Relative Path:", link.getPath(), linkTree)
+                if (link is WebLink<*>) {
+                    addNodeTree("Platform Name:", link.platformName, linkTree)
+                    addNodeTree("Project Owner Name:", link.projectOwnerName, linkTree)
+                    addNodeTree("Project Name:", link.projectName, linkTree)
+                    addNodeTree("Relative Path:", link.path, linkTree)
                 }
 
                 val changeTree = DefaultMutableTreeNode("Change")

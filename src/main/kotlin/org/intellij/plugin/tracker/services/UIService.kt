@@ -6,7 +6,7 @@ import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.TreeView
 
@@ -29,7 +29,7 @@ class UIService(val project: Project) {
      * @param project the currently open project
      * @param fileChanges changes in the currently open MD file
      */
-    fun updateView(project: Project?, fileChanges: MutableList<Pair<Link, LinkChange>>) {
+    fun updateView(project: Project?, fileChanges: MutableList<Pair<Link, Change>>) {
         val toolWindow =
             ToolWindowManager.getInstance(project!!).getToolWindow("Markdown Files")
         treeView.updateModel(fileChanges)
