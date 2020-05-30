@@ -5,24 +5,22 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.VcsException
-import com.intellij.psi.PsiDocumentManager
+import org.intellij.plugin.tracker.data.DirectoryChangeGatheringException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.LineChangeGatheringException
 import org.intellij.plugin.tracker.data.UpdateResult
-import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
-import org.intellij.plugin.tracker.utils.LinkProcessingRouter
-import java.io.File
 
 
 class LinkTrackerAction : AnAction() {
@@ -45,7 +43,7 @@ class LinkTrackerAction : AnAction() {
         val uiService: UIService = UIService.getInstance(currentProject)
 
         // initialize lists
-        val linksAndChangesList: MutableList<Pair<Link, LinkChange>> = mutableListOf()
+        val linksAndChangesList: MutableList<Pair<Link, Change>> = mutableListOf()
         val linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
         ApplicationManager.getApplication().runReadAction {
@@ -69,20 +67,22 @@ class LinkTrackerAction : AnAction() {
                     }
 
                     try {
-                        linksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
-                    // temporary solution to ignoring not implemented stuff
+                        linksAndChangesList.add(Pair(link, link.visit(ChangeTrackerServiceImpl(project))))
+                        // temporary solution to ignoring not implemented stuff
                     } catch (e: NotImplementedError) {
                         continue
-                    // catch any errors that might result from using vcs commands (git).
-                    } catch(e: VcsException) {
-                        linksAndChangesList.add(
-                            Pair(link, LinkChange(ChangeType.INVALID, errorMessage = e.message, afterPath = link.linkInfo.linkPath)))
-                    // horrible generic exception catch: just in case.
-                    } catch(e: Exception) {
-                        linksAndChangesList.add(
-                            Pair(link, LinkChange(ChangeType.INVALID, errorMessage = e.message, afterPath = link.linkInfo.linkPath)))
+                    } catch (e: FileChangeGatheringException) {
+                        println("EXCEPTION IS: ${e.message}")
+                        linksAndChangesList.add(Pair(link, FileChange(ChangeType.INVALID, afterPath = "", errorMessage = e.message)))
+                    } catch (e: DirectoryChangeGatheringException) {
+                        println("EXCEPTION IS: ${e.message}")
+                        linksAndChangesList.add(Pair(link, DirectoryChange(ChangeType.INVALID, errorMessage = e.message)))
+                    } catch (e: LineChangeGatheringException) {
+                        println("EXCEPTION IS: ${e.message}")
+                        linksAndChangesList.add(Pair(link, LineChange(fileChange = e.fileChange, errorMessage = e.message)))
+                    } catch (e: VcsException) {
+
                     }
-                    // TODO: for each link and change pair, pass it to the core to get final results before showing in the UI.
                 }
                 // Debug
                 println("Link tracking finished!")
