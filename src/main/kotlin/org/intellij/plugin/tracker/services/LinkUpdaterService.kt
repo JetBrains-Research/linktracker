@@ -73,7 +73,7 @@ class LinkUpdaterService(val project: Project) {
         // if the change comes from the working tree, do not update the link
         // let the user do it via the UI!
         if (change.hasWorkingTreeChanges()) return false
-        if (change.changeType == ChangeType.MOVED) {
+        if (change.requiresUpdate) {
             var afterPath: String? = null
             if (link is RelativeLink<*>) {
                 val castLink: RelativeLink<Change> = link as RelativeLink<Change>
