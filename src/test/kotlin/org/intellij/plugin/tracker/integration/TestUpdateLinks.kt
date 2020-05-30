@@ -71,7 +71,7 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
             linkInfo = linkInfo
         )
         val change = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -112,7 +112,7 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
             linkInfo = linkInfo
         )
         val change = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt#L1"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -178,15 +178,15 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkInfo = linkInfo3
         )
         val change1 = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
         val change2 = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/directory/file1.txt"
         )
         val change3 = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/directory/file2.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -257,16 +257,16 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkInfo = linkInfoToDir
         )
         val linkChangeToFile = FileChange(
-            changeType = ChangeType.MOVED,
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
         val linkChangeToLine = LineChange(
-            fileChange = FileChange(ChangeType.MOVED, afterPath = "main/file.txt"),
-            lineChangeType = LineChangeType.CHANGED,
+            fileChange = FileChange(FileChangeType.MOVED, afterPath = "main/file.txt"),
+            lineChangeType = LineChangeType.MOVED,
             newLine = Line(lineNumber = 1, content = "dummy line")
         )
         val linkChangeToDir = DirectoryChange(
-            changeType = ChangeType.MOVED,
+            changeType = FileChangeType.MOVED,
             afterPath = "main"
         )
         val list = mutableListOf<Pair<Link, Change>>(
