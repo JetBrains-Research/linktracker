@@ -14,6 +14,7 @@ import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
 import org.intellij.plugin.tracker.data.ReferencedPathNotFoundException
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.FileChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -27,7 +28,16 @@ import kotlin.math.min
 class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
-    private val gitRepository: GitRepository = GitRepositoryManager.getInstance(project).repositories[0]
+    private val gitRepository: GitRepository
+
+    init {
+        val repositories: MutableList<GitRepository> = GitRepositoryManager.getInstance(project).repositories
+        if (repositories.isNotEmpty()) {
+            gitRepository = repositories[0]
+        } else {
+            throw VcsException("Could not find Git Repository")
+        }
+    }
 
     /**
      * Checks whether the commit represented by commitSHA1 is an ancestor of commitSHA2
@@ -170,18 +180,18 @@ class GitOperationManager(private val project: Project) {
         val change: String? = changeList.find { line -> line.contains(linkPath) }
         if (change != null) {
             when {
-                change.startsWith("?") -> return FileChange(ChangeType.ADDED, linkPath)
-                change.startsWith("!") -> return FileChange(ChangeType.ADDED, linkPath)
-                change.startsWith("C") -> return FileChange(ChangeType.ADDED, linkPath)
-                change.startsWith("A") -> return FileChange(ChangeType.ADDED, linkPath)
-                change.startsWith("U") -> return FileChange(ChangeType.ADDED, linkPath)
+                change.startsWith("?") -> return FileChange(FileChangeType.ADDED, linkPath)
+                change.startsWith("!") -> return FileChange(FileChangeType.ADDED, linkPath)
+                change.startsWith("C") -> return FileChange(FileChangeType.ADDED, linkPath)
+                change.startsWith("A") -> return FileChange(FileChangeType.ADDED, linkPath)
+                change.startsWith("U") -> return FileChange(FileChangeType.ADDED, linkPath)
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
-                    return FileChange(ChangeType.MOVED, lineSplit[1])
+                    return FileChange(FileChangeType.MOVED, lineSplit[1])
                 }
-                change.startsWith("D") -> return FileChange(ChangeType.DELETED, linkPath)
-                change.startsWith("M") -> return FileChange(ChangeType.MODIFIED, linkPath)
+                change.startsWith("D") -> return FileChange(FileChangeType.DELETED, linkPath)
+                change.startsWith("M") -> return FileChange(FileChangeType.MODIFIED, linkPath)
             }
         }
         return null
@@ -279,23 +289,23 @@ class GitOperationManager(private val project: Project) {
             line.startsWith("A") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return FileChange(ChangeType.MOVED, lineSplit[1])
+                if (lineSplit[1] != linkPath) return FileChange(FileChangeType.MOVED, lineSplit[1])
 
-                return FileChange(ChangeType.ADDED, lineSplit[1])
+                return FileChange(FileChangeType.ADDED, lineSplit[1])
             }
             line.startsWith("M") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return FileChange(ChangeType.MOVED, lineSplit[1])
+                if (lineSplit[1] != linkPath) return FileChange(FileChangeType.MOVED, lineSplit[1])
 
-                return FileChange(ChangeType.MODIFIED, lineSplit[1])
+                return FileChange(FileChangeType.MODIFIED, lineSplit[1])
             }
-            line.startsWith("D") -> return FileChange(ChangeType.DELETED, linkPath)
+            line.startsWith("D") -> return FileChange(FileChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 3)
-                if (lineSplit[2] == linkPath) return FileChange(ChangeType.MODIFIED, lineSplit[2])
-                return FileChange(ChangeType.MOVED, lineSplit[2])
+                if (lineSplit[2] == linkPath) return FileChange(FileChangeType.MODIFIED, lineSplit[2])
+                return FileChange(FileChangeType.MOVED, lineSplit[2])
             }
             else -> throw ChangeTypeExtractionException()
         }
@@ -353,12 +363,15 @@ class GitOperationManager(private val project: Project) {
     ): FileChange {
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
-            val additionList: List<Pair<Int, String>> =
+            var additionList: List<Pair<Int, String>> =
                 changeList.withIndex()
                     .filter { (_: Int, line: String) -> line.startsWith("A") }
                     .distinctBy { pair -> pair.value }
                     .map { (i: Int, line: String) -> Pair(i, line) }
-                    .reversed()
+
+            if (specificCommit == null) {
+                additionList = additionList.reversed()
+            }
 
             if (specificCommit != null && additionList.isEmpty()) {
                 var linkPathFound = false
@@ -366,6 +379,8 @@ class GitOperationManager(private val project: Project) {
                 var lookUpIndex: Int = 1
                 var lookUpContent = changeList[lookUpIndex]
                 var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
+
+                var deletionsAndAdditions = 0
 
                 fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
@@ -378,7 +393,7 @@ class GitOperationManager(private val project: Project) {
                     // if the link path has been found during the traversal
                     // and we encounter a delete change type, that means that that file was deleted
                     // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) break
+                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
 
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
@@ -401,6 +416,7 @@ class GitOperationManager(private val project: Project) {
                 if (linkPathFound || lookUpContent.contains(linkPath)) {
                     val linkChange: FileChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
+                    linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
                 }
             }
@@ -410,6 +426,8 @@ class GitOperationManager(private val project: Project) {
                 var lookUpIndex: Int = pair.first
                 var lookUpContent: String = pair.second
                 var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
+
+                var deletionsAndAdditions = 0
 
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
                 fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
@@ -422,7 +440,7 @@ class GitOperationManager(private val project: Project) {
                     // if the link path has been found during the traversal
                     // and we encounter a delete change type, that means that that file was deleted
                     // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) break
+                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
 
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
@@ -445,6 +463,7 @@ class GitOperationManager(private val project: Project) {
                 if (linkPathFound || lookUpContent.contains(linkPath)) {
                     val linkChange: FileChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
+                    linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
                 }
             }
@@ -452,7 +471,7 @@ class GitOperationManager(private val project: Project) {
         }
 
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
-            val fileChange = FileChange(ChangeType.ADDED, afterPath = linkPath)
+            val fileChange = FileChange(FileChangeType.ADDED, afterPath = linkPath)
             fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
             return fileChange
         }
