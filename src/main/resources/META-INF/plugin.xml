@@ -51,12 +51,11 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- Add your extensions here -->
-    <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerService"/>
+    <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
     <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
-    <projectService serviceImplementation="org.intellij.plugin.tracker.services.GitHubChangeTrackerService"/>
   </extensions>
 
 </idea-plugin>
