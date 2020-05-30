@@ -127,7 +127,20 @@ abstract class WebLink<in T : Change>(
         return gitRemoteOriginUrl == remoteOriginUrl
     }
 
-    abstract fun updateLink(change: T, commitSHA: String?): String?
+    fun updateLink(change: T, commitSHA: String?): String? {
+        var newPath: String = linkInfo.linkPath
+        if (referenceType == WebLinkReferenceType.COMMIT) {
+            if (commitSHA == null) return null
+
+            newPath = newPath.replace(referencingName, commitSHA)
+        }
+        // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
+        if (linkInfo.linkPathPrefix != null) newPath = "${linkInfo.linkPathPrefix}$newPath"
+        if (linkInfo.linkPathSuffix != null) newPath = "$newPath${linkInfo.linkPathSuffix}"
+        return generateNewPath(change, newPath)
+    }
+
+    abstract fun generateNewPath(change: T, newPath: String): String?
 }
 
 /**
