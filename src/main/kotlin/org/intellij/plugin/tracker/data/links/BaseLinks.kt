@@ -5,6 +5,7 @@ import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -210,10 +211,14 @@ data class LinkInfo(
         return "[$linkText]($linkPath)"
     }
 
-    fun getAfterPathToOriginalFormat(afterPath: String): String {
+    fun getAfterPathToOriginalFormat(afterPath: String): String? {
         val targetPath = Paths.get(afterPath)
         val sourcePath = Paths.get(proveniencePath).parent ?: Paths.get(".")
-        return sourcePath?.relativize(targetPath).toString().replace("\\", "/")
+        return try {
+            sourcePath?.relativize(targetPath).toString().replace("\\", "/")
+        } catch (e: IllegalArgumentException) {
+            null
+        }
     }
 
     private fun getMarkdownDirectoryPath(): String {
