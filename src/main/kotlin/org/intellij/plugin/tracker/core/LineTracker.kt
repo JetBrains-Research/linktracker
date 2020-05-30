@@ -2,7 +2,9 @@ package org.intellij.plugin.tracker.core
 
 import com.google.common.collect.HashMultiset
 import org.intellij.plugin.tracker.data.Line
-import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.diff.DiffOutput
+import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLinkToLines
 import org.simmetrics.metrics.CosineSimilarity
@@ -14,23 +16,29 @@ class LineTracker {
 
     companion object {
 
-        fun trackLines(link: WebLinkToLines, lineChangeList: MutableList<LineChange>): Line? =
+        fun trackLines(link: WebLinkToLines, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LineChange =
             throw NotImplementedError("")
 
-        fun trackLine(link: Link, originalLineContent: String, lineChangeList: MutableList<LineChange>): Line? {
-            var lineToTrack: Int = link.getLineReferenced()
+        fun trackLine(link: Link, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LineChange {
+            val fileChange: FileChange = diffOutputMultipleRevisions.fileChange
+            val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent
+            var lineToTrack: Int = link.lineReferenced
             var addedLines: MutableList<Line> = mutableListOf()
             var modifications = 0
 
-            for (change: LineChange in lineChangeList) {
+            var lineIsDeleted = false
+
+            for (diffOutput: DiffOutput in diffOutputMultipleRevisions.diffOutputList) {
                 // get the deleted line between the commits
-                val deletedLines: MutableList<Line> = change.deletedLines
+                val deletedLines: MutableList<Line> = diffOutput.deletedLines
                 // get the added lines between the commits
-                addedLines = change.addedLines
+                addedLines = diffOutput.addedLines
 
                 // try to find from the deleted lines list a line which has the same line number
                 // which we are looking for
                 val deletedLine: Line? = deletedLines.find { line -> line.lineNumber == lineToTrack }
+
+                var lineIsFound = false
 
                 // we found the line
                 if (deletedLine != null) {
@@ -69,34 +77,12 @@ class LineTracker {
                         val result: Line? = mapLine(deletedLine, possibleList)
                         if (result != null) {
                             modifications++
+                            lineIsFound = true
                             // found a match in possibleList! Update `lineToTrack` to the matching
                             // line's line number.
                             lineToTrack = result.lineNumber
                         }
-                    } else {
-                        // see how many lines were deleted before the line to track
-                        val deletedLinesBefore: Int = deletedLines.count { line -> line.lineNumber < lineToTrack }
-                        // see how many lines were added before the line to track
-                        // these lines that are deleted/added before would influence the current location of `lineToTrack`
-                        var addedLinesBefore: Int = addedLines.count { line -> line.lineNumber < lineToTrack }
-                        // check whether there is an added line which has the same line number as `lineToTrack`
-                        val find: Int = addedLines.indexOfFirst { line -> line.lineNumber == lineToTrack }
-
-                        // if so, get the number of consecutive lines starting at `lineToTrack`
-                        // and add this number to the total of `addedLinesBefore`
-                        if (find != -1) {
-                            addedLinesBefore++
-                            for (index: Int in find + 1 until addedLines.size) {
-                                if (addedLines[index - 1].lineNumber + 1 == addedLines[index].lineNumber)
-                                    addedLinesBefore++
-                            }
-                        }
-
-                        // update the new location of the line according to the deleted/added lines
-                        // before it
-                        lineToTrack += (addedLinesBefore - deletedLinesBefore)
                     }
-
 
                     // try to see whether the line was split.
                     val lineSplit: Pair<Line?, Int> = detectLineSplit(deletedLine.content, addedLines)
@@ -105,17 +91,55 @@ class LineTracker {
                     // TODO: track the group of lines further
                     if (lineSplit.first != null) {
                         modifications++
+                        lineIsFound = true
                         lineToTrack = lineSplit.first!!.lineNumber
                     }
+
+                    if (!lineIsFound) {
+                        lineIsDeleted = true
+                        break
+                    }
+                } else {
+                    // see how many lines were deleted before the line to track
+                    val deletedLinesBefore: Int = deletedLines.count { line -> line.lineNumber < lineToTrack }
+                    // see how many lines were added before the line to track
+                    // these lines that are deleted/added before would influence the current location of `lineToTrack`
+                    var addedLinesBefore: Int = addedLines.count { line -> line.lineNumber < lineToTrack }
+                    // check whether there is an added line which has the same line number as `lineToTrack`
+                    val find: Int = addedLines.indexOfFirst { line -> line.lineNumber == lineToTrack }
+
+                    // if so, get the number of consecutive lines starting at `lineToTrack`
+                    // and add this number to the total of `addedLinesBefore`
+                    if (find != -1) {
+                        addedLinesBefore++
+                        for (index: Int in find + 1 until addedLines.size) {
+                            if (addedLines[index - 1].lineNumber + 1 == addedLines[index].lineNumber)
+                                addedLinesBefore++
+                        }
+                    }
+
+                    // update the new location of the line according to the deleted/added lines
+                    // before it
+                    val difference: Int = addedLinesBefore - deletedLinesBefore
+                    if (difference != 0) modifications++
+                    lineToTrack += difference
                 }
             }
 
             // if no modifications have been made to the contents of the line, return
             // the original content
-            if (modifications == 0) return Line(lineToTrack, originalLineContent)
+            if (modifications == 0) {
+                val line = Line(lineToTrack, originalLineContent)
+                return LineChange(fileChange, LineChangeType.UNCHANGED, newLine = line)
+            }
             // else, returns the line from added lines list which corresponds to
             // `lineToTrack`
-            return addedLines.find { line -> line.lineNumber == lineToTrack }
+            var line: Line? = addedLines.find { line -> line.lineNumber == lineToTrack }
+            val lineChangeType: LineChangeType
+            lineChangeType = if (lineIsDeleted) LineChangeType.DELETED
+            else LineChangeType.CHANGED
+            if (line == null) line = Line(lineToTrack, originalLineContent)
+            return LineChange(fileChange, lineChangeType, newLine = line)
         }
 
         private fun getJoinedStringContextLines(line: Line): String {
@@ -125,8 +149,8 @@ class LineTracker {
 
         private fun detectLineSplit(deletedLine: String, addedLines: List<Line>, thresholdValue: Float = 0.85f): Pair<Line?, Int> {
             // initialize helper variables
-            var bestScore = -1f
-            var bestIndex = -1
+            var bestMatch = -1f
+            var bestLine: Line? = null
             var concatenatedLines = 0
             var bestConcatenatedLines: Int = concatenatedLines
 
@@ -151,9 +175,9 @@ class LineTracker {
                     // if the score gets getting better with each concatenation
                     // save it. It might mean that the line is being built-up to its original format
                     // with each concatenation that we are doing.
-                    if (currentScore >= bestScore) {
-                        bestScore = currentScore
-                        bestIndex = i
+                    if (currentScore >= bestMatch) {
+                        bestMatch = currentScore
+                        bestLine = addedLines[i]
                         bestConcatenatedLines = concatenatedLines
                     }
 
@@ -167,16 +191,16 @@ class LineTracker {
             // if the best score goes over a pre-defined threshold, return the index in addedLines
             // at which the line split begins, accompanied with the number of lines over which the line
             // is split
-            if (bestScore >= thresholdValue) return Pair(addedLines[bestIndex], bestConcatenatedLines)
+            if (bestMatch >= thresholdValue) return Pair(bestLine, bestConcatenatedLines)
             // no line split found, return null and 0 respectively
             return Pair(null, 0)
         }
 
-        private fun mapLine(deletedLine: Line, possibleList: List<Pair<Line, Float>>, thresholdValue: Float = 0.7f): Line? {
+        private fun mapLine(deletedLine: Line, possibleList: List<Pair<Line, Float>>, thresholdValue: Float = 0.6f): Line? {
             // initialize helper variables
             var mappingFound = false
-            var bestScore = 0.45F
-            var bestIndex = -1
+            var bestMatch = 0.45F
+            var bestLine: Line? = null
 
             // go over each pair in possibleList
             // this pair contains the added line accompanied by the hamming distance overall score
@@ -201,10 +225,10 @@ class LineTracker {
                 val score: Double = 0.6 * scoreContent + 0.4 * scoreContext
 
                 // if the overall score is best so far, save the details
-                if (score >= bestScore) {
+                if (score >= bestMatch) {
                     mappingFound = true
-                    bestIndex = i
-                    bestScore = score.toFloat()
+                    bestLine = possibleList[i].first
+                    bestMatch = score.toFloat()
                 }
             }
 
@@ -212,7 +236,7 @@ class LineTracker {
             // return the matching line
             // otherwise, return null
             return if (mappingFound) {
-                if (bestScore >= thresholdValue) return possibleList[bestIndex].first
+                if (bestMatch >= thresholdValue) return bestLine
                 return null
             } else {
                 null
@@ -287,15 +311,7 @@ class LineTracker {
             val tokenList = ArrayList<String>()
 
             // remove all white spaces from the line
-            var replacedLine = line.replace(Regex("\\s+"), "")
-
-            if (line.length % shingleSize != 0) {
-                var difference: Int = line.length % shingleSize
-                while (difference != 0) {
-                    replacedLine += "~"
-                    difference--
-                }
-            }
+            val replacedLine: String = line.replace(Regex("\\s+"), "")
 
             var i = 0
             while (i + shingleSize < replacedLine.length) {
