@@ -74,7 +74,6 @@ class LinkUpdaterService(val project: Project) {
         // let the user do it via the UI!
         if (change.hasWorkingTreeChanges()) return false
         if (change.requiresUpdate || link.markdownFileMoved(change.afterPath)) {
-            println("MARKDOWNFILE MOVED: ${link.markdownFileMoved(change.afterPath)}")
             var afterPath: String? = null
             if (link is RelativeLink<*>) {
                 val castLink: RelativeLink<Change> = link as RelativeLink<Change>
