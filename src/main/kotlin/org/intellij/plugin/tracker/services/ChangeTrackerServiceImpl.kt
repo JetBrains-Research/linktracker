@@ -11,6 +11,7 @@ import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
+import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
@@ -40,8 +41,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return workingTreeChange
         }
 
-        val prop = PropertiesComponent.getInstance()
-        val threshold = prop.getValue("threshold", "60").toInt()
+        val similarityThresholdSettings: SimilarityThresholdSettings = SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+        val threshold: Int = similarityThresholdSettings.fileSimilarity
+
         val change: FileChange =
             gitOperationManager.getAllChangesForFile(
                 link, threshold,
@@ -131,10 +133,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val fileHistoryList: MutableList<FileHistory> = fileChange.fileHistoryList
             val diffOutputList: MutableList<DiffOutput> = mutableListOf()
 
-            println("START COMMIT IS: $startCommit")
-            println("ORIGINAL LINE CONTENTS: $originalLineContent")
-            println("FILE HISTORY LIST IS: $fileHistoryList")
-
             if (!fileChange.hasWorkingTreeChanges()) {
                 for (x: Int in 0 until fileHistoryList.size - 1) {
                     val beforeCommitSHA: String = fileHistoryList[x].revision
@@ -188,17 +186,16 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         // initialize the GitHub client
         val githubBuilder = GitHubBuilder()
 
+        val platformName: String = link.platformName
         val username: String = link.projectOwnerName
-        val password: String? = CredentialsManager.getCredentials(username)
-        // see whether a password exists for this user: if so, use it
-        // otherwise, proceed without a password being given
+        val token: String? = CredentialsManager.getCredentials(platformName, username)
+        // see whether a token exists for this user: if so, use it
+        // otherwise, proceed without a token being given
         // if the repo is private, it will fail
         // if the repo is public but too many requests are being made, it will also fail
-        if (password != null) {
-            githubBuilder.withPassword(username, password)
+        if (token != null) {
+            githubBuilder.withOAuthToken(token)
         }
-
-        val github: GitHub = githubBuilder.build()
 
         // list of all the files that have been added to this folder
         var addedFiles: MutableList<String> = mutableListOf()
@@ -208,6 +205,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         val movedFiles: MutableList<String> = mutableListOf()
 
         return try {
+            val github: GitHub = githubBuilder.build()
             val ghRepository: GHRepository = github.getRepository("$link.projectOwnerName/$link.projectName")
             val commitQueryBuilder: GHCommitQueryBuilder = ghRepository.queryCommits()
             // get only commits that affect the directory path

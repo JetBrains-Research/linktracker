@@ -122,9 +122,9 @@ abstract class WebLink<in T : Change>(
         return false
     }
 
-    fun correspondsToLocalProject(): Boolean {
+    fun correspondsToLocalProject(gitRemoteOriginUrl: String): Boolean {
         val remoteOriginUrl = "https://$platformName/$projectOwnerName/$projectName.git"
-        return GitOperationManager(linkInfo.project).getRemoteOriginUrl() == remoteOriginUrl
+        return gitRemoteOriginUrl == remoteOriginUrl
     }
 
     abstract fun updateLink(change: T, commitSHA: String?): String?

@@ -23,11 +23,6 @@ import org.intellij.plugins.markdown.lang.psi.impl.MarkdownLinkDestinationImpl
 
 class LinkRetrieverService(private val project: Project?) {
 
-    var noOfLinks = 0
-    var noOfFiles = 0
-    var noOfFilesWithLinks = 0
-    var linkFound = false
-
     /**
      * Function to get the list of links from MD files.
      */
@@ -37,15 +32,8 @@ class LinkRetrieverService(private val project: Project?) {
                 FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
 
         val psiDocumentManager = PsiDocumentManager.getInstance(project!!)
-        noOfLinks = 0
-        noOfFiles = 0
-        noOfFilesWithLinks = 0
 
         for (virtualFile in virtualFiles) {
-
-            linkFound = false
-            noOfFiles++
-
             val proveniencePath = virtualFile.path.replace("${currentProject.basePath!!}/", "")
             val psiFile: MarkdownFile = PsiManager.getInstance(currentProject).findFile(virtualFile!!) as MarkdownFile
             val document = psiDocumentManager.getDocument(psiFile)!!
@@ -86,9 +74,6 @@ class LinkRetrieverService(private val project: Project?) {
                     super.visitElement(element)
                 }
             })
-            if (linkFound) {
-                noOfFilesWithLinks++
-            }
         }
     }
 

@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.data.links
 import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Pattern
@@ -29,7 +30,7 @@ data class WebLinkToDirectory(
         get() = matcher.group(12)
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject()) {
+        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
             return visitor.getLocalDirectoryChanges(this)
         }
         if (platformName.contains("github")) {
@@ -82,7 +83,7 @@ data class WebLinkToFile(
         get() = -1
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject()) {
+        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
             return when (referenceType) {
                 WebLinkReferenceType.COMMIT -> visitor.getLocalFileChanges(link = this, specificCommit = referencingName)
                 WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
@@ -95,12 +96,9 @@ data class WebLinkToFile(
     }
 
     override fun updateLink(change: FileChange, commitSHA: String?): String? {
-        println("HERE IN WEBL INK TO FILE UPDATE, COMMIT SHA IS: $commitSHA")
         var newPath: String = linkInfo.linkPath
         if (referenceType == WebLinkReferenceType.COMMIT) {
             if (commitSHA == null) return null
-            println("HERE!")
-            println("REPLACE $referencingName with $commitSHA")
             newPath = newPath.replace(referencingName, commitSHA)
         }
         // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
@@ -135,7 +133,7 @@ data class WebLinkToLine(
         get() = -1
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject()) {
+        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
             return when (referenceType) {
                 WebLinkReferenceType.COMMIT -> visitor.getLocalLineChanges(link = this, specificCommit = referencingName)
                 WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->

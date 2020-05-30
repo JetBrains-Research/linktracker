@@ -13,8 +13,8 @@ import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
 import org.apache.commons.lang.StringUtils.substringBetween
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
@@ -40,7 +40,7 @@ class TreeView : JPanel(BorderLayout()) {
     /**
      * Updating tree view
      */
-    fun updateModel(changes: MutableList<Pair<Link, LinkChange>>) {
+    fun updateModel(changes: MutableList<Pair<Link, Change>>) {
         val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
@@ -74,7 +74,7 @@ class TreeView : JPanel(BorderLayout()) {
         (tree.model as DefaultTreeModel).reload()
     }
 
-    private fun addNodeTree(changeList: Map<String, List<Pair<Link, LinkChange>>>, node: DefaultMutableTreeNode):
+    private fun addNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode):
             DefaultMutableTreeNode {
         for (linkList in changeList) {
             val fileName = linkList.value[0].first.linkInfo.fileName
@@ -105,7 +105,7 @@ class TreeView : JPanel(BorderLayout()) {
         return node
     }
 
-    private fun count(list: Map<String, List<Pair<Link, LinkChange>>>): Int {
+    private fun count(list: Map<String, List<Pair<Link, Change>>>): Int {
         var count = 0
         for (el in list) {
             count += el.value.size
@@ -113,7 +113,7 @@ class TreeView : JPanel(BorderLayout()) {
         return count
     }
 
-    private fun callListener(info: List<MutableList<*>>, changes: MutableList<Pair<Link, LinkChange>>) {
+    private fun callListener(info: List<MutableList<*>>, changes: MutableList<Pair<Link, Change>>) {
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val selRow = tree.getRowForLocation(e.x, e.y)
@@ -185,7 +185,7 @@ class TreeView : JPanel(BorderLayout()) {
 }
 
 class TreePopup(
-    changes: MutableList<Pair<Link, LinkChange>>,
+    changes: MutableList<Pair<Link, Change>>,
     info: List<MutableList<*>>,
     name: String, line: String, path: String
 ) : JPopupMenu() {
@@ -198,7 +198,7 @@ class TreePopup(
                 if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
                     var headCommitSHA: String? = null
                     val link: Link = changes[counter].first
-                    if (link is WebLink && link.referenceType == WebLinkReferenceType.COMMIT) {
+                    if (link is WebLink<*> && link.referenceType == WebLinkReferenceType.COMMIT) {
                         try {
                             headCommitSHA =
                                 ProgressManager.getInstance()
