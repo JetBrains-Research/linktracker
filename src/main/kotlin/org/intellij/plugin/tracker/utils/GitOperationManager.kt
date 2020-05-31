@@ -373,7 +373,12 @@ class GitOperationManager(private val project: Project) {
                 additionList = additionList.reversed()
             }
 
-            if (specificCommit != null && additionList.isEmpty()) {
+            // if a specific commit is specified as a starting point
+            // we  only want to start tracking the path that corresponds to the
+            // first entry in change list
+            // if we can not find the lihk path we are looking for within
+            // the traversal, throw an exception
+            if (specificCommit != null) {
                 var linkPathFound = false
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
                 var lookUpIndex: Int = 1
@@ -419,6 +424,7 @@ class GitOperationManager(private val project: Project) {
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
                 }
+                throw ReferencedPathNotFoundException(linkPath)
             }
 
             for (pair: Pair<Int, String> in additionList) {
