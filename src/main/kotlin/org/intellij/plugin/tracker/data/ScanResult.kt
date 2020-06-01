@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.data
 
 import com.intellij.openapi.project.Project
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 
 /**
@@ -14,7 +14,7 @@ class ScanResult(
     /**
      * The list of link changes.
      */
-    val myLinkChanges: MutableList<Pair<Link, LinkChange>>,
+    val myLinkChanges: MutableList<Pair<Link, Change>>,
 
     /**
      * The project referred to by the class' instance.

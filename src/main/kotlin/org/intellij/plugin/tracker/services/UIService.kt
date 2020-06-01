@@ -7,6 +7,7 @@ import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
+import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.OtherView
@@ -31,12 +32,13 @@ class UIService(val project: Project) {
         treeWindow.contentManager.addContent(otherContent)
         treeWindow.contentManager.setSelectedContent(treeContent)
     }
+
     /**
      * Update the view.
-     * @param fileChanges changes in the currently open MD file
+     * @param scanResult changes in the currently open MD file
      */
-    fun updateView(fileChanges: MutableList<Pair<Link, Change>>) {
-        treeView.updateModel(fileChanges)
+    fun updateView(scanResult: ScanResult) {
+        treeView.updateModel(scanResult)
     }
 
     /**

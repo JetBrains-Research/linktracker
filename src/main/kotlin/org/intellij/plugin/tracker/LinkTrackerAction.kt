@@ -6,10 +6,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import org.intellij.plugin.tracker.services.HistoryService
-import org.intellij.plugin.tracker.services.LinkRetrieverService
-import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.services.UIService
+import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.DataParsingTask
 import org.intellij.plugin.tracker.utils.GitOperationManager
 
@@ -19,7 +16,7 @@ import org.intellij.plugin.tracker.utils.GitOperationManager
 class LinkTrackerAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
-        val currentProject = event.getData(PlatformDataKeys.PROJECT)
+        val currentProject: Project? = event.getData(PlatformDataKeys.PROJECT)
 
         if (currentProject == null) {
             Messages.showErrorDialog(
@@ -54,6 +51,7 @@ class LinkTrackerAction : AnAction() {
                 myHistoryService = historyService,
                 myGitOperationManager = gitOperationManager,
                 myLinkUpdateService = linkUpdateService,
+                myChangeTrackerService = ChangeTrackerServiceImpl(project),
                 myUiService = uiService,
                 dryRun = true
             )

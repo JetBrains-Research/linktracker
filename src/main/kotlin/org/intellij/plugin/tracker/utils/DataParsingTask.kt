@@ -7,16 +7,12 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.psi.PsiManager
-import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
-import org.intellij.plugin.tracker.services.HistoryService
-import org.intellij.plugin.tracker.services.LinkRetrieverService
-import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.services.UIService
+import org.intellij.plugin.tracker.services.*
 
 /**
  * A runnable task that executes the plugin's main logic:
@@ -39,12 +35,13 @@ class DataParsingTask(
     private val myHistoryService: HistoryService,
     private val myGitOperationManager: GitOperationManager,
     private val myLinkUpdateService: LinkUpdaterService,
+    private val myChangeTrackerService: ChangeTrackerService,
     private val myUiService: UIService,
     private val dryRun: Boolean
 ) : Task.Backgroundable(currentProject, "Tracking links", true) {
 
     // initialize lists
-    private val myLinksAndChangesList: MutableList<Pair<Link, LinkChange>> = mutableListOf()
+    private val myLinksAndChangesList: MutableList<Pair<Link, Change>> = mutableListOf()
     private val myLinkInfoList: MutableList<LinkInfo> = mutableListOf()
     private val myScanResult: ScanResult = ScanResult(myLinkChanges = myLinksAndChangesList, myProject = project)
 
@@ -56,13 +53,10 @@ class DataParsingTask(
      * Parses links and related changes from the current project.
      */
     override fun run(indicator: ProgressIndicator) {
-
         ApplicationManager.getApplication().runReadAction {
-
             myLinkService.getLinks(myLinkInfoList)
         }
-
-        for (linkInfo in myLinkInfoList) {
+        for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
             val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
 
@@ -71,40 +65,44 @@ class DataParsingTask(
             }
 
             try {
-                myLinksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
+                println("LINK IS: $link")
+                val change = link.visit(myChangeTrackerService)
+                println("CHANGE IS: $change")
+                println("AFTER PATH IS: ${change.afterPath}")
+                myLinksAndChangesList.add(Pair(link, change))
                 // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
                 continue
-                // catch any errors that might result from using vcs commands (git).
+            } catch (e: FileChangeGatheringException) {
+                myLinksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
+            } catch (e: DirectoryChangeGatheringException) {
+                myLinksAndChangesList.add(Pair(link, DirectoryChange(FileChangeType.INVALID, errorMessage = e.message)))
+            } catch (e: LineChangeGatheringException) {
+                val lineChange = LineChange(
+                    fileChange = e.fileChange,
+                    lineChangeType = LineChangeType.INVALID,
+                    errorMessage = e.message
+                )
+                myLinksAndChangesList.add(Pair(link, lineChange))
+            } catch (e: LinesChangeGatheringException) {
+                val linesChange = LinesChange(
+                    fileChange = e.fileChange,
+                    linesChangeType = LinesChangeType.INVALID,
+                    errorMessage = e.message
+                )
+                myLinksAndChangesList.add(Pair(link, linesChange))
+             // catch any errors that might result from using vcs commands (git).
             } catch (e: VcsException) {
-                myLinksAndChangesList.add(
-                    Pair(
-                        link,
-                        LinkChange(
-                            ChangeType.INVALID,
-                            errorMessage = e.message,
-                            afterPath = link.linkInfo.linkPath
-                        )
-                    )
-                )
-                // horrible generic exception catch: just in case.
-            } catch (e: Exception) {
-                myLinksAndChangesList.add(
-                    Pair(
-                        link,
-                        LinkChange(
-                            ChangeType.INVALID,
-                            errorMessage = e.message,
-                            afterPath = link.linkInfo.linkPath
-                        )
-                    )
-                )
+                println("here: ${e.message}")
             }
         }
+        try {
+            myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
+        } catch (e: VcsException) {
 
-
-        myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA()!!)
+        }
     }
+
 
     /**
      * Callback executed when link data parsing is complete.
@@ -143,7 +141,7 @@ class DataParsingTask(
                 }
             }
         }
-        myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA()!!)
+        myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
         myUiService.updateView(myScanResult)
     }
 }
