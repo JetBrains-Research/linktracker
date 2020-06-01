@@ -7,9 +7,11 @@ import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.OtherView
 import org.intellij.plugin.tracker.view.TreeView
+
 
 class UIService(val project: Project) {
 
@@ -20,8 +22,7 @@ class UIService(val project: Project) {
         val contentFactory = ContentFactory.SERVICE.getInstance()
 
         val treeWindow = toolWindowManager.registerToolWindow(
-            RegisterToolWindowTask("Markdown Files", ToolWindowAnchor.BOTTOM, icon = AllIcons.Vcs.ShowUnversionedFiles)
-        )
+            RegisterToolWindowTask("Markdown Files", ToolWindowAnchor.BOTTOM, icon = AllIcons.Vcs.ShowUnversionedFiles))
         val treeContent = contentFactory.createContent(treeView, "Links", true)
         treeContent.isCloseable = false
         treeWindow.contentManager.addContent(treeContent)
@@ -30,13 +31,12 @@ class UIService(val project: Project) {
         treeWindow.contentManager.addContent(otherContent)
         treeWindow.contentManager.setSelectedContent(treeContent)
     }
-
     /**
      * Update the view.
-     * @param scanResult changes in the currently open MD file
+     * @param fileChanges changes in the currently open MD file
      */
-    fun updateView(scanResult: ScanResult) {
-        treeView.updateModel(scanResult)
+    fun updateView(fileChanges: MutableList<Pair<Link, Change>>) {
+        treeView.updateModel(fileChanges)
     }
 
     /**

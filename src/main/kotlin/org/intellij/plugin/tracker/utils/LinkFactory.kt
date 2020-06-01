@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.utils
 
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.*
 import java.nio.file.Path
 import java.util.regex.Matcher
@@ -30,8 +31,8 @@ class LinkFactory {
                     link = WebLinkToLine(linkInfo = linkInfo)
                 }
                 webLinkToLinesMatcher.matches() -> {
-                    val startLine = WebLinkToLines(linkInfo = linkInfo).getReferencedStartingLine()
-                    val endLine = WebLinkToLines(linkInfo = linkInfo).getReferencedEndingLine()
+                    val startLine = WebLinkToLines(linkInfo = linkInfo).referencedStartingLine
+                    val endLine = WebLinkToLines(linkInfo = linkInfo).referencedEndingLine
                     link = if (startLine > endLine) {
                         NotSupportedLink(linkInfo = linkInfo, errorMessage = "Invalid start and end lines")
                     } else {
@@ -49,8 +50,8 @@ class LinkFactory {
                         NotSupportedLink(linkInfo = linkInfo, errorMessage = "This type of web link is not supported")
                 }
                 relativeLinkToLinesMatcher.matches() -> {
-                    val startLine = RelativeLinkToLines(linkInfo = linkInfo).getStartLineReferenced()
-                    val endLine = RelativeLinkToLines(linkInfo = linkInfo).getEndLineReferenced()
+                    val startLine = RelativeLinkToLines(linkInfo = linkInfo).referencedStartingLine
+                    val endLine = RelativeLinkToLines(linkInfo = linkInfo).referencedEndingLine
                     link = if (startLine > endLine) {
                         NotSupportedLink(linkInfo = linkInfo, errorMessage = "Invalid start and end lines")
                     } else {

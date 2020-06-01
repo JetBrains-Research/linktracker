@@ -29,7 +29,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
             titleLabel.text = userObject.toString()
             titleLabel.icon = MarkdownIcons.EditorActions.Link
 
-            if (titleLabel.text == "DELETED" || titleLabel.text == "MOVED") {
+            if (titleLabel.text.contains("DELETED") || titleLabel.text.contains("MOVED")) {
                 titleLabel.icon = AllIcons.General.BalloonInformation
             } else if (titleLabel.text.contains("MESSAGE: ")) {
                 titleLabel.icon = AllIcons.General.BalloonWarning

@@ -7,23 +7,21 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
 import org.apache.commons.lang.StringUtils.substringBetween
-import org.intellij.plugin.tracker.LinkTrackerAction
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
@@ -37,43 +35,22 @@ import javax.swing.tree.DefaultTreeModel
  */
 class TreeView : JPanel(BorderLayout()) {
 
-    private var myTree: JTree = JTree(DefaultMutableTreeNode("markdown"))
-    private var myCommitSHA: String? = null
-    private lateinit var myScanResult: ScanResult
+    private var tree: JTree
 
     /**
      * Updating tree view
      */
-    fun updateModel(scanResult: ScanResult) {
-
-        // Parse data from result
-        myScanResult = scanResult
-        val changes = scanResult.myLinkChanges
-        val project = myScanResult.myProject
-        myCommitSHA = try {
-            ProgressManager.getInstance()
-                .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { GitOperationManager(project).getHeadCommitSHA() },
-                    "Getting head commit SHA..",
-                    true,
-                    project
-                )
-        } catch (e: VcsException) {
-            null
-        }
-
-        val root = myTree.model.root as DefaultMutableTreeNode
+    fun updateModel(changes: MutableList<Pair<Link, Change>>) {
+        val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
         val changedOnes = changes.filter {
-            it.second.changeType == ChangeType.DELETED
-                    || it.second.changeType == ChangeType.MOVED
+            (it.second.requiresUpdate || it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }) && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
         val unchangedOnes = changes.filter {
-            it.second.changeType == ChangeType.ADDED
-                    || it.second.changeType == ChangeType.MODIFIED
+            !it.second.requiresUpdate && it.second.errorMessage == null && !it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }
         }.groupBy { it.first.linkInfo.proveniencePath }
-        val invalidOnes = changes.filter { it.second.changeType == ChangeType.INVALID }
+        val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
         val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
@@ -87,15 +64,15 @@ class TreeView : JPanel(BorderLayout()) {
             )
         }
 
-        callListener(info)
+        callListener(info, changes)
 
         root.add(addNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
-        (myTree.model as DefaultTreeModel).reload()
+        (tree.model as DefaultTreeModel).reload()
     }
 
-    private fun addNodeTree(changeList: Map<String, List<Pair<Link, LinkChange>>>, node: DefaultMutableTreeNode):
+    private fun addNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode):
             DefaultMutableTreeNode {
         for (linkList in changeList) {
             val fileName = linkList.value[0].first.linkInfo.fileName
@@ -112,10 +89,17 @@ class TreeView : JPanel(BorderLayout()) {
                                 links.first.linkInfo.linkText
                     )
                 )
-                if (links.second.changeType == ChangeType.MOVED || links.second.changeType == ChangeType.DELETED) {
-                    link.add(DefaultMutableTreeNode(links.second.changeType.toString()))
-                } else if (links.second.changeType == ChangeType.INVALID) {
-                    link.add(DefaultMutableTreeNode("MESSAGE: " + links.second.errorMessage.toString()))
+                if (links.second.requiresUpdate) {
+                    var displayString = ""
+                    for ((index: Int, changeType: ChangeType) in links.second.changes.withIndex()) {
+                        displayString += changeType.changeTypeString
+                        if (index != links.second.changes.size - 1) {
+                            displayString += " and "
+                        }
+                    }
+                    link.add(DefaultMutableTreeNode(displayString))
+                } else if (links.second.errorMessage != null) {
+                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
                 }
 
                 file.add(link)
@@ -126,7 +110,7 @@ class TreeView : JPanel(BorderLayout()) {
         return node
     }
 
-    private fun count(list: Map<String, List<Pair<Link, LinkChange>>>): Int {
+    private fun count(list: Map<String, List<Pair<Link, Change>>>): Int {
         var count = 0
         for (el in list) {
             count += el.value.size
@@ -134,11 +118,11 @@ class TreeView : JPanel(BorderLayout()) {
         return count
     }
 
-    private fun callListener(info: List<MutableList<*>>) {
-        myTree.addMouseListener(object : MouseAdapter() {
+    private fun callListener(info: List<MutableList<*>>, changes: MutableList<Pair<Link, Change>>) {
+        tree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
-                val selRow = myTree.getRowForLocation(e.x, e.y)
-                val selPath = myTree.getPathForLocation(e.x, e.y)
+                val selRow = tree.getRowForLocation(e.x, e.y)
+                val selPath = tree.getPathForLocation(e.x, e.y)
                 if (selPath != null && selPath.pathCount == 5) {
                     val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
                     val name = selPath.parentPath.lastPathComponent.toString()
@@ -148,15 +132,15 @@ class TreeView : JPanel(BorderLayout()) {
                     if (paths[1].toCharArray().isNotEmpty()) {
                         path = paths[1] + "/" + paths[0]
                     }
-                    if (SwingUtilities.isRightMouseButton(e) && changed && name != "MOVED" && name != "DELETED") {
-                        myTree.selectionPath = selPath
-                        val treePopup = TreePopup(myScanResult, info, name, line, path, myCommitSHA)
+                    if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains("DELETED")) {
+                        tree.selectionPath = selPath
+                        val treePopup = TreePopup(changes, info, name, line, path)
                         treePopup.show(e.component, e.x, e.y)
                         if (selRow > -1) {
-                            myTree.setSelectionRow(selRow)
+                            tree.setSelectionRow(selRow)
                         }
                     }
-                    if (SwingUtilities.isLeftMouseButton(e) && name != "MOVED" && name != "DELETED") {
+                    if (SwingUtilities.isLeftMouseButton(e) && !name.contains("MOVED") && !name.contains("DELETED")) {
                         for (information in info) {
                             if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
                                 val project = ProjectManager.getInstance().openProjects[0]
@@ -178,15 +162,16 @@ class TreeView : JPanel(BorderLayout()) {
      * Constructor of class
      */
     init {
-        val root = myTree.model.root as DefaultMutableTreeNode
+        tree = JTree(DefaultMutableTreeNode("markdown"))
+        val root = tree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
         root.add(DefaultMutableTreeNode("Changed Links"))
         root.add(DefaultMutableTreeNode("Unchanged Links"))
         root.add(DefaultMutableTreeNode("Invalid Links"))
-        (myTree.model as DefaultTreeModel).reload()
-        myTree.isRootVisible = false
-        myTree.cellRenderer = CustomCellRenderer()
-        val scrollPane = JScrollPane(myTree)
+        (tree.model as DefaultTreeModel).reload()
+        tree.isRootVisible = false
+        tree.cellRenderer = CustomCellRenderer()
+        val scrollPane = JScrollPane(tree)
         val border: Border = SideBorder(Color.LIGHT_GRAY, SideBorder.LEFT, 1)
         scrollPane.border = border
         val actionManager: ActionManager = ActionManager.getInstance()
@@ -204,78 +189,46 @@ class TreeView : JPanel(BorderLayout()) {
     }
 }
 
-/**
- * A popup button prompting the user to update the link.
- */
 class TreePopup(
-    private val myScanResult: ScanResult,
-    private val myInfo: List<MutableList<*>>,
-    private val myName: String, line: String, path: String,
-    private val myCommitSHA: String?
+    changes: MutableList<Pair<Link, Change>>,
+    info: List<MutableList<*>>,
+    name: String, line: String, path: String
 ) : JPopupMenu() {
-
-    private val myProject: Project = myScanResult.myProject
-    private val myLinkUpdaterService: LinkUpdaterService = LinkUpdaterService(myProject)
-
     init {
-        val changes = myScanResult.myLinkChanges
         val item = JMenuItem("Accept Change")
         item.addActionListener {
-            for ((counter, information) in myInfo.withIndex()) {
-                if (information[0].toString() == myName && information[1].toString() == path && information[2].toString() == line) {
-                    val pair = changes[counter]
-                    updateLink(pair.first, pair.second)
+            val project = ProjectManager.getInstance().openProjects[0]
+            val linkUpdaterService = LinkUpdaterService(project)
+            for ((counter, information) in info.withIndex()) {
+                if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                    var headCommitSHA: String? = null
+                    val link: Link = changes[counter].first
+                    if (link is WebLink<*> && link.referenceType == WebLinkReferenceType.COMMIT) {
+                        try {
+                            headCommitSHA =
+                                ProgressManager.getInstance()
+                                    .runProcessWithProgressSynchronously<String?, VcsException>(
+                                        object : ThrowableComputable<String?, VcsException> {
+                                            override fun compute(): String? {
+                                                return GitOperationManager(project).getHeadCommitSHA()
+                                            }
+                                        },
+                                        "Getting head commit SHA..",
+                                        true,
+                                        project
+                                    )
+                        } catch (e: VcsException) {
+                            headCommitSHA = null
+                        }
+                    }
+                    ApplicationManager.getApplication().runWriteAction {
+                        WriteCommandAction.runWriteCommandAction(project) {
+                            linkUpdaterService.updateLinks(mutableListOf(changes[counter]), headCommitSHA)
+                        }
+                    }
                 }
             }
         }
         add(item)
-    }
-
-    /**
-     * Checks if the link is still valid, if so updates the link, otherwise shows the refresh dialog.
-     */
-    private fun updateLink(link: Link, change: LinkChange) {
-
-        if (myScanResult.isValid(link)) {
-            ApplicationManager.getApplication().runWriteAction {
-                WriteCommandAction.runWriteCommandAction(myProject) {
-                    myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), myCommitSHA)
-                }
-            }
-        } else {
-            showRefreshDialog()
-        }
-    }
-
-    /**
-     * Show a popup warning the user that the chosen link is not valid.
-     */
-    private fun showRefreshDialog() {
-
-        if (RefreshDialog().showAndGet()) {
-            LinkTrackerAction.run(project = myScanResult.myProject)
-        }
-    }
-
-    /**
-     * A dialog popup warning the user about an out of date link
-     * and asking whether them to rerun a scan to update the links.
-     */
-    inner class RefreshDialog : DialogWrapper(true) {
-
-        private val text = "This file has changed, do you want to run a new scan to update the links' data?"
-
-        init {
-            super.init()
-            title = "Link Out Of Date"
-        }
-
-        override fun createCenterPanel(): JComponent? {
-            val dialogPanel = JPanel(BorderLayout())
-            val label = JLabel(text)
-            label.preferredSize = Dimension(100, 50)
-            dialogPanel.add(label, BorderLayout.CENTER)
-            return dialogPanel
-        }
     }
 }
