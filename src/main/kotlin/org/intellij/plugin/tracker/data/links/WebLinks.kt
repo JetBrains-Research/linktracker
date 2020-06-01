@@ -40,7 +40,7 @@ data class WebLinkToDirectory(
         throw NotImplementedError()
     }
 
-    override fun generateNewPath(change: DirectoryChange, newPath: String): String? = newPath.replace(path, change.afterPath)
+    override fun generateNewPath(change: DirectoryChange, newPath: String): String? = newPath.replace(path, change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
@@ -71,7 +71,7 @@ data class WebLinkToFile(
     override val referencedEndingLine: Int
         get() = -1
 
-    override fun generateNewPath(change: FileChange, newPath: String): String? = newPath.replace(path, change.afterPath)
+    override fun generateNewPath(change: FileChange, newPath: String): String? = newPath.replace(path, change.afterPathString)
 
     override fun visit(visitor: ChangeTrackerService): Change {
         if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {

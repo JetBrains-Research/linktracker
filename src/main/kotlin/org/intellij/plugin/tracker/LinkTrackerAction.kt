@@ -13,6 +13,7 @@ import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.DirectoryChangeGatheringException
 import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.LineChangeGatheringException
+import org.intellij.plugin.tracker.data.LinesChangeGatheringException
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -108,12 +109,16 @@ class LinkTrackerAction : AnAction() {
                 }
 
                 try {
-                    linksAndChangesList.add(Pair(link, link.visit(changeTrackerService)))
+                    println("LINK IS: $link")
+                    val change = link.visit(changeTrackerService)
+                    println("CHANGE IS: $change")
+                    println("AFTER PATH IS: ${change.afterPath}")
+                    linksAndChangesList.add(Pair(link, change))
                 // temporary solution to ignoring not implemented stuff
                 } catch (e: NotImplementedError) {
                     continue
                 } catch (e: FileChangeGatheringException) {
-                    linksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPath = "", errorMessage = e.message)))
+                    linksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
                 } catch (e: DirectoryChangeGatheringException) {
                     linksAndChangesList.add(Pair(link, DirectoryChange(FileChangeType.INVALID, errorMessage = e.message)))
                 } catch (e: LineChangeGatheringException) {
@@ -123,9 +128,16 @@ class LinkTrackerAction : AnAction() {
                         errorMessage = e.message
                     )
                     linksAndChangesList.add(Pair(link, lineChange))
+                } catch (e: LinesChangeGatheringException) {
+                    val linesChange = LinesChange(
+                        fileChange = e.fileChange,
+                        linesChangeType = LinesChangeType.INVALID,
+                        errorMessage = e.message
+                    )
+                    linksAndChangesList.add(Pair(link, linesChange))
                 // catch any errors that might result from using vcs commands (git).
                 } catch (e: VcsException) {
-
+                    println("here: ${e.message}")
                 }
             }
             try {

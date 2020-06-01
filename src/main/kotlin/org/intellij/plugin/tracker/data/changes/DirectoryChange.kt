@@ -5,20 +5,21 @@ import com.intellij.openapi.vcs.changes.Change as Change1
 
 data class DirectoryChange(
     var changeType: FileChangeType,
-    override val afterPath: String = "",
+    val afterPathString: String = "",
     override val errorMessage: String? = null,
     val directoryName: String? = null
 ) : Change {
     override val changes: MutableList<ChangeType>
-        get() {
-            return mutableListOf(changeType)
-        }
+        get() = mutableListOf(changeType)
+
     override val requiresUpdate: Boolean
         get() {
             if (changeType == FileChangeType.MOVED || changeType == FileChangeType.DELETED)
                 return true
             return false
         }
+    override val afterPath: MutableList<String>
+        get() = mutableListOf(afterPathString)
 
     override fun hasWorkingTreeChanges(): Boolean {
         // for now return false

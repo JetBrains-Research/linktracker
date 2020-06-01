@@ -1,48 +1,174 @@
 package org.intellij.plugin.tracker.core
 
 import com.google.common.collect.HashMultiset
+import com.intellij.util.containers.MultiMap
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.WebLinkToLines
 import org.simmetrics.metrics.CosineSimilarity
 import org.simmetrics.metrics.Levenshtein
-import kotlin.collections.ArrayList
 
 
 class LineTracker {
 
     companion object {
 
-        fun trackLines(link: WebLinkToLines, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LineChange =
-            throw NotImplementedError("")
+        fun trackLines(link: Link, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LinesChange {
+            var linesToTrack: MutableList<Int> =
+                (link.referencedStartingLine..link.referencedEndingLine).toMutableList()
 
-        fun trackLine(link: Link, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LineChange {
+            val originalLineNumbers: MutableList<Int> =
+                (link.referencedStartingLine..link.referencedEndingLine).toMutableList()
+
+            val contentHashMap: HashMap<Int, String> = hashMapOf()
+
+            for (i: Int in 0 until originalLineNumbers.size) {
+                contentHashMap[originalLineNumbers[i]] = diffOutputMultipleRevisions.originalLinesContents[i]
+            }
+
+            for ((index: Int, line: Int) in linesToTrack.withIndex()) {
+                val diffOutputMultipleRevisionTransformed = DiffOutputMultipleRevisions(
+                    diffOutputMultipleRevisions.fileChange,
+                    diffOutputMultipleRevisions.diffOutputList,
+                    diffOutputMultipleRevisions.originalLinesContents[index]
+                )
+                val result: LineChange = trackLine(
+                    link,
+                    diffOutputMultipleRevisionTransformed,
+                    givenLineToTrack = line
+                )
+                when (result.lineChangeType) {
+                    LineChangeType.DELETED -> linesToTrack[index] = -1
+                    LineChangeType.MOVED -> linesToTrack[index] = result.newLine!!.lineNumber
+                    // unchanged, do nothing
+                    else -> Unit
+                }
+            }
+            val changeMap: HashMap<Int, Int> = hashMapOf()
+
+            for (i: Int in 0 until linesToTrack.size) {
+                if (linesToTrack[i] == -1) {
+                    continue
+                }
+                else {
+                    changeMap[linesToTrack[i]] = originalLineNumbers[i]
+                }
+            }
+
+            linesToTrack = linesToTrack.filter { lineNo -> lineNo != -1 }.toMutableList()
+            linesToTrack = linesToTrack.distinct().toMutableList()
+            linesToTrack.sort()
+
+            if (linesToTrack.size == 0) {
+                return LinesChange(
+                    diffOutputMultipleRevisions.fileChange,
+                    LinesChangeType.DELETED
+                )
+            }
+
+            val result: MutableList<MutableList<Int>> = groupConsecutiveNumbers(linesToTrack)
+            val newLines: MutableList<MutableList<Line>> = mutableListOf()
+
+            for (group in result) {
+                val lineGroup: MutableList<Line> = mutableListOf()
+                for (lineNumber in group) {
+                    lineGroup.add(Line(lineNumber, contentHashMap[changeMap[lineNumber]]!!))
+                }
+                newLines.add(lineGroup)
+            }
+
+            if (result.size == 1) {
+                var changed = false
+                for (entry in changeMap) {
+                    if (entry.key != entry.value) {
+                        changed = true
+                        break
+                    }
+                }
+                if (!changed) {
+                    return LinesChange(
+                        diffOutputMultipleRevisions.fileChange,
+                        LinesChangeType.UNCHANGED,
+                        newLines = newLines
+                    )
+                }
+                return LinesChange(
+                    diffOutputMultipleRevisions.fileChange,
+                    LinesChangeType.FULL,
+                    newLines = newLines
+                )
+            }
+
+            return LinesChange(
+                diffOutputMultipleRevisions.fileChange,
+                LinesChangeType.PARTIAL,
+                newLines = newLines
+            )
+        }
+
+        private fun groupConsecutiveNumbers(list: MutableList<Int>): MutableList<MutableList<Int>> {
+            val result: MutableList<MutableList<Int>> = mutableListOf()
+            var index = 0
+            while (index < list.size) {
+                val range: MutableList<Int> = mutableListOf()
+                range.add(list[index])
+                var index2: Int = index + 1
+                while (index2 < list.size) {
+                    if (list[index] + 1 == list[index2]) {
+                        range.add(list[index2])
+                    } else {
+                        break
+                    }
+                    index = index2
+                    index2++
+                }
+                result.add(range)
+                index = index2
+            }
+            return result
+        }
+
+        fun trackLine(
+            link: Link,
+            diffOutputMultipleRevisions: DiffOutputMultipleRevisions,
+            givenLineToTrack: Int = -1
+        ): LineChange {
             val fileChange: FileChange = diffOutputMultipleRevisions.fileChange
-            val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent
-            var lineToTrack: Int = link.lineReferenced
+            val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent.trim()
+            var lineToTrack: Int
+            if (givenLineToTrack != -1) {
+                lineToTrack = givenLineToTrack
+            } else {
+                lineToTrack = link.lineReferenced
+            }
             var addedLines: MutableList<Line> = mutableListOf()
             var modifications = 0
             var lineIsDeleted = false
 
             for (diffOutput: DiffOutput in diffOutputMultipleRevisions.diffOutputList) {
                 // get the deleted line between the commits
-                val deletedLines: MutableList<Line> = diffOutput.deletedLines
+                var deletedLines: MutableList<Line> = diffOutput.deletedLines
                 // get the added lines between the commits
                 addedLines = diffOutput.addedLines
+                // remove leading / trailing spaces from line contents
+                deletedLines = deletedLines.map {
+                        line -> Line(line.lineNumber, line.content.trim(), line.contextLines)
+                }.toMutableList()
+                addedLines = addedLines.map {
+                        line -> Line(line.lineNumber, line.content.trim(), line.contextLines)
+                }.toMutableList()
 
                 // try to find from the deleted lines list a line which has the same line number
                 // which we are looking for
                 val deletedLine: Line? = deletedLines.find { line -> line.lineNumber == lineToTrack }
-
                 var lineIsFound = false
 
                 // we found the line
                 if (deletedLine != null) {
                     // join its context lines together in a string
-                    val joinedStringContextLines: String = getJoinedStringContextLines(line=deletedLine)
+                    val joinedStringContextLines: String = getJoinedStringContextLines(line = deletedLine)
 
                     // calculate the SimHash value for both the line contents and concatenated context lines
                     val deletedLineContextSimHash: Long = getSimHash(line = joinedStringContextLines)
@@ -52,7 +178,7 @@ class LineTracker {
                     val possibleList: ArrayList<Pair<Line, Float>> = arrayListOf()
 
                     for (line: Line in addedLines) {
-                        val joinedStringContextLines1: String = getJoinedStringContextLines(line=line)
+                        val joinedStringContextLines1: String = getJoinedStringContextLines(line = line)
 
                         // calculate the SimHash values of added lines joined context lines
                         // and added line contents respectively
@@ -88,7 +214,7 @@ class LineTracker {
 
                     // for now, use the split line number for further calculations instead
                     // TODO: track the group of lines further
-                    if (lineSplit.first != null) {
+                    if (!lineIsFound && lineSplit.first != null) {
                         modifications++
                         lineIsFound = true
                         lineToTrack = lineSplit.first!!.lineNumber
@@ -100,43 +226,38 @@ class LineTracker {
                     }
                 } else {
                     // see how many lines were deleted before the line to track
-                    val deletedLinesBefore: Int = deletedLines.count { line -> line.lineNumber < lineToTrack }
+                    var deletedLinesBefore: Int = deletedLines.count { line -> line.lineNumber < lineToTrack }
                     // see how many lines were added before the line to track
                     // these lines that are deleted/added before would influence the current location of `lineToTrack`
                     var addedLinesBefore: Int = addedLines.count { line -> line.lineNumber < lineToTrack }
                     // check whether there is an added line which has the same line number as `lineToTrack`
                     val find: Int = addedLines.indexOfFirst { line -> line.lineNumber == lineToTrack }
 
-                    // if so, get the number of consecutive lines starting at `lineToTrack`
-                    // and add this number to the total of `addedLinesBefore`
-                    if (find != -1) {
-                        addedLinesBefore++
-                        for (index: Int in find + 1 until addedLines.size) {
-                            if (addedLines[index - 1].lineNumber + 1 == addedLines[index].lineNumber)
-                                addedLinesBefore++
-                        }
-                    }
+                    if (find != -1) addedLinesBefore++
 
                     // update the new location of the line according to the deleted/added lines
                     // before it
-                    val difference: Int = addedLinesBefore - deletedLinesBefore
-                    if (difference != 0) modifications++
-                    lineToTrack += difference
+                    if (addedLinesBefore - deletedLinesBefore != 0) modifications++
+
+                    var previousLineToTrack = lineToTrack
+                    while (addedLinesBefore != 0 || deletedLinesBefore != 0) {
+                        lineToTrack += addedLinesBefore - deletedLinesBefore
+                        deletedLinesBefore = deletedLines.count { line -> line.lineNumber in previousLineToTrack + 1 until lineToTrack }
+                        addedLinesBefore = addedLines.count { line -> line.lineNumber in previousLineToTrack + 1 until lineToTrack }
+                        val find1: Int = addedLines.indexOfFirst { line -> line.lineNumber == lineToTrack }
+                        if (find1 != -1) addedLinesBefore++
+                        previousLineToTrack = lineToTrack
+                    }
                 }
             }
 
-            // if no modifications have been made to the contents of the line, return
-            // the original content
-            if (modifications == 0) {
-                val line = Line(lineToTrack, originalLineContent)
-                return LineChange(fileChange, LineChangeType.UNCHANGED, newLine = line)
-            }
-            // else, returns the line from added lines list which corresponds to
-            // `lineToTrack`
             var line: Line? = addedLines.find { line -> line.lineNumber == lineToTrack }
-            val lineChangeType: LineChangeType
-            lineChangeType = if (lineIsDeleted) LineChangeType.DELETED
-            else LineChangeType.MOVED
+            val lineChangeType: LineChangeType = when {
+                lineIsDeleted -> LineChangeType.DELETED
+                modifications == 0 -> LineChangeType.UNCHANGED
+                else -> LineChangeType.MOVED
+            }
+
             if (line == null) line = Line(lineToTrack, originalLineContent)
             return LineChange(fileChange, lineChangeType, newLine = line)
         }
@@ -146,7 +267,11 @@ class LineTracker {
             else line.contextLines!!.joinToString()
         }
 
-        private fun detectLineSplit(deletedLine: String, addedLines: List<Line>, thresholdValue: Float = 0.85f): Pair<Line?, Int> {
+        private fun detectLineSplit(
+            deletedLine: String,
+            addedLines: List<Line>,
+            thresholdValue: Float = 0.85f
+        ): Pair<Line?, Int> {
             // initialize helper variables
             var bestMatch = -1f
             var bestLine: Line? = null
@@ -195,7 +320,11 @@ class LineTracker {
             return Pair(null, 0)
         }
 
-        private fun mapLine(deletedLine: Line, possibleList: List<Pair<Line, Float>>, thresholdValue: Float = 0.6f): Line? {
+        private fun mapLine(
+            deletedLine: Line,
+            possibleList: List<Pair<Line, Float>>,
+            thresholdValue: Float = 0.6f
+        ): Line? {
             // initialize helper variables
             var mappingFound = false
             var bestMatch = 0.45F
@@ -205,7 +334,7 @@ class LineTracker {
             // this pair contains the added line accompanied by the hamming distance overall score
             // between the deleted line and this added line
             // possibleList is ordered according to overall score in INCREASING order!
-            for (i: Int in 0 until possibleList.size) {
+            for (i: Int in possibleList.indices) {
                 // calculate the levenshtein distance between the deleted line and currently inspected added line
                 val scoreContent: Float = Levenshtein().compare(deletedLine.content, possibleList[i].first.content)
 

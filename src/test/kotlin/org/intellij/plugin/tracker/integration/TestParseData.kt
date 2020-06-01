@@ -105,7 +105,7 @@ class TestParseData : BasePlatformTestCase() {
         val afterPath = "src/main/file.txt"
         val gitFileChanges = FileChange(
             fileChangeType = FileChangeType.MOVED,
-            afterPath = afterPath,
+            afterPathString = afterPath,
             fileHistoryList = mutableListOf(FileHistory("Commit: edbb2f5", "file.txt"))
         )
 
@@ -119,7 +119,7 @@ class TestParseData : BasePlatformTestCase() {
         } returns gitFileChanges
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
         every { anyConstructed<GitOperationManager>().getDiffWithWorkingTree(any()) } returns mutableListOf()
-        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns null
+        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val links = myDataParsingTask.getLinks()
@@ -131,7 +131,7 @@ class TestParseData : BasePlatformTestCase() {
         Assertions.assertEquals("file.txt", link.linkInfo.linkPath)
         Assertions.assertEquals("/src/testParseRelativeLinks.md", link.linkInfo.proveniencePath)
         Assertions.assertEquals(FileChangeType.MOVED, change.changes[0])
-        Assertions.assertEquals(afterPath, change.afterPath)
+        Assertions.assertEquals(mutableListOf(afterPath), change.afterPath)
     }
 
     @Disabled
@@ -139,9 +139,9 @@ class TestParseData : BasePlatformTestCase() {
     fun parseRelativeLinkToDirectory() {
 
         val afterPath = "main"
-        val fileChange = FileChange(fileChangeType = FileChangeType.ADDED, afterPath = afterPath)
+        val fileChange = FileChange(fileChangeType = FileChangeType.ADDED, afterPathString = afterPath)
 
-        every { myGitOperationManager.getContentsOfLineInFileAtCommit(any(), any(), any()) } returns null
+        every { myGitOperationManager.getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
         every { myGitOperationManager.getDiffWithWorkingTree(any()) } returns mutableListOf()
         every { myGitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns fileChange
         every { myGitOperationManager.checkWorkingTreeChanges(any()) } returns fileChange
@@ -168,7 +168,7 @@ class TestParseData : BasePlatformTestCase() {
 
         val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - web link to line" }
 
-        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns null
+        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
 
         val link = pair.first
         Assertions.assertTrue(link is WebLinkToLine)
@@ -196,7 +196,7 @@ class TestParseData : BasePlatformTestCase() {
         } returns mock()
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
         every { anyConstructed<GitOperationManager>().getDiffWithWorkingTree(any()) } returns mutableListOf()
-        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns null
+        every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
 
         val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
