@@ -23,6 +23,7 @@ import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.utils.DataParsingTask
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.junit.jupiter.api.*
 import org.mockito.Mockito.mock
@@ -39,7 +40,7 @@ class TestParseData : BasePlatformTestCase() {
     private lateinit var myLinkUpdateService: LinkUpdaterService
     private lateinit var myChangeTrackerService: ChangeTrackerService
     private lateinit var myUiService: UIService
-    private lateinit var myDataParsingTask: LinkTrackerAction.DataParsingTask
+    private lateinit var myDataParsingTask: DataParsingTask
     private val myFiles = arrayOf(
         "testParseRelativeLinks.md",
         "main/file.txt",
@@ -77,14 +78,14 @@ class TestParseData : BasePlatformTestCase() {
         myLinkUpdateService = LinkUpdaterService.getInstance(project)
         myChangeTrackerService = ChangeTrackerServiceImpl.getInstance(project)
         myUiService = UIService.getInstance(project)
-        myDataParsingTask = LinkTrackerAction.DataParsingTask(
+        myDataParsingTask = DataParsingTask(
             currentProject = project,
-            linkService = myLinkService,
-            historyService = myHistoryService,
-            gitOperationManager = myGitOperationManager,
-            linkUpdateService = myLinkUpdateService,
-            changeTrackerService = myChangeTrackerService,
-            uiService = myUiService,
+            myLinkService = myLinkService,
+            myHistoryService = myHistoryService,
+            myGitOperationManager = myGitOperationManager,
+            myLinkUpdateService = myLinkUpdateService,
+            myChangeTrackerService = myChangeTrackerService,
+            myUiService = myUiService,
             dryRun = true
         )
     }
@@ -122,7 +123,8 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
 
         ProgressManager.getInstance().run(myDataParsingTask)
-        val links = myDataParsingTask.getLinks()
+        val result = myDataParsingTask.getResult()
+        val links = result.myLinkChanges
 
         val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to file" }
         val link = pair.first
@@ -147,7 +149,8 @@ class TestParseData : BasePlatformTestCase() {
         every { myGitOperationManager.checkWorkingTreeChanges(any()) } returns fileChange
 
         ProgressManager.getInstance().run(myDataParsingTask)
-        val links = myDataParsingTask.getLinks()
+        val result = myDataParsingTask.getResult()
+        val links = result.myLinkChanges
 
         val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - relative link to directory" }
         val link = pair.first
@@ -164,7 +167,8 @@ class TestParseData : BasePlatformTestCase() {
     fun parseWebLinkToLine() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
-        val links = myDataParsingTask.getLinks()
+        val result = myDataParsingTask.getResult()
+        val links = result.myLinkChanges
 
         val pair = links.first { pair -> pair.first.linkInfo.linkText == "single - web link to line" }
 
@@ -184,7 +188,8 @@ class TestParseData : BasePlatformTestCase() {
     fun parseMultipleLinks() {
 
         ProgressManager.getInstance().run(myDataParsingTask)
-        val links = myDataParsingTask.getLinks()
+        val result = myDataParsingTask.getResult()
+        val links = result.myLinkChanges
 
         every {
             anyConstructed<GitOperationManager>().getAllChangesForFile(
