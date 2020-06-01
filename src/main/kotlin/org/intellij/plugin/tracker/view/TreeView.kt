@@ -37,15 +37,31 @@ import javax.swing.tree.DefaultTreeModel
  */
 class TreeView : JPanel(BorderLayout()) {
 
-    private var myTree: JTree
+    private var myTree: JTree = JTree(DefaultMutableTreeNode("markdown"))
+    private var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
 
     /**
      * Updating tree view
      */
     fun updateModel(scanResult: ScanResult) {
+
+        // Parse data from result
         myScanResult = scanResult
         val changes = scanResult.myLinkChanges
+        val project = myScanResult.myProject
+        myCommitSHA = try {
+            ProgressManager.getInstance()
+                .runProcessWithProgressSynchronously<String?, VcsException>(
+                    { GitOperationManager(project).getHeadCommitSHA() },
+                    "Getting head commit SHA..",
+                    true,
+                    project
+                )
+        } catch (e: VcsException) {
+            null
+        }
+
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
@@ -134,7 +150,7 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                     if (SwingUtilities.isRightMouseButton(e) && changed && name != "MOVED" && name != "DELETED") {
                         myTree.selectionPath = selPath
-                        val treePopup = TreePopup(myScanResult, info, name, line, path)
+                        val treePopup = TreePopup(myScanResult, info, name, line, path, myCommitSHA)
                         treePopup.show(e.component, e.x, e.y)
                         if (selRow > -1) {
                             myTree.setSelectionRow(selRow)
@@ -162,7 +178,6 @@ class TreeView : JPanel(BorderLayout()) {
      * Constructor of class
      */
     init {
-        myTree = JTree(DefaultMutableTreeNode("markdown"))
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
         root.add(DefaultMutableTreeNode("Changed Links"))
@@ -195,22 +210,12 @@ class TreeView : JPanel(BorderLayout()) {
 class TreePopup(
     private val myScanResult: ScanResult,
     private val myInfo: List<MutableList<*>>,
-    private val myName: String, line: String, path: String
+    private val myName: String, line: String, path: String,
+    private val myCommitSHA: String?
 ) : JPopupMenu() {
 
     private val myProject: Project = myScanResult.myProject
     private val myLinkUpdaterService: LinkUpdaterService = LinkUpdaterService(myProject)
-    private val headCommitSHA: String? = try {
-        ProgressManager.getInstance()
-            .runProcessWithProgressSynchronously<String?, VcsException>(
-                { GitOperationManager(myProject).getHeadCommitSHA() },
-                "Getting head commit SHA..",
-                true,
-                myProject
-            )
-    } catch (e: VcsException) {
-        null
-    }
 
     init {
         val changes = myScanResult.myLinkChanges
@@ -234,7 +239,7 @@ class TreePopup(
         if (myScanResult.isValid(link)) {
             ApplicationManager.getApplication().runWriteAction {
                 WriteCommandAction.runWriteCommandAction(myProject) {
-                    myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), headCommitSHA)
+                    myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), myCommitSHA)
                 }
             }
         } else {
