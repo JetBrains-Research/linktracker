@@ -60,47 +60,48 @@ class DataParsingTask(
         ApplicationManager.getApplication().runReadAction {
 
             myLinkService.getLinks(myLinkInfoList)
+        }
 
-            for (linkInfo in myLinkInfoList) {
-                indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-                val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
+        for (linkInfo in myLinkInfoList) {
+            indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
+            val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
 
-                if (link is NotSupportedLink) {
-                    continue
-                }
+            if (link is NotSupportedLink) {
+                continue
+            }
 
-                try {
-                    myLinksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
-                    // temporary solution to ignoring not implemented stuff
-                } catch (e: NotImplementedError) {
-                    continue
-                    // catch any errors that might result from using vcs commands (git).
-                } catch (e: VcsException) {
-                    myLinksAndChangesList.add(
-                        Pair(
-                            link,
-                            LinkChange(
-                                ChangeType.INVALID,
-                                errorMessage = e.message,
-                                afterPath = link.linkInfo.linkPath
-                            )
+            try {
+                myLinksAndChangesList.add(LinkProcessingRouter.getChangesForLink(link = link))
+                // temporary solution to ignoring not implemented stuff
+            } catch (e: NotImplementedError) {
+                continue
+                // catch any errors that might result from using vcs commands (git).
+            } catch (e: VcsException) {
+                myLinksAndChangesList.add(
+                    Pair(
+                        link,
+                        LinkChange(
+                            ChangeType.INVALID,
+                            errorMessage = e.message,
+                            afterPath = link.linkInfo.linkPath
                         )
                     )
-                    // horrible generic exception catch: just in case.
-                } catch (e: Exception) {
-                    myLinksAndChangesList.add(
-                        Pair(
-                            link,
-                            LinkChange(
-                                ChangeType.INVALID,
-                                errorMessage = e.message,
-                                afterPath = link.linkInfo.linkPath
-                            )
+                )
+                // horrible generic exception catch: just in case.
+            } catch (e: Exception) {
+                myLinksAndChangesList.add(
+                    Pair(
+                        link,
+                        LinkChange(
+                            ChangeType.INVALID,
+                            errorMessage = e.message,
+                            afterPath = link.linkInfo.linkPath
                         )
                     )
-                }
+                )
             }
         }
+
 
         myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA()!!)
     }
