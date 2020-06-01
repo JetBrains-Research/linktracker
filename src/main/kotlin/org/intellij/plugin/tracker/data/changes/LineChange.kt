@@ -28,9 +28,7 @@ data class LineChange(
     val newLine: Line? = null
 ) : Change {
     override val changes: MutableList<ChangeType>
-        get() {
-            return mutableListOf(fileChange.fileChangeType, lineChangeType)
-        }
+        get() = mutableListOf(fileChange.fileChangeType, lineChangeType)
 
     override val requiresUpdate: Boolean
         get() {
@@ -43,9 +41,9 @@ data class LineChange(
 
     override fun hasWorkingTreeChanges(): Boolean = fileChange.hasWorkingTreeChanges()
 
-    override val afterPath: String
+    override val afterPath: MutableList<String>
         get() {
-            if (newLine == null) return ""
-            return "${fileChange.afterPath}#L${newLine.lineNumber}"
+            if (newLine == null) return mutableListOf("")
+            return mutableListOf("${fileChange.afterPathString}#L${newLine.lineNumber}")
         }
 }

@@ -8,7 +8,7 @@ interface ChangeType {
 
 interface Change {
     val requiresUpdate: Boolean
-    val afterPath: String
+    val afterPath: MutableList<String>
     val errorMessage: String?
     val changes: MutableList<ChangeType>
 

@@ -27,15 +27,16 @@ enum class FileChangeType(val change: String): ChangeType {
 
 data class FileChange(
     val fileChangeType: FileChangeType,
-    override val afterPath: String,
+    val afterPathString: String,
     override val errorMessage: String? = null,
     var fileHistoryList: MutableList<FileHistory> = mutableListOf(),
     var deletionsAndAdditions: Int = 0
 ) : Change {
+    override val afterPath: MutableList<String>
+        get() = mutableListOf(afterPathString)
+
     override val changes: MutableList<ChangeType>
-        get() {
-            return mutableListOf(fileChangeType)
-        }
+        get() = mutableListOf(fileChangeType)
 
     override val requiresUpdate: Boolean
         get() {
