@@ -6,16 +6,30 @@ open class FileChangeGatheringException(override val message: String?) : Excepti
 open class DirectoryChangeGatheringException(override val message: String?) : Exception(message)
 open class LineChangeGatheringException(override val message: String?, open val fileChange: FileChange) :
     Exception(message)
+open class LinesChangeGatheringException(override val message: String?, open val fileChange: FileChange) :
+    Exception(message)
 
-class CommitSHAIsNullException(
+class CommitSHAIsNullLineException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
     override val fileChange: FileChange
 ) : LineChangeGatheringException(message, fileChange)
 
+class CommitSHAIsNullLinesException(
+    override val message: String? =
+        "Could not find the start commit of the line containing this link, " +
+                "please try to commit the file containing the link and run the plugin again.",
+    override val fileChange: FileChange
+) : LinesChangeGatheringException(message, fileChange)
+
 class OriginalLineContentsNotFoundException(
     override val message: String? = "Could not find the contents of the line specified in the link",
+    override val fileChange: FileChange
+) : LineChangeGatheringException(message, fileChange)
+
+class OriginalLinesContentsNotFoundException(
+    override val message: String? = "Could not find the contents of the lines specified in the link",
     override val fileChange: FileChange
 ) : LineChangeGatheringException(message, fileChange)
 
