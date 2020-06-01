@@ -58,7 +58,7 @@ data class RelativeLinkToFile(
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
 
     override fun updateLink(change: FileChange, commitSHA: String?): String? =
-        linkInfo.getAfterPathToOriginalFormat(change.afterPath)
+        linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToFile {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
