@@ -1,0 +1,25 @@
+image: gradle:6.0.1-jdk11
+
+stages:
+#  - Lint
+  - Build
+  - Test
+
+default: # Set gradle user home
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
+
+#staticAnalysis:
+#  stage: Lint
+#  script:
+#    - gradle ktlintCheck --info
+
+build:
+  stage: Build
+  script:
+    - gradle assemble
+
+test:
+  stage: Test
+  script:
+    - gradle test

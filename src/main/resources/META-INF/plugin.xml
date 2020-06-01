@@ -1,0 +1,64 @@
+<!-- Copyright 2000-2020 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file. -->
+
+<idea-plugin>
+
+    <!--  Unique id for this plugin. Must stay constant for the life of the plugin.  -->
+    <id>org.intellij.plugin.tracker</id>
+
+    <!-- Text to display as name on Preferences/Settings | Plugin page -->
+    <name>Change Tracker</name>
+
+    <!-- Indicate this plugin can be loaded in all IntelliJ Platform-based products. -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.intellij.plugins.markdown</depends>
+    <depends>Git4Idea</depends>
+
+    <!-- Text to display as description on Preferences/Settings | Plugin page  -->
+    <description>
+        <![CDATA[
+    Adds a <i>Change Tracker</i> menu group anchored last in the <b>Main Menu</b>
+    ]]>
+    </description>
+
+    <!-- Text to display as company information on Preferences/Settings | Plugin page -->
+    <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
+
+    <actions>
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker"
+                description="Track links"  icon="AllIcons.Actions.Refresh">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+            <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
+        </action>
+        <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings"
+                description="Settings"  icon="AllIcons.Ide.Notification.GearHover">
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl"/>
+        <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
+        <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
+        <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
+        <projectService serviceImplementation="org.intellij.plugin.tracker.services.UIService"/>
+
+        <applicationConfigurable
+                parentId="tools"
+                id="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+                displayName="Link Tracking"
+                instance="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+                childrenEPName="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+        />
+
+        <projectConfigurable
+                parentId="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
+                id="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+                displayName="Token Manager"
+                instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
+        />
+    </extensions>
+
+</idea-plugin>
