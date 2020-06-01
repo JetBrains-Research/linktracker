@@ -4,8 +4,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.junit.jupiter.api.*
@@ -70,11 +70,11 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = LinkChange(
-            changeType = ChangeType.MOVED,
+        val change = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
-        val list = mutableListOf<Pair<Link, LinkChange>>(
+        val list = mutableListOf<Pair<Link, Change>>(
             Pair(link, change)
         )
         WriteCommandAction.runWriteCommandAction(project) {
@@ -111,11 +111,11 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = LinkChange(
-            changeType = ChangeType.MOVED,
+        val change = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt#L1"
         )
-        val list = mutableListOf<Pair<Link, LinkChange>>(
+        val list = mutableListOf<Pair<Link, Change>>(
             Pair(link, change)
         )
         WriteCommandAction.runWriteCommandAction(project) {
@@ -177,19 +177,19 @@ class TestRelativeLinks : TestUpdateLinks() {
         val link3 = RelativeLinkToFile(
             linkInfo = linkInfo3
         )
-        val change1 = LinkChange(
-            changeType = ChangeType.MOVED,
+        val change1 = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
-        val change2 = LinkChange(
-            changeType = ChangeType.MOVED,
+        val change2 = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/directory/file1.txt"
         )
-        val change3 = LinkChange(
-            changeType = ChangeType.MOVED,
+        val change3 = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/directory/file2.txt"
         )
-        val list = mutableListOf<Pair<Link, LinkChange>>(
+        val list = mutableListOf<Pair<Link, Change>>(
             Pair(link1, change1),
             Pair(link2, change2),
             Pair(link3, change3)
@@ -256,19 +256,20 @@ class TestMultipleLinks : TestUpdateLinks() {
         val linkToDir = RelativeLinkToDirectory(
             linkInfo = linkInfoToDir
         )
-        val linkChangeToFile = LinkChange(
-            changeType = ChangeType.MOVED,
+        val linkChangeToFile = FileChange(
+            fileChangeType = FileChangeType.MOVED,
             afterPath = "main/file.txt"
         )
-        val linkChangeToLine = LinkChange(
-            changeType = ChangeType.MOVED,
-            afterPath = "main/file.txt#L1"
+        val linkChangeToLine = LineChange(
+            fileChange = FileChange(FileChangeType.MOVED, afterPath = "main/file.txt"),
+            lineChangeType = LineChangeType.MOVED,
+            newLine = Line(lineNumber = 1, content = "dummy line")
         )
-        val linkChangeToDir = LinkChange(
-            changeType = ChangeType.MOVED,
+        val linkChangeToDir = DirectoryChange(
+            changeType = FileChangeType.MOVED,
             afterPath = "main"
         )
-        val list = mutableListOf<Pair<Link, LinkChange>>(
+        val list = mutableListOf<Pair<Link, Change>>(
             Pair(linkToFile, linkChangeToFile),
             Pair(linkToLine, linkChangeToLine),
             Pair(linkToDir, linkChangeToDir)

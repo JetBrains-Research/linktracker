@@ -1,7 +1,11 @@
 package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.VcsException
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -33,31 +37,46 @@ abstract class Link(
      * Get the matcher given by the pattern and linkInfo's linkPath property
      */
     val matcher: Matcher by lazy {
-        val returnMatcher = pattern!!.matcher(linkInfo.linkPath)
+        val returnMatcher: Matcher = pattern!!.matcher(linkInfo.linkPath)
         returnMatcher.matches()
         returnMatcher
     }
 
-    abstract fun getReferencedFileName(): String
-
     /**
      * Returns the relative path at which the referenced element is located.
      */
-    abstract fun getPath(): String
+    abstract val path: String
+
+    abstract val lineReferenced: Int
+
+    abstract val referencedFileName: String
+
+    abstract val referencedStartingLine: Int
+
+    abstract val referencedEndingLine: Int
+
+    abstract fun visit(visitor: ChangeTrackerService): Change
+
+    abstract fun copyWithAfterPath(link: Link, afterPath: String): Link
+
+    abstract fun markdownFileMoved(afterPath: String): Boolean
 }
 
 /**
  * Abstract class for relative links
  */
-abstract class RelativeLink(
+abstract class RelativeLink<in T : Change>(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     override var commitSHA: String? = null
 ) : Link(linkInfo, pattern) {
 
-    override fun getPath(): String {
-        return linkInfo.linkPath
-    }
+    override val path: String
+        get() = linkInfo.linkPath
+
+    override fun markdownFileMoved(afterPath: String): Boolean = linkInfo.getAfterPathToOriginalFormat(afterPath) != afterPath
+
+    abstract fun updateLink(change: T, commitSHA: String?): String?
 }
 
 
@@ -66,70 +85,106 @@ abstract class RelativeLink(
  *
  * Includes common functions for web links
  */
-abstract class WebLink(
+abstract class WebLink<in T : Change>(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern,
     override var commitSHA: String? = null
 ) : Link(linkInfo, pattern) {
-
     var referenceType: WebLinkReferenceType? = null
-
-    fun getPlatformName(): String = matcher.group(4)
-
-    fun getProjectOwnerName(): String = matcher.group(5)
-
-    fun getProjectName(): String = matcher.group(6)
-
-    fun getWebLinkReferenceType(): WebLinkReferenceType {
-        val ref: String = getReferencingName()
-        val gitOperationManager = GitOperationManager(linkInfo.project)
-        val result: WebLinkReferenceType = when {
-            gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH
-            gitOperationManager.isRefATag(ref) -> WebLinkReferenceType.TAG
-            gitOperationManager.isRefACommit(ref) -> WebLinkReferenceType.COMMIT
-            else -> WebLinkReferenceType.INVALID
+        get() {
+            if (field == null) {
+                val ref: String = referencingName
+                val gitOperationManager = GitOperationManager(linkInfo.project)
+                try {
+                    val result: WebLinkReferenceType = when {
+                        gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH
+                        gitOperationManager.isRefATag(ref) -> WebLinkReferenceType.TAG
+                        gitOperationManager.isRefACommit(ref) -> WebLinkReferenceType.COMMIT
+                        else -> WebLinkReferenceType.INVALID
+                    }
+                    field = result
+                } catch (e: VcsException) {
+                    return field
+                }
+            }
+            return field
         }
-        referenceType = result
-        return result
-    }
+
+    val platformName: String
+        get() = matcher.group(4)
+
+    val projectOwnerName: String
+        get() = matcher.group(5)
+
+    val projectName: String
+        get() = matcher.group(6)
+
+    val referencingName: String
+        get() = matcher.group(9) ?: matcher.group(11)
 
     fun isPermalink(): Boolean {
-        if (getWebLinkReferenceType() == WebLinkReferenceType.COMMIT) return true
+        if (referenceType == WebLinkReferenceType.COMMIT) return true
         return false
     }
 
-    fun getReferencingName(): String = matcher.group(9) ?: matcher.group(11)
-
     fun correspondsToLocalProject(gitRemoteOriginUrl: String): Boolean {
-        val remoteOriginUrl = "https://${getPlatformName()}/${getProjectOwnerName()}/${getProjectName()}.git"
+        val remoteOriginUrl = "https://$platformName/$projectOwnerName/$projectName.git"
         return gitRemoteOriginUrl == remoteOriginUrl
     }
 
-    abstract fun updateLink(
-        afterPath: String,
-        referencedLine: Int? = null,
-        startLine: Int? = null,
-        endLine: Int? = null
-    ): String
+    fun updateLink(change: T, commitSHA: String?): String? {
+        var newPath: String = linkInfo.linkPath
+        if (referenceType == WebLinkReferenceType.COMMIT) {
+            if (commitSHA == null) return null
+
+            newPath = newPath.replace(referencingName, commitSHA)
+        }
+        // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
+        if (linkInfo.linkPathPrefix != null) newPath = "${linkInfo.linkPathPrefix}$newPath"
+        if (linkInfo.linkPathSuffix != null) newPath = "$newPath${linkInfo.linkPathSuffix}"
+        return generateNewPath(change, newPath)
+    }
+
+    abstract fun generateNewPath(change: T, newPath: String): String?
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 /**
  * Data class which encapsulates information about links which are not supported and the reasoning
  * why they are not supported
  */
-data class NotSupportedLink(
+data class NotSupportedLink (
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     override var commitSHA: String? = null,
     val errorMessage: String? = null
 ) : Link(linkInfo, pattern) {
-    override fun getReferencedFileName(): String {
-        return ""
+    override val lineReferenced: Int
+        get() = -1
+
+    override val referencedStartingLine: Int
+        get() = -1
+
+    override val referencedEndingLine: Int
+        get() = -1
+
+    override val referencedFileName: String
+        get() = ""
+
+    override val path: String
+        get() = linkInfo.linkPath
+
+    override fun visit(visitor: ChangeTrackerService): Change {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun getPath(): String {
-        return linkInfo.linkPath
+    override fun copyWithAfterPath(link: Link, afterPath: String): NotSupportedLink {
+        val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
+        return copy(linkInfo = linkInfoCopy)
     }
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 
@@ -156,10 +211,14 @@ data class LinkInfo(
         return "[$linkText]($linkPath)"
     }
 
-    fun getAfterPathToOriginalFormat(afterPath: String): String {
+    fun getAfterPathToOriginalFormat(afterPath: String): String? {
         val targetPath = Paths.get(afterPath)
         val sourcePath = Paths.get(proveniencePath).parent ?: Paths.get(".")
-        return sourcePath.relativize(targetPath).toString().replace("\\", "/")
+        return try {
+            sourcePath?.relativize(targetPath).toString().replace("\\", "/")
+        } catch (e: IllegalArgumentException) {
+            null
+        }
     }
 
     private fun getMarkdownDirectoryPath(): String {

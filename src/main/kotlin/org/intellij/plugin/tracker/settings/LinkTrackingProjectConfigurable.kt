@@ -43,8 +43,8 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
 
         for (linkInfo: LinkInfo in linkInfoList) {
             val link: Link = LinkFactory.createLink(linkInfo)
-            if (link is WebLink && !link.correspondsToLocalProject(remoteOriginUrl)) {
-                infoList.add(Triple(link.getProjectOwnerName(), link.getPlatformName(), link.getProjectName()))
+            if (link is WebLink<*> && !link.correspondsToLocalProject(remoteOriginUrl)) {
+                infoList.add(Triple(link.projectOwnerName, link.platformName, link.projectName))
             }
         }
 

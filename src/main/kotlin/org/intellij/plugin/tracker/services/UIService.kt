@@ -1,23 +1,16 @@
 package org.intellij.plugin.tracker.services
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.ex.ActionManagerEx
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
-import org.intellij.plugin.tracker.data.changes.LinkChange
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.OtherView
 import org.intellij.plugin.tracker.view.TreeView
-import org.jdesktop.swingx.action.ActionManager
-import javax.swing.SwingConstants
-
 
 
 class UIService(val project: Project) {
@@ -42,7 +35,7 @@ class UIService(val project: Project) {
      * Update the view.
      * @param fileChanges changes in the currently open MD file
      */
-    fun updateView(fileChanges: MutableList<Pair<Link, LinkChange>>) {
+    fun updateView(fileChanges: MutableList<Pair<Link, Change>>) {
         treeView.updateModel(fileChanges)
     }
 

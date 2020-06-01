@@ -18,7 +18,6 @@ class CredentialsManager {
             val passwordSafe: PasswordSafe = PasswordSafe.instance
             val credentials = Credentials(username, token)
             passwordSafe.set(credentialAttributes, credentials)
-            println("token for $username is $token")
         }
 
         fun getCredentials(platform: String, username: String): String? {
