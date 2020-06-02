@@ -26,7 +26,6 @@ import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
 import java.awt.BorderLayout
 import java.awt.Color
-import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
