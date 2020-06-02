@@ -140,7 +140,6 @@ class GitOperationManager(private val project: Project) {
         return false
     }
 
-
     /**
      * Get the date of a commit in a timestamp format
      *
@@ -153,6 +152,60 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("-s", "--format=%ct", commitSHA)
         val timestampOutput: GitCommandResult = git.runCommand(gitLineHandler)
         return timestampOutput.getOutputOrThrow()
+    }
+
+    /**
+     * Get all commits which affected the directory path
+     *
+     * Runs git command `git log --follow -- path`
+     *
+     */
+    @Throws(VcsException::class)
+    fun getPathCommits(path: String): List<String> {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        gitLineHandler.addParameters(path)
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        val shaList = mutableListOf<String>()
+        if (output.exitCode == 0) {
+            val outputList = output.output
+            for (output in outputList) {
+                if (output.startsWith("commit ")) {
+                    shaList.add(output.replace("commit ", ""))
+                }
+            }
+        }
+        return shaList.distinct()
+    }
+
+    /**
+     * Get changes on number of files in specific commit
+     *
+     * Runs git command `git diff --no-commit-id --name-status -r sha`
+     *
+     */
+    @Throws(VcsException::class)
+    fun getCommitChange(sha: String, path: String): MutableList<MutableList<String>> {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
+        gitLineHandler.addParameters("--no-commit-id", "--name-status", "-r", sha)
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        if (output.exitCode == 0) {
+            val outputList = output.output
+            val movedFiles: MutableList<String> = mutableListOf()
+            var addedFiles: MutableList<String> = mutableListOf()
+            val deletedFiles: MutableList<String> = mutableListOf()
+
+            for (output in outputList) {
+                if (output.startsWith("M") && output.replace("M", "").contains(path)) {
+                    movedFiles.add(output.replace("M", ""))
+                } else if (output.startsWith("A") && output.replace("A", "").contains(path)) {
+                    addedFiles.add(output.replace("A", ""))
+                } else if (output.startsWith("D") && output.replace("D", "").contains(path)) {
+                    deletedFiles.add(output.replace("D", ""))
+                }
+            }
+            return mutableListOf(movedFiles, addedFiles, deletedFiles)
+        }
+        return mutableListOf()
     }
 
     /**
@@ -365,6 +418,7 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("$commitSHA:$path")
         return git.runCommand(gitLineHandler).exitCode == 0
     }
+
 
     /**
      * Auxiliary function that processes the output of

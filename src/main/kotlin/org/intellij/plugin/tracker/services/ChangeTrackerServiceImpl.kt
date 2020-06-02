@@ -9,6 +9,7 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -21,15 +22,15 @@ import java.util.regex.Matcher
 import kotlin.math.max
 import kotlin.math.min
 
-
 typealias Change1 = com.intellij.openapi.vcs.changes.Change
-
 
 class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
     private val gitOperationManager = GitOperationManager(project = project)
 
-
+    /**
+     * Get change for a local file
+     */
     override fun getLocalFileChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
         val workingTreeChange: FileChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
@@ -99,16 +100,59 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
     }
 
+    /**
+     * Get change for a local directory
+     */
     override fun getLocalDirectoryChanges(link: Link): Change {
-        val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
-        return if (changeList != null) {
-            val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
-            directoryChange
-        } else {
-            DirectoryChange(FileChangeType.ADDED, "")
+        link as RelativeLinkToDirectory
+        val similarityThreshold = 50
+
+        // list of all the files that have been added to this folder
+        var addedFiles: MutableList<String> = mutableListOf()
+        // list of all the files deleted from this folder
+        var deletedFiles: MutableList<String> = mutableListOf()
+        // list of all the files that have been moved out of this folder
+        var movedFiles: MutableList<String> = mutableListOf()
+
+        try {
+            val relativePath = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
+            val shaList = gitOperationManager.getPathCommits(relativePath)
+            for (sha in shaList) {
+                val files = gitOperationManager.getCommitChange(sha, relativePath)
+                movedFiles = files[0]
+                addedFiles = files[1]
+                deletedFiles = files[2]
+            }
+
+            // can only happen when the directory did not exist
+            if (addedFiles.size == 0) {
+                throw LocalDirectoryNeverExistedException()
+            }
+            if (addedFiles.size == deletedFiles.size + movedFiles.size) {
+                // if the directory we are looking for was deleted: look for the most common
+                // part of path in the moved files paths
+                // divide the # occurrences of that path by the total amount of added files to get the sim. threshold
+                // if the similarity is above a certain settable number, declare the directory as moved
+                // else, deleted
+
+                val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
+
+                if (similarityPair.second >= similarityThreshold) {
+                    return DirectoryChange(FileChangeType.MOVED, afterPathString = similarityPair.first)
+                }
+                return DirectoryChange(FileChangeType.DELETED, afterPathString = link.path)
+            }
+
+            // as long as there is something in the directory, we can declare it valid
+            DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
+        } catch (e: IOException) {
+            throw UnableToFetchLocalDirectoryChangesException(e.message)
         }
     }
 
+    /**
+     * Get change for a local line
+     */
     override fun getLocalLineChanges(
         link: Link,
         branchOrTagName: String?,
@@ -163,6 +207,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
     }
 
+    /**
+     * Get change for multiple local lines
+     */
     override fun getLocalLinesChanges(
         link: Link,
         branchOrTagName: String?,
@@ -237,6 +284,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
+    /**
+     * Get change for a remote directory
+     */
     override fun getRemoteDirectoryChanges(link: Link): Change {
         link as WebLinkToDirectory
         val similarityThreshold = 50
@@ -322,18 +372,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             .eachCount()
         val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
         return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
-    }
-
-    /**
-     * Extract the directory we are looking for from a list of changes
-     */
-    private fun extractSpecificDirectoryChanges(changeList: MutableCollection<Change1>): DirectoryChange {
-        for (change: Change1 in changeList) {
-            val prevPath = change.beforeRevision?.file?.parentPath
-            val currPath = change.afterRevision?.file?.parentPath
-            if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(change)
-        }
-        return DirectoryChange(FileChangeType.ADDED, "")
     }
 
     private fun getDiffOutput(
