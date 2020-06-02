@@ -272,6 +272,7 @@ class TreeView : JPanel(BorderLayout()) {
         val actionGroup = DefaultActionGroup("ACTION_GROUP", false)
         actionGroup.add(ActionManager.getInstance().getAction("LinkTracker"))
         actionGroup.add(ActionManager.getInstance().getAction("Settings"))
+        actionGroup.add(ActionManager.getInstance().getAction("AcceptChanges"))
         val actionToolbar: ActionToolbar = actionManager.createActionToolbar("ACTION_TOOLBAR", actionGroup, true)
         actionToolbar.setOrientation(SwingConstants.VERTICAL)
         add(actionToolbar.component, BorderLayout.PAGE_START)
