@@ -16,7 +16,7 @@ import javax.swing.tree.TreeCellRenderer
  * A [TreeCellRenderer] for check box tree nodes.
  */
 class CheckBoxNodeRenderer : TreeCellRenderer {
-    public val panel = CheckBoxNodePanel()
+    val panel = CheckBoxNodePanel()
     private val defaultRenderer = DefaultTreeCellRenderer()
     private val selectionForeground: Color
     private val selectionBackground: Color
@@ -35,8 +35,8 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
             if (userObject is CheckBoxNodeData) {
                 data = userObject
             }
-            val stringValue = tree.convertValueToText(value, selected, expanded, leaf, row, false)
-            panel.label.text = stringValue
+            //val stringValue = tree.convertValueToText(value, selected, expanded, leaf, row, false)
+            panel.label.text = userObject.toString()
             panel.label.icon = MarkdownIcons.EditorActions.Link
             panel.check.isSelected = false
             panel.isEnabled = tree.isEnabled
@@ -72,7 +72,6 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                         val texts = userObject.toString().split(") ")
                         panel.label.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
                         panel.label.icon = AllIcons.General.TodoDefault
-
                     }
                 }
             }

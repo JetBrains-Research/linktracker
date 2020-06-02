@@ -146,7 +146,7 @@ class TreeView : JPanel(BorderLayout()) {
             }
             val file = add(node, "$fileName $path", false)
             for (links in linkList.value) {
-                val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
+                val link = add(file, links.first.linkInfo.linkPath, false)
                 link.add(
                     DefaultMutableTreeNode(
                         "(${links.first.linkInfo.foundAtLineNumber}) " +
@@ -228,15 +228,7 @@ class TreeView : JPanel(BorderLayout()) {
     init {
 
         val root = DefaultMutableTreeNode("Root")
-
-        val changed = add(root, "Changed Links", false)
-        root.add(changed)
-
-        val unchanged = DefaultMutableTreeNode("Unchanged Links")
-        root.add(unchanged)
-
-        val invalid = DefaultMutableTreeNode("Invalid Links")
-        root.add(invalid)
+        root.removeAllChildren()
 
         val treeModel = DefaultTreeModel(root)
         myTree = JTree(treeModel)
@@ -249,11 +241,7 @@ class TreeView : JPanel(BorderLayout()) {
         myTree.isEditable = true
 
         // listen for changes in the selection
-
-        // listen for changes in the selection
         myTree.addTreeSelectionListener { println(System.currentTimeMillis().toString() + ": selection changed") }
-
-        // listen for changes in the model (including check box toggles)
 
         // listen for changes in the model (including check box toggles)
         treeModel.addTreeModelListener(object : TreeModelListener {
