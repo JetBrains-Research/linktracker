@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.view.checkbox
 
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Insets
 import javax.swing.JCheckBox
 import javax.swing.JLabel
@@ -16,6 +17,7 @@ class CheckBoxNodePanel : JPanel() {
     init {
         check.margin = Insets(0, 0, 0, 0)
         layout = BorderLayout()
+        check.background = Color.WHITE
         add(check, BorderLayout.WEST)
         add(label, BorderLayout.CENTER)
     }
