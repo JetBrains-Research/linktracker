@@ -21,14 +21,20 @@ import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
 import javax.swing.*
 import javax.swing.border.Border
+import javax.swing.event.TreeModelEvent
+import javax.swing.event.TreeModelListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
@@ -74,7 +80,7 @@ class TreeView : JPanel(BorderLayout()) {
         val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
-        val changed = DefaultMutableTreeNode("Changed Links ${count(changedOnes)} links")
+        val changed = add(root, "Changed Links ${count(changedOnes)} links", false)
         val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
         val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
 
@@ -87,7 +93,7 @@ class TreeView : JPanel(BorderLayout()) {
 
         callListener(info)
 
-        root.add(addNodeTree(changedOnes, changed))
+        root.add(addCheckBoxNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
         (myTree.model as DefaultTreeModel).reload()
@@ -102,6 +108,44 @@ class TreeView : JPanel(BorderLayout()) {
                 path = path.dropLast(1)
             }
             val file = DefaultMutableTreeNode("$fileName $path")
+            for (links in linkList.value) {
+                val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
+                link.add(
+                    DefaultMutableTreeNode(
+                        "(${links.first.linkInfo.foundAtLineNumber}) " +
+                                links.first.linkInfo.linkText
+                    )
+                )
+                if (links.second.requiresUpdate) {
+                    var displayString = ""
+                    for ((index: Int, changeType: ChangeType) in links.second.changes.withIndex()) {
+                        displayString += changeType.changeTypeString
+                        if (index != links.second.changes.size - 1) {
+                            displayString += " and "
+                        }
+                    }
+                    link.add(DefaultMutableTreeNode(displayString))
+                } else if (links.second.errorMessage != null) {
+                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
+                }
+
+                file.add(link)
+            }
+            node.add(file)
+        }
+
+        return node
+    }
+
+    private fun addCheckBoxNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode):
+            DefaultMutableTreeNode {
+        for (linkList in changeList) {
+            val fileName = linkList.value[0].first.linkInfo.fileName
+            var path = linkList.key.replace(fileName, "")
+            if (path.endsWith("/")) {
+                path = path.dropLast(1)
+            }
+            val file = add(node, "$fileName $path", false)
             for (links in linkList.value) {
                 val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
                 link.add(
@@ -183,15 +227,57 @@ class TreeView : JPanel(BorderLayout()) {
      * Constructor of class
      */
     init {
-        myTree = JTree(DefaultMutableTreeNode("markdown"))
-        val root = myTree.model.root as DefaultMutableTreeNode
-        root.removeAllChildren()
-        root.add(DefaultMutableTreeNode("Changed Links"))
-        root.add(DefaultMutableTreeNode("Unchanged Links"))
-        root.add(DefaultMutableTreeNode("Invalid Links"))
+
+        val root = DefaultMutableTreeNode("Root")
+
+        val changed = add(root, "Changed Links", false)
+        root.add(changed)
+
+        val unchanged = DefaultMutableTreeNode("Unchanged Links")
+        root.add(unchanged)
+
+        val invalid = DefaultMutableTreeNode("Invalid Links")
+        root.add(invalid)
+
+        val treeModel = DefaultTreeModel(root)
+        myTree = JTree(treeModel)
+
+        val renderer = CheckBoxNodeRenderer()
+        myTree.cellRenderer = renderer
+
+        val editor = CheckBoxNodeEditor(myTree)
+        myTree.cellEditor = editor
+        myTree.isEditable = true
+
+        // listen for changes in the selection
+
+        // listen for changes in the selection
+        myTree.addTreeSelectionListener { println(System.currentTimeMillis().toString() + ": selection changed") }
+
+        // listen for changes in the model (including check box toggles)
+
+        // listen for changes in the model (including check box toggles)
+        treeModel.addTreeModelListener(object : TreeModelListener {
+            override fun treeNodesChanged(e: TreeModelEvent) {
+                println(System.currentTimeMillis().toString() + ": nodes changed")
+            }
+
+            override fun treeNodesInserted(e: TreeModelEvent) {
+                println(System.currentTimeMillis().toString() + ": nodes inserted")
+            }
+
+            override fun treeNodesRemoved(e: TreeModelEvent) {
+                println(System.currentTimeMillis().toString() + ": nodes removed")
+            }
+
+            override fun treeStructureChanged(e: TreeModelEvent) {
+                println(System.currentTimeMillis().toString() + ": structure changed")
+            }
+        })
+
         (myTree.model as DefaultTreeModel).reload()
         myTree.isRootVisible = false
-        myTree.cellRenderer = CustomCellRenderer()
+
         val scrollPane = JScrollPane(myTree)
         val border: Border = SideBorder(Color.LIGHT_GRAY, SideBorder.LEFT, 1)
         scrollPane.border = border
@@ -207,6 +293,16 @@ class TreeView : JPanel(BorderLayout()) {
         contentPane.add(actionToolbar.component, BorderLayout.WEST)
         contentPane.add(scrollPane, BorderLayout.CENTER)
         add(contentPane, BorderLayout.CENTER)
+    }
+
+    private fun add(
+        parent: DefaultMutableTreeNode, text: String,
+        checked: Boolean
+    ): DefaultMutableTreeNode {
+        val data = CheckBoxNodeData(text, checked)
+        val node = DefaultMutableTreeNode(data)
+        parent.add(node)
+        return node
     }
 }
 

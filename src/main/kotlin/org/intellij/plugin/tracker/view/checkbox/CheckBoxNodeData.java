@@ -28,7 +28,7 @@ public class CheckBoxNodeData {
 
     @Override
     public String toString() {
-        return getClass().getName() + "[" + text + "/" + checked + "]";
+        return text;
     }
 
 }
