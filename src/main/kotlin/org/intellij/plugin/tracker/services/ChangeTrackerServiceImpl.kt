@@ -144,7 +144,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             }
 
             // as long as there is something in the directory, we can declare it valid
-            DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
+            return DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchLocalDirectoryChangesException(e.message)
         }
