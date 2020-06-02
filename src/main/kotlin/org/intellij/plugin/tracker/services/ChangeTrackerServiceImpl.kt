@@ -4,7 +4,10 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.DirectoryChange
+import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.FileChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
@@ -102,8 +105,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     override fun getLocalDirectoryChanges(link: Link): Change {
         val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
         return if (changeList != null) {
-            val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
-            directoryChange
+            extractSpecificDirectoryChanges(changeList = changeList)
         } else {
             DirectoryChange(FileChangeType.ADDED, "")
         }
@@ -127,7 +129,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             var originalLineContent = ""
             if (fileHistoryList.isNotEmpty()) {
                 originalLineContent =
-                gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
+                    gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
                 if (fileChange.fileChangeType == FileChangeType.DELETED)
@@ -186,7 +188,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         link.path,
                         link.referencedStartingLine,
                         link.referencedEndingLine
-                    ))
+                    )
+                )
 
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
@@ -329,8 +332,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      */
     private fun extractSpecificDirectoryChanges(changeList: MutableCollection<Change1>): DirectoryChange {
         for (change: Change1 in changeList) {
-            val prevPath = change.beforeRevision?.file?.parentPath
-            val currPath = change.afterRevision?.file?.parentPath
+            val prevPath = change.beforeRevision?.file?.parentPath?.path
+            val currPath = change.afterRevision?.file?.parentPath?.path
             if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(change)
         }
         return DirectoryChange(FileChangeType.ADDED, "")
