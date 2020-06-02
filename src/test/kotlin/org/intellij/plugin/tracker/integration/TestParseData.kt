@@ -100,6 +100,7 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().getRemoteOriginUrl() } returns "github.com/owner/project/src.git"
     }
 
+    @Disabled
     @Test
     fun parseRelativeLinkToFile() {
 
