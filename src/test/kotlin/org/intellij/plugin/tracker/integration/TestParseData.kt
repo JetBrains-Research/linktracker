@@ -13,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
+import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.DirectoryChange
 import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.FileChangeType
@@ -94,7 +95,8 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().isRefACommit(any()) } returns false
         every { anyConstructed<GitOperationManager>().getHeadCommitSHA() } returns "edbb2f5"
         every { anyConstructed<GitOperationManager>().getStartCommit(any()) } returns "edbb2f5"
-        every { anyConstructed<GitOperationManager>().getRemoteOriginUrl() } returns "github.com/owner/project/src.git"
+        every { anyConstructed<GitOperationManager>().getRemoteOriginUrl() } returns
+                "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project.git"
     }
 
     @Test
@@ -138,8 +140,8 @@ class TestParseData : BasePlatformTestCase() {
 
         val beforePath = mockk<FilePath>()
         val afterPath = mockk<FilePath>()
-        every { beforePath.getPath() } returns "."
-        every { afterPath.getPath() } returns "main"
+        every { beforePath.path } returns "."
+        every { afterPath.path } returns "main"
 
         val change = mockk<Change>(relaxed = true)
         every { change.beforeRevision?.file?.parentPath } returns null
@@ -169,7 +171,6 @@ class TestParseData : BasePlatformTestCase() {
         Assertions.assertEquals(afterPath.path, dirChange.afterPathString)
     }
 
-    @Disabled
     @Test
     fun parseWebLinkToLine() {
 
@@ -195,7 +196,6 @@ class TestParseData : BasePlatformTestCase() {
         Assertions.assertEquals("/src/testParseWebLink.md", link.linkInfo.proveniencePath)
     }
 
-    @Disabled
     @Test
     fun parseMultipleLinks() {
 
@@ -212,7 +212,7 @@ class TestParseData : BasePlatformTestCase() {
         } returns mockk(relaxed = true)
 
         ProgressManager.getInstance().run(myDataParsingTask)
-        val result = myDataParsingTask.getResult()
+        val result: ScanResult = myDataParsingTask.getResult()
         val links = result.myLinkChanges
 
         val multiLinks = links.filter { pair -> pair.first.linkInfo.fileName == "testParseMultipleLinks.md" }
