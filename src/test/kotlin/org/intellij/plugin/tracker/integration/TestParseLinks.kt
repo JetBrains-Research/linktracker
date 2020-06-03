@@ -32,7 +32,7 @@ import org.mockito.Mockito.mock
  * This class tests the parsing of links and changes.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class TestParseData : BasePlatformTestCase() {
+class TestParseLinks : BasePlatformTestCase() {
 
     private lateinit var myGitOperationManager: GitOperationManager
     private lateinit var myHistoryService: HistoryService
