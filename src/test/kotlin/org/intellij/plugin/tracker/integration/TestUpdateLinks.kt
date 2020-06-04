@@ -261,7 +261,7 @@ class TestMultipleLinks : TestUpdateLinks() {
             afterPathString = "main/file.txt"
         )
         val linkChangeToLine = LineChange(
-            fileChange = FileChange(FileChangeType.MOVED, afterPathString= "main/file.txt"),
+            fileChange = FileChange(FileChangeType.MOVED, afterPathString = "main/file.txt"),
             lineChangeType = LineChangeType.MOVED,
             newLine = Line(lineNumber = 1, content = "dummy line")
         )
