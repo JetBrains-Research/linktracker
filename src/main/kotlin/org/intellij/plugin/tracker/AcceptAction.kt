@@ -2,12 +2,11 @@ package org.intellij.plugin.tracker
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
@@ -15,11 +14,15 @@ import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.view.TreeView
+import java.awt.BorderLayout
+import java.awt.Dimension
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JPanel
 
 class AcceptAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
-        val currentProject = event.getData(PlatformDataKeys.PROJECT)
 
         var changes = TreeView.acceptedChangeList
 
@@ -47,12 +50,11 @@ class AcceptAction : AnAction() {
     private fun updateLink(link: Link, change: Change, scanResult : ScanResult, project : Project, commitSHA : String?) {
         println("updating link ${link.path}")
         val myLinkUpdaterService = LinkUpdaterService(project)
-        if (scanResult.isValid(link)) {
-            ApplicationManager.getApplication().runWriteAction {
-                WriteCommandAction.runWriteCommandAction(project) {
-                    myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), commitSHA)
-                }
+        ApplicationManager.getApplication().runWriteAction {
+            WriteCommandAction.runWriteCommandAction(project) {
+                myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), commitSHA)
             }
         }
     }
+
 }
