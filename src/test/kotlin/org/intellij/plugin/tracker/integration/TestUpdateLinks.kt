@@ -266,7 +266,7 @@ class TestMultipleLinks : TestUpdateLinks() {
             newLine = Line(lineNumber = 1, content = "dummy line")
         )
         val linkChangeToDir = DirectoryChange(
-            changeType = FileChangeType.MOVED,
+            directoryChangeType = DirectoryChangeType.MOVED,
             afterPathString = "main"
         )
         val list = mutableListOf<Pair<Link, Change>>(

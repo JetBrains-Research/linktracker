@@ -16,6 +16,7 @@ import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import org.intellij.plugin.tracker.LinkTrackerAction
 import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.changes.DirectoryChangeType
 import org.intellij.plugin.tracker.data.changes.FileChange
 import org.intellij.plugin.tracker.data.changes.FileChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
@@ -137,7 +138,6 @@ class TestParseData : BasePlatformTestCase() {
         Assertions.assertEquals(mutableListOf(afterPath), change.afterPath)
     }
 
-    @Disabled
     @Test
     fun parseRelativeLinkToDirectory() {
 
@@ -148,6 +148,9 @@ class TestParseData : BasePlatformTestCase() {
         every { myGitOperationManager.getDiffWithWorkingTree(any()) } returns mutableListOf()
         every { myGitOperationManager.getAllChangesForFile(any(), any(), any(), any()) } returns fileChange
         every { myGitOperationManager.checkWorkingTreeChanges(any()) } returns fileChange
+        every { myGitOperationManager.getDirectoryCommits(any()) } returns mutableListOf(mutableListOf("main"),
+                mutableListOf<String>(), mutableMapOf<String, String>())
+        every { myGitOperationManager.getMoveCommits(any()) } returns ""
 
         ProgressManager.getInstance().run(myDataParsingTask)
         val result = myDataParsingTask.getResult()
@@ -159,8 +162,8 @@ class TestParseData : BasePlatformTestCase() {
         Assertions.assertTrue(link is RelativeLinkToDirectory)
         Assertions.assertEquals("main", link.linkInfo.linkPath)
         Assertions.assertEquals("/src/testParseRelativeLinks.md", link.linkInfo.proveniencePath)
-        Assertions.assertEquals(FileChangeType.ADDED, change.changes[0])
-        Assertions.assertEquals(afterPath, change.afterPath)
+        Assertions.assertEquals(DirectoryChangeType.ADDED, change.changes[0])
+        Assertions.assertEquals(afterPath, change.afterPath[0])
     }
 
     @Disabled
