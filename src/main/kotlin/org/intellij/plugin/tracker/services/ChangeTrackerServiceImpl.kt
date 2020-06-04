@@ -127,8 +127,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     val fileList = gitOperationManager.getDirectoryCommits(parentPath)
                     val moveMap = fileList[2].castSafelyTo<MutableMap<String, String>>()!!
                     if (moveMap.keys.containsAll(deletedFiles)) {
-                        val fileName = deletedFiles[0].replace(link.path, "")
-                        val newDirectory = moveMap[deletedFiles[0]]!!.replace(fileName, "")
+                        val fileName = deletedFiles[0].replaceFirst(link.path, "")
+                        val newDirectory = moveMap[deletedFiles[0]]!!.replaceFirst(fileName, "")
                         return CustomChange(CustomChangeType.MOVED, afterPathString = newDirectory)
                     }
                 } else {

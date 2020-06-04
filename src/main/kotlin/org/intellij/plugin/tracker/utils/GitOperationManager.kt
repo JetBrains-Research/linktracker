@@ -171,12 +171,10 @@ class GitOperationManager(private val project: Project) {
             val outputList = output.output.reversed()
             for (outputStr in outputList) {
                 val elem = outputStr.replace("\\s".toRegex(), "")
-                if (elem.startsWith("A") && elem.contains(path)) {
-                    addedFiles.add(elem.replace("A", ""))
-                } else if (elem.startsWith("D") && elem.contains(path)) {
-                    deletedFiles.add(elem.replace("D", ""))
-                } else if (elem.startsWith("R100") && elem.contains(path)) {
-                    val str = elem.replace("R100", "")
+                if (elem.startsWith("A")) addedFiles.add(elem.replaceFirst("A", ""))
+                if (elem.startsWith("D")) deletedFiles.add(elem.replaceFirst("D", ""))
+                if (elem.startsWith("R100")) {
+                    val str = elem.replaceFirst("R100", "")
                     val index = str.lastIndexOf("$path/")
                     val prev = str.substring(0, index)
                     val curr = str.substring(index, str.length)
@@ -203,7 +201,7 @@ class GitOperationManager(private val project: Project) {
         if (output.exitCode == 0) {
             val outputList = output.output.filter { it.startsWith("R100") }
             for (elem in outputList) {
-                val str = elem.replace("R100", "").split("\\s".toRegex())
+                val str = elem.replaceFirst("R100", "").split("\\s".toRegex())
                 if (str[1].contains(path)) {
                     val index = str[2].lastIndexOf('/')
                     return str[2].substring(0, index)
