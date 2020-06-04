@@ -204,10 +204,10 @@ class GitOperationManager(private val project: Project) {
         if (output.exitCode == 0) {
             val outputList = output.output.filter { it.startsWith("R100") }
             for (elem in outputList) {
-                val str = elem.replace("R100", "")
-                val paths = str.split("\\s".toRegex())
-                if (paths[1].split('/')[0] == path) {
-                    return paths[2].split('/')[0]
+                val str = elem.replace("R100", "").split("\\s".toRegex())
+                if (str[1].contains(path)) {
+                    val index = str[2].lastIndexOf('/')
+                    return str[2].substring(0, index)
                 }
             }
         }
