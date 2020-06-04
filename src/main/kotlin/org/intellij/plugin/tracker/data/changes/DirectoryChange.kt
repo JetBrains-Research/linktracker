@@ -1,68 +1,52 @@
 package org.intellij.plugin.tracker.data.changes
 
-import com.intellij.openapi.vcs.changes.Change as Change1
-
+enum class DirectoryChangeType(val change: String): ChangeType {
+    ADDED("DIRECTORY ADDED") {
+        override val changeTypeString: String
+            get() = change
+    },
+    MOVED("DIRECTORY MOVED") {
+        override val changeTypeString: String
+            get() = change
+    },
+    MODIFIED("DIRECTORY MODIFIED") {
+        override val changeTypeString: String
+            get() = change
+    },
+    DELETED("DIRECTORY DELETED") {
+        override val changeTypeString: String
+            get() = change
+    },
+    INVALID("DIRECTORY INVALID") {
+        override val changeTypeString: String
+            get() = change
+    }
+}
 
 data class DirectoryChange(
-    var changeType: FileChangeType,
-    val afterPathString: String = "",
-    override val errorMessage: String? = null,
-    val directoryName: String? = null
+        val directoryChangeType: DirectoryChangeType,
+        val afterPathString: String,
+        override val errorMessage: String? = null
 ) : Change {
-    override val changes: MutableList<ChangeType>
-        get() = mutableListOf(changeType)
-
-    override val requiresUpdate: Boolean
-        get() {
-            if (changeType == FileChangeType.MOVED || changeType == FileChangeType.DELETED)
-                return true
-            return false
-        }
     override val afterPath: MutableList<String>
         get() = mutableListOf(afterPathString)
 
+    override val changes: MutableList<ChangeType>
+        get() = mutableListOf(directoryChangeType)
+
+    override val requiresUpdate: Boolean
+        get() {
+            if (directoryChangeType == DirectoryChangeType.MOVED || directoryChangeType == DirectoryChangeType.DELETED)
+                return true
+            return false
+        }
+
     override fun hasWorkingTreeChanges(): Boolean {
-        // for now return false
+        // returns false for now
         return false
     }
 
-    private constructor(builder: Builder) : this(
-        builder.changeType,
-        builder.afterPath,
-        builder.errorMessage,
-        builder.directoryName
-    )
-
-    companion object {
-        fun changeToDirectoryChange(change: Change1): DirectoryChange {
-            val directoryChangeBuilder = Builder()
-
-            val changeType: FileChangeType = when (change.type) {
-                Change1.Type.MOVED -> FileChangeType.MOVED
-                Change1.Type.MODIFICATION -> FileChangeType.MODIFIED
-                Change1.Type.NEW -> FileChangeType.ADDED
-                Change1.Type.DELETED -> FileChangeType.DELETED
-            }
-
-            directoryChangeBuilder.changeType = changeType
-
-            if (change.afterRevision?.file?.path != null) {
-                directoryChangeBuilder.afterPath = change.afterRevision!!.file.parentPath.toString()
-            }
-
-            if (change.afterRevision?.file?.name != null) {
-                directoryChangeBuilder.directoryName = change.afterRevision!!.file.parentPath!!.name
-            }
-            return directoryChangeBuilder.build()
-        }
-    }
-
-    class Builder {
-        var changeType: FileChangeType = FileChangeType.INVALID
-        var afterPath: String = ""
-        var directoryName: String? = null
-        var errorMessage: String? = null
-
-        fun build() = DirectoryChange(this)
+    override fun toString(): String {
+        return "Change type is $directoryChangeType and after path is $afterPath with error message $errorMessage"
     }
 }

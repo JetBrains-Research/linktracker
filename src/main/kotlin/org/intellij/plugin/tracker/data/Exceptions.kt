@@ -82,5 +82,5 @@ class LocalDirectoryNeverExistedException(
 class UnableToFetchLocalDirectoryChangesException(
     override val message: String?
 ) : DirectoryChangeGatheringException(
-    "There was a problem in gathering the directory changes from local repository: $message"
+    "There was a problem in gathering the directory changes from local directory: $message"
 )

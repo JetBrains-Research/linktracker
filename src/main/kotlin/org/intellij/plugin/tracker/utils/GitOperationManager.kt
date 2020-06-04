@@ -7,6 +7,7 @@ import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
+import git4idea.index.parseGitStatusOutput
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.*
@@ -140,6 +141,7 @@ class GitOperationManager(private val project: Project) {
         return false
     }
 
+
     /**
      * Get the date of a commit in a timestamp format
      *
@@ -156,56 +158,60 @@ class GitOperationManager(private val project: Project) {
 
     /**
      * Get all commits which affected the directory path
-     *
-     * Runs git command `git log --follow -- path`
-     *
+     * Runs git command `git log --follow --name-status --oneline -- path`
      */
     @Throws(VcsException::class)
-    fun getPathCommits(path: String): List<String> {
+    fun getDirectoryCommits(path: String): MutableList<Any> {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters(path)
+        gitLineHandler.addParameters("--follow", "--name-status", "--oneline", "--", path)
         val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val shaList = mutableListOf<String>()
+        val addedFiles: MutableList<String> = mutableListOf()
+        val deletedFiles: MutableList<String> = mutableListOf()
+        val renamedFiles: MutableMap<String, String> = mutableMapOf()
         if (output.exitCode == 0) {
-            val outputList = output.output
-            for (output in outputList) {
-                if (output.startsWith("commit ")) {
-                    shaList.add(output.replace("commit ", ""))
+            val outputList = output.output.reversed()
+            for (outputStr in outputList) {
+                val elem = outputStr.replace("\\s".toRegex(), "")
+                if (elem.startsWith("A") && elem.contains(path)) {
+                    addedFiles.add(elem.replace("A", ""))
+                } else if (elem.startsWith("D") && elem.contains(path)) {
+                    deletedFiles.add(elem.replace("D", ""))
+                } else if (elem.startsWith("R100") && elem.contains(path)) {
+                    val str = elem.replace("R100", "")
+                    val index = str.lastIndexOf("$path/")
+                    val prev = str.substring(0, index)
+                    val curr = str.substring(index, str.length)
+                    if (addedFiles.contains(prev)) {
+                        addedFiles.remove(prev)
+                        addedFiles.add(curr)
+                        renamedFiles[prev] = curr
+                    }
                 }
             }
         }
-        return shaList.distinct()
+        return mutableListOf(addedFiles, deletedFiles, renamedFiles)
     }
 
     /**
-     * Get changes on number of files in specific commit
-     *
-     * Runs git command `git diff --no-commit-id --name-status -r sha`
-     *
+     * Get move commits and find new directory of that directory
+     * Runs git command `git log --follow --name-status --oneline -- path`
      */
     @Throws(VcsException::class)
-    fun getCommitChange(sha: String, path: String): MutableList<MutableList<String>> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
-        gitLineHandler.addParameters("--no-commit-id", "--name-status", "-r", sha)
+    fun getMoveCommits(path: String): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        gitLineHandler.addParameters("--name-status", "--oneline")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         if (output.exitCode == 0) {
-            val outputList = output.output
-            val movedFiles: MutableList<String> = mutableListOf()
-            var addedFiles: MutableList<String> = mutableListOf()
-            val deletedFiles: MutableList<String> = mutableListOf()
-
-            for (output in outputList) {
-                if (output.startsWith("M") && output.replace("M", "").contains(path)) {
-                    movedFiles.add(output.replace("M", ""))
-                } else if (output.startsWith("A") && output.replace("A", "").contains(path)) {
-                    addedFiles.add(output.replace("A", ""))
-                } else if (output.startsWith("D") && output.replace("D", "").contains(path)) {
-                    deletedFiles.add(output.replace("D", ""))
+            val outputList = output.output.filter { it.startsWith("R100") }
+            for (elem in outputList) {
+                val str = elem.replace("R100", "")
+                val paths = str.split("\\s".toRegex())
+                if (paths[1].split('/')[0] == path) {
+                    return paths[2].split('/')[0]
                 }
             }
-            return mutableListOf(movedFiles, addedFiles, deletedFiles)
         }
-        return mutableListOf()
+        return ""
     }
 
     /**
@@ -418,7 +424,6 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("$commitSHA:$path")
         return git.runCommand(gitLineHandler).exitCode == 0
     }
-
 
     /**
      * Auxiliary function that processes the output of

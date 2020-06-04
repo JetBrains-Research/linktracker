@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.util.castSafelyTo
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.*
@@ -22,7 +23,6 @@ import java.util.regex.Matcher
 import kotlin.math.max
 import kotlin.math.min
 
-typealias Change1 = com.intellij.openapi.vcs.changes.Change
 
 class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
@@ -105,46 +105,40 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      */
     override fun getLocalDirectoryChanges(link: Link): Change {
         link as RelativeLinkToDirectory
-        val similarityThreshold = 50
 
-        // list of all the files that have been added to this folder
-        var addedFiles: MutableList<String> = mutableListOf()
-        // list of all the files deleted from this folder
-        var deletedFiles: MutableList<String> = mutableListOf()
-        // list of all the files that have been moved out of this folder
-        var movedFiles: MutableList<String> = mutableListOf()
+        return try {
+            val relativeLink = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
+            val files = gitOperationManager.getDirectoryCommits(relativeLink)
 
-        try {
-            val relativePath = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
-            val shaList = gitOperationManager.getPathCommits(relativePath)
-            for (sha in shaList) {
-                val files = gitOperationManager.getCommitChange(sha, relativePath)
-                movedFiles = files[0]
-                addedFiles = files[1]
-                deletedFiles = files[2]
-            }
+            // list of all the files that have been added, deleted or moved
+            val addedFiles = files[0].castSafelyTo<MutableList<String>>()!!
+            val deletedFiles = files[1].castSafelyTo<MutableList<String>>()!!
+            val movedFiles = files[2].castSafelyTo<MutableMap<String, String>>()!!
 
-            // can only happen when the directory did not exist
+            // can only happen when the directory does not exist
             if (addedFiles.size == 0) {
                 throw LocalDirectoryNeverExistedException()
-            }
-            if (addedFiles.size == deletedFiles.size + movedFiles.size) {
-                // if the directory we are looking for was deleted: look for the most common
-                // part of path in the moved files paths
-                // divide the # occurrences of that path by the total amount of added files to get the sim. threshold
-                // if the similarity is above a certain settable number, declare the directory as moved
-                // else, deleted
-
-                val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
-
-                if (similarityPair.second >= similarityThreshold) {
-                    return DirectoryChange(FileChangeType.MOVED, afterPathString = similarityPair.first)
+            } else if (addedFiles.size == deletedFiles.size + movedFiles.size) {
+                // if the directory is a subdirectory goes if statement otherwise else
+                if (relativeLink.contains("/")) {
+                    val parentPath = relativeLink.substring(0, relativeLink.lastIndexOf("/"))
+                    val fileList = gitOperationManager.getDirectoryCommits(parentPath)
+                    val moveMap = fileList[2].castSafelyTo<MutableMap<String, String>>()!!
+                    if (moveMap.keys.containsAll(deletedFiles)) {
+                        val fileName = deletedFiles[0].replace(link.path, "")
+                        val newDirectory = moveMap[deletedFiles[0]]!!.replace(fileName, "")
+                        return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = newDirectory)
+                    }
+                } else {
+                    val afterPath = gitOperationManager.getMoveCommits(relativeLink)
+                    // if it has an after path the directory is moved otherwise deleted
+                    if (afterPath != "") {
+                        return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = afterPath)
+                    }
                 }
-                return DirectoryChange(FileChangeType.DELETED, afterPathString = link.path)
+                return DirectoryChange(DirectoryChangeType.DELETED, afterPathString = link.path)
             }
-
-            // as long as there is something in the directory, we can declare it valid
-            return DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
+            DirectoryChange(DirectoryChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchLocalDirectoryChangesException(e.message)
         }
@@ -171,7 +165,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             var originalLineContent = ""
             if (fileHistoryList.isNotEmpty()) {
                 originalLineContent =
-                gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
+                    gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
                 if (fileChange.fileChangeType == FileChangeType.DELETED)
@@ -233,7 +227,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         link.path,
                         link.referencedStartingLine,
                         link.referencedEndingLine
-                    ))
+                    )
+                )
 
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
@@ -284,7 +279,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    /**
+    /***
      * Get change for a remote directory
      */
     override fun getRemoteDirectoryChanges(link: Link): Change {
@@ -354,13 +349,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
 
                 if (similarityPair.second >= similarityThreshold) {
-                    return DirectoryChange(FileChangeType.MOVED, afterPathString = similarityPair.first)
+                    return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = similarityPair.first)
                 }
-                return DirectoryChange(FileChangeType.DELETED, afterPathString = link.path)
+                return DirectoryChange(DirectoryChangeType.DELETED, afterPathString = link.path)
             }
 
             // as long as there is something in the directory, we can declare it valid
-            DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
+            DirectoryChange(DirectoryChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchRemoteDirectoryChangesException(e.message)
         }
@@ -484,6 +479,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
     companion object {
         fun getInstance(project: Project): ChangeTrackerServiceImpl =
-            ServiceManager.getService(project, ChangeTrackerServiceImpl::class.java)
+            ServiceManager.getService(
+                project,
+                ChangeTrackerServiceImpl::class.java
+            )
     }
 }
