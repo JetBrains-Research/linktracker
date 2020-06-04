@@ -135,7 +135,7 @@ class LineTracker {
             diffOutputMultipleRevisions: DiffOutputMultipleRevisions,
             givenLineToTrack: Int = -1
         ): LineChange {
-            val fileChange: FileChange = diffOutputMultipleRevisions.fileChange
+            val fileChange: CustomChange = diffOutputMultipleRevisions.fileChange
             val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent.trim()
             var lineToTrack: Int
             if (givenLineToTrack != -1) {

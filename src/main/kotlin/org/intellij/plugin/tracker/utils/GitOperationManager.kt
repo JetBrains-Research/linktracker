@@ -7,12 +7,11 @@ import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
-import git4idea.index.parseGitStatusOutput
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.FileChange
-import org.intellij.plugin.tracker.data.changes.FileChangeType
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -71,7 +70,7 @@ class GitOperationManager(private val project: Project) {
             val lines: List<String> = result.output
             if (lines.size >= lineNumber) return lines[lineNumber - 1]
         }
-        throw OriginalLineContentsNotFoundException(fileChange = FileChange(FileChangeType.INVALID, ""))
+        throw OriginalLineContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
     }
 
     /**
@@ -91,7 +90,7 @@ class GitOperationManager(private val project: Project) {
             val lines: List<String> = result.output
             if (lines.size >= endLineNumber) return lines.subList(startLineNumber - 1, endLineNumber)
         }
-        throw OriginalLinesContentsNotFoundException(fileChange = FileChange(FileChangeType.INVALID, ""))
+        throw OriginalLinesContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
     }
 
     /**
@@ -193,8 +192,8 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Get move commits and find new directory of that directory
-     * Runs git command `git log --follow --name-status --oneline -- path`
+     * Get move commits in all repo and finds the after path of moved directory
+     * Runs git command `git log --name-status --oneline`
      */
     @Throws(VcsException::class)
     fun getMoveCommits(path: String): String {
@@ -252,25 +251,25 @@ class GitOperationManager(private val project: Project) {
      * We are checking whether there exists a line in the output which contains \
      * the link path that we are looking for.
      */
-    private fun processWorkingTreeChanges(linkPath: String, changes: String): FileChange? {
+    private fun processWorkingTreeChanges(linkPath: String, changes: String): CustomChange? {
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
         val change: String? = changeList.find { line -> line.contains(linkPath) }
         if (change != null) {
             when {
-                change.startsWith("?") -> return FileChange(FileChangeType.ADDED, linkPath)
-                change.startsWith("!") -> return FileChange(FileChangeType.ADDED, linkPath)
-                change.startsWith("C") -> return FileChange(FileChangeType.ADDED, linkPath)
-                change.startsWith("A") -> return FileChange(FileChangeType.ADDED, linkPath)
-                change.startsWith("U") -> return FileChange(FileChangeType.ADDED, linkPath)
+                change.startsWith("?") -> return CustomChange(CustomChangeType.ADDED, linkPath)
+                change.startsWith("!") -> return CustomChange(CustomChangeType.ADDED, linkPath)
+                change.startsWith("C") -> return CustomChange(CustomChangeType.ADDED, linkPath)
+                change.startsWith("A") -> return CustomChange(CustomChangeType.ADDED, linkPath)
+                change.startsWith("U") -> return CustomChange(CustomChangeType.ADDED, linkPath)
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
-                    return FileChange(FileChangeType.MOVED, lineSplit[1])
+                    return CustomChange(CustomChangeType.MOVED, lineSplit[1])
                 }
-                change.startsWith("D") -> return FileChange(FileChangeType.DELETED, linkPath)
-                change.startsWith("M") -> return FileChange(FileChangeType.MODIFIED, linkPath)
+                change.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
+                change.startsWith("M") -> return CustomChange(CustomChangeType.MODIFIED, linkPath)
             }
         }
         return null
@@ -300,7 +299,7 @@ class GitOperationManager(private val project: Project) {
      * Hands the output to be processed by processWorkingTreeChanges()
      */
     @Throws(VcsException::class)
-    fun checkWorkingTreeChanges(link: Link): FileChange? {
+    fun checkWorkingTreeChanges(link: Link): CustomChange? {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
@@ -328,7 +327,7 @@ class GitOperationManager(private val project: Project) {
         similarityThreshold: Int,
         branchOrTagName: String? = null,
         specificCommit: String? = null
-    ): FileChange {
+    ): CustomChange {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         // add a specific branch or tag on which to execute the `git log` command
         // this branch/tag name exists (it has been previously checked in the LinkProcessingRouter
@@ -363,28 +362,28 @@ class GitOperationManager(private val project: Project) {
      * First PATH is the before-path for the renamed change type and the non-changed path for other change types.
      * Second PATH is optional and corresponds to the after path for renamed change types.
      */
-    private fun extractChangeType(linkPath: String, line: String): FileChange {
+    private fun extractChangeType(linkPath: String, line: String): CustomChange {
         when {
             line.startsWith("A") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return FileChange(FileChangeType.MOVED, lineSplit[1])
+                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
-                return FileChange(FileChangeType.ADDED, lineSplit[1])
+                return CustomChange(CustomChangeType.ADDED, lineSplit[1])
             }
             line.startsWith("M") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return FileChange(FileChangeType.MOVED, lineSplit[1])
+                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
-                return FileChange(FileChangeType.MODIFIED, lineSplit[1])
+                return CustomChange(CustomChangeType.MODIFIED, lineSplit[1])
             }
-            line.startsWith("D") -> return FileChange(FileChangeType.DELETED, linkPath)
+            line.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
                 val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
                 assert(lineSplit.size == 3)
-                if (lineSplit[2] == linkPath) return FileChange(FileChangeType.MODIFIED, lineSplit[2])
-                return FileChange(FileChangeType.MOVED, lineSplit[2])
+                if (lineSplit[2] == linkPath) return CustomChange(CustomChangeType.MODIFIED, lineSplit[2])
+                return CustomChange(CustomChangeType.MOVED, lineSplit[2])
             }
             else -> throw ChangeTypeExtractionException()
         }
@@ -445,7 +444,7 @@ class GitOperationManager(private val project: Project) {
         linkPath: String,
         changes: String,
         specificCommit: String?
-    ): FileChange {
+    ): CustomChange {
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
             var additionList: List<Pair<Int, String>> =
@@ -504,7 +503,7 @@ class GitOperationManager(private val project: Project) {
                 }
 
                 if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: FileChange = extractChangeType(linkPath, lookUpContent)
+                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
@@ -553,7 +552,7 @@ class GitOperationManager(private val project: Project) {
                 }
 
                 if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: FileChange = extractChangeType(linkPath, lookUpContent)
+                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
@@ -563,7 +562,7 @@ class GitOperationManager(private val project: Project) {
         }
 
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
-            val fileChange = FileChange(FileChangeType.ADDED, afterPathString = linkPath)
+            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
             fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
             return fileChange
         }

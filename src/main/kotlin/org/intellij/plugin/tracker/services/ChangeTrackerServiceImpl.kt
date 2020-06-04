@@ -6,10 +6,8 @@ import com.intellij.util.castSafelyTo
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.DirectoryChange
-import org.intellij.plugin.tracker.data.changes.DirectoryChangeType
-import org.intellij.plugin.tracker.data.changes.FileChange
-import org.intellij.plugin.tracker.data.changes.FileChangeType
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
@@ -36,10 +34,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      * Get change for a local file
      */
     override fun getLocalFileChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
-        val workingTreeChange: FileChange? = gitOperationManager.checkWorkingTreeChanges(link)
+        val workingTreeChange: CustomChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
-        if (workingTreeChange != null && workingTreeChange.fileChangeType == FileChangeType.ADDED) {
+        if (workingTreeChange != null && workingTreeChange.customChangeType == CustomChangeType.ADDED) {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
@@ -49,7 +47,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val threshold: Int = similarityThresholdSettings.fileSimilarity
 
-        val change: FileChange =
+        val change: CustomChange =
             gitOperationManager.getAllChangesForFile(
                 link, threshold,
                 branchOrTagName = branchOrTagName, specificCommit = specificCommit
@@ -65,7 +63,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // we want to check whether there is any non-committed change that affects this new path
             if (workingTreeChange == null) {
                 val newLink: Link = link.copyWithAfterPath(link, change.afterPathString)
-                val currentChange: FileChange =
+                val currentChange: CustomChange =
                     gitOperationManager.checkWorkingTreeChanges(newLink) ?: return change
 
                 // new change identified (from checking working tree). Use this newly-found change instead.
@@ -78,8 +76,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // (calculated using the unchanged path retrieved from the markdown files),
             // use this change instead of the one found from `git log` command (it overrides it).
             // Otherwise, return the change found from `git log` command.
-            return when (workingTreeChange.fileChangeType) {
-                FileChangeType.DELETED, FileChangeType.MOVED -> {
+            return when (workingTreeChange.customChangeType) {
+                CustomChangeType.DELETED, CustomChangeType.MOVED -> {
                     change.fileHistoryList.add(
                         FileHistory(
                             path = workingTreeChange.afterPathString,
@@ -131,18 +129,18 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     if (moveMap.keys.containsAll(deletedFiles)) {
                         val fileName = deletedFiles[0].replace(link.path, "")
                         val newDirectory = moveMap[deletedFiles[0]]!!.replace(fileName, "")
-                        return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = newDirectory)
+                        return CustomChange(CustomChangeType.MOVED, afterPathString = newDirectory)
                     }
                 } else {
                     val afterPath = gitOperationManager.getMoveCommits(relativeLink)
                     // if it has an after path the directory is moved otherwise deleted
                     if (afterPath != "") {
-                        return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = afterPath)
+                        return CustomChange(CustomChangeType.MOVED, afterPathString = afterPath)
                     }
                 }
-                return DirectoryChange(DirectoryChangeType.DELETED, afterPathString = link.path)
+                return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
             }
-            DirectoryChange(DirectoryChangeType.ADDED, afterPathString = link.path)
+            CustomChange(CustomChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchLocalDirectoryChangesException(e.message)
         }
@@ -159,10 +157,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         // if we cannot get the start commit, return
         val startCommit: String =
             gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLineException(fileChange = FileChange(FileChangeType.INVALID, ""))
+                ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
-            val fileChange: FileChange = getLocalFileChanges(link, specificCommit = startCommit) as FileChange
+            val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
             val fileHistoryList: MutableList<FileHistory> = fileChange.fileHistoryList
             val diffOutputList: MutableList<DiffOutput> = mutableListOf()
 
@@ -172,7 +170,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
-                if (fileChange.fileChangeType == FileChangeType.DELETED)
+                if (fileChange.customChangeType == CustomChangeType.DELETED)
                     throw FileHasBeenDeletedException(fileChange = fileChange)
 
                 if (!fileChange.hasWorkingTreeChanges()) {
@@ -201,7 +199,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return LineTracker.trackLine(link, diffOutputMultipleRevisions)
 
         } catch (e: FileChangeGatheringException) {
-            throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
+            throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
         }
     }
 
@@ -216,10 +214,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         // if we cannot get the start commit, throw an exception
         val startCommit: String =
             gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLinesException(fileChange = FileChange(FileChangeType.INVALID, ""))
+                ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
-            val fileChange: FileChange = getLocalFileChanges(link, specificCommit = startCommit) as FileChange
+            val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
 
             val fileHistoryList: MutableList<FileHistory> = fileChange.fileHistoryList
             val diffOutputList: MutableList<DiffOutput> = mutableListOf()
@@ -236,7 +234,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
-                if (fileChange.fileChangeType == FileChangeType.DELETED) {
+                if (fileChange.customChangeType == CustomChangeType.DELETED) {
                     throw FileHasBeenDeletedException(fileChange = fileChange)
                 }
 
@@ -267,7 +265,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
             return LineTracker.trackLines(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
-            throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
+            throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
         }
     }
 
@@ -353,13 +351,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
 
                 if (similarityPair.second >= similarityThreshold) {
-                    return DirectoryChange(DirectoryChangeType.MOVED, afterPathString = similarityPair.first)
+                    return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
                 }
-                return DirectoryChange(DirectoryChangeType.DELETED, afterPathString = link.path)
+                return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
             }
 
             // as long as there is something in the directory, we can declare it valid
-            DirectoryChange(DirectoryChangeType.ADDED, afterPathString = link.path)
+            CustomChange(CustomChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchRemoteDirectoryChangesException(e.message)
         }

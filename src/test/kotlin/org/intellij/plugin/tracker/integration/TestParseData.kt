@@ -14,11 +14,6 @@ import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.DirectoryChange
-import org.intellij.plugin.tracker.data.changes.FileChange
-import org.intellij.plugin.tracker.data.changes.FileChangeType
-import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.DataParsingTask

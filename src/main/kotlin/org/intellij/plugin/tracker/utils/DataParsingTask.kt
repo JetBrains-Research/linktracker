@@ -74,14 +74,15 @@ class DataParsingTask(
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {
-                myLinksAndChangesList.add(
-                    Pair(
-                        link,
-                        FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)
-                    )
-                )
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)))
             } catch (e: DirectoryChangeGatheringException) {
-                myLinksAndChangesList.add(Pair(link, DirectoryChange(DirectoryChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)))
             } catch (e: LineChangeGatheringException) {
                 val lineChange = LineChange(
                     fileChange = e.fileChange,

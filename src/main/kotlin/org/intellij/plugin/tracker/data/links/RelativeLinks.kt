@@ -12,7 +12,7 @@ data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     override var commitSHA: String? = null
-) : RelativeLink<DirectoryChange>(linkInfo, pattern) {
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
 
@@ -27,7 +27,7 @@ data class RelativeLinkToDirectory(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: DirectoryChange, commitSHA: String?): String? {
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -40,7 +40,7 @@ data class RelativeLinkToDirectory(
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null
-) : RelativeLink<FileChange>(linkInfo, pattern) {
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
     override val referencedFileName: String
@@ -57,7 +57,7 @@ data class RelativeLinkToFile(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
 
-    override fun updateLink(change: FileChange, commitSHA: String?): String? =
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? =
         linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToFile {
