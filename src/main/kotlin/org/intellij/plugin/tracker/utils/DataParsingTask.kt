@@ -74,7 +74,12 @@ class DataParsingTask(
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {
-                myLinksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
+                myLinksAndChangesList.add(
+                    Pair(
+                        link,
+                        FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)
+                    )
+                )
             } catch (e: DirectoryChangeGatheringException) {
                 myLinksAndChangesList.add(Pair(link, DirectoryChange(DirectoryChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
             } catch (e: LineChangeGatheringException) {
@@ -91,7 +96,7 @@ class DataParsingTask(
                     errorMessage = e.message
                 )
                 myLinksAndChangesList.add(Pair(link, linesChange))
-             // catch any errors that might result from using vcs commands (git).
+                // catch any errors that might result from using vcs commands (git).
             } catch (e: VcsException) {
                 println("here: ${e.message}")
             }
