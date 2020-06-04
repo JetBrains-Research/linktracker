@@ -23,12 +23,15 @@ import java.awt.Color
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
+import java.util.HashMap
+import java.util.HashSet
 import javax.swing.*
 import javax.swing.border.Border
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreePath
 
 /**
  * Class creating tree view
@@ -39,12 +42,20 @@ class TreeView : JPanel(BorderLayout()) {
     private var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
 
+    companion object {
+        var checkedPaths = HashSet<TreePath>()
+        var nodesCheckingState = HashMap<TreePath, CheckBoxNodeData>()
+        var acceptedChangeList : MutableList<Pair<Link, Change>> = mutableListOf()
+        var scanResults : MutableList<ScanResult> = mutableListOf()
+    }
+
     /**
      * Updating tree view
      */
     fun updateModel(scanResult: ScanResult) {
         // Parse data from result
         myScanResult = scanResult
+        scanResults.add(myScanResult)
         val changes = scanResult.myLinkChanges
         val project = myScanResult.myProject
         myCommitSHA = try {
@@ -211,8 +222,43 @@ class TreeView : JPanel(BorderLayout()) {
                         }
                     }
                 }
+
+                // check checkboxes
+                if(nodesCheckingState.keys.contains(selPath)) {
+                    println("contains")
+                    val data = nodesCheckingState[selPath]
+                    println(data!!.isChecked)
+                    if(!data!!.isChecked) {
+                        data!!.isChecked = true
+                        checkedPaths.add(selPath)
+                        addToAcceptedChangeList(myScanResult.myLinkChanges, selPath)
+                    } else {
+                        data!!.isChecked = false
+                        checkedPaths.remove(selPath)
+                        removeFromAcceptedChangeList(myScanResult.myLinkChanges, selPath)
+                    }
+                }
+                println("node checking state $nodesCheckingState")
+                println("checked paths $checkedPaths")
+                println("accepted changes $acceptedChangeList")
             }
         })
+    }
+
+    private fun addToAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
+        for( pair in changes) {
+            if(pair.first.path == path.lastPathComponent.toString()) {
+                acceptedChangeList.add(pair)
+            }
+        }
+    }
+
+    private fun removeFromAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
+        for(pair in changes) {
+            if(pair.first.path == path.lastPathComponent.toString()) {
+                acceptedChangeList.remove(pair)
+            }
+        }
     }
 
     /**
@@ -283,6 +329,10 @@ class TreeView : JPanel(BorderLayout()) {
         val data = CheckBoxNodeData(text, checked)
         val node = DefaultMutableTreeNode(data)
         parent.add(node)
+        nodesCheckingState[TreePath(node.path)] = data
+        if(checked) {
+            checkedPaths.add(TreePath(node.path))
+        }
         return node
     }
 }

@@ -61,7 +61,8 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                     val text = value.parent.toString()
                     if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                         val texts = userObject.toString().split(" ")
-                        panel.label.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                        panel.label.text = texts[0] + texts[1]
+                            //"<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
                         panel.label.icon = MarkdownIcons.MarkdownPlugin
                     }
                 }
@@ -70,7 +71,8 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                     val text = value.parent.parent.parent.toString()
                     if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                         val texts = userObject.toString().split(") ")
-                        panel.label.text = "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                        panel.label.text = texts[1] + " " + texts[1]
+                            //"<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
                         panel.label.icon = AllIcons.General.TodoDefault
                     }
                 }
@@ -78,18 +80,21 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
 
             when {
                 userObject.toString().contains("Changed Links") -> {
-                    panel.label.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
-                            userObject.toString().substring(13) + "</font></html>"
+                    panel.label.text = "Changed Links " + userObject.toString().substring(13)
+                        //"<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
+                          //  userObject.toString().substring(13) + "</font></html>"
                     panel.label.icon = null
                 }
                 userObject.toString().contains("Unchanged Links") -> {
-                    panel.label.text = "<html>" + "<strong>Unchanged Links </strong></font> <font color='gray'>" +
-                            userObject.toString().substring(15) + "</font></html>"
+                    panel.label.text = "Unchanged Links " + userObject.toString().substring(15)
+                        //"<html>" + "<strong>Unchanged Links </strong></font> <font color='gray'>" +
+                          //  userObject.toString().substring(15) + "</font></html>"
                     panel.label.icon = null
                 }
                 userObject.toString().contains("Invalid Links") -> {
-                    panel.label.text = "<html>" + "<strong>Invalid Links </strong></font> <font color='gray'>" +
-                            userObject.toString().substring(13) + "</font></html>"
+                    panel.label.text = "Invalid Links " + userObject.toString().substring(13)
+                        //"<html>" + "<strong>Invalid Links </strong></font> <font color='gray'>" +
+                          //  userObject.toString().substring(13) + "</font></html>"
                     panel.label.icon = null
                 }
                 else -> { panel.label.font = panel.label.font.deriveFont(Font.PLAIN) }
