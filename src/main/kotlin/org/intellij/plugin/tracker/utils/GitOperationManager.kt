@@ -169,15 +169,13 @@ class GitOperationManager(private val project: Project) {
         val renamedFiles: MutableMap<String, String> = mutableMapOf()
         if (output.exitCode == 0) {
             val outputList = output.output.reversed()
-            for (outputStr in outputList) {
-                val elem = outputStr.replace("\\s".toRegex(), "")
-                if (elem.startsWith("A")) addedFiles.add(elem.replaceFirst("A", ""))
-                if (elem.startsWith("D")) deletedFiles.add(elem.replaceFirst("D", ""))
-                if (elem.startsWith("R100")) {
-                    val str = elem.replaceFirst("R100", "")
-                    val index = str.lastIndexOf("$path/")
-                    val prev = str.substring(0, index)
-                    val curr = str.substring(index, str.length)
+            for (elem in outputList) {
+                if (elem.startsWith("A")) addedFiles.add(elem.replaceFirst("A", "").trim())
+                if (elem.startsWith("D")) deletedFiles.add(elem.replaceFirst("D", "").trim())
+                if (elem.startsWith("R")) {
+                    val outputs = elem.split("\\s".toRegex())
+                    val prev = outputs[1]
+                    val curr = outputs[2]
                     if (addedFiles.contains(prev)) {
                         addedFiles.remove(prev)
                         addedFiles.add(curr)
@@ -191,20 +189,20 @@ class GitOperationManager(private val project: Project) {
 
     /**
      * Get move commits in all repo and finds the after path of moved directory
-     * Runs git command `git log --name-status --oneline`
+     * Runs git command `git log --name-status --oneline --find-renames=<sim_threshold>`
      */
     @Throws(VcsException::class)
-    fun getMoveCommits(path: String): String {
+    fun getMoveCommits(path: String, similarityThreshold: Int): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("--name-status", "--oneline")
+        gitLineHandler.addParameters("--name-status", "--oneline", "--find-renames=$similarityThreshold")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         if (output.exitCode == 0) {
-            val outputList = output.output.filter { it.startsWith("R100") }
+            val outputList = output.output.filter { it.startsWith("R") }
             for (elem in outputList) {
-                val str = elem.replaceFirst("R100", "").split("\\s".toRegex())
-                if (str[1].contains(path)) {
-                    val index = str[2].lastIndexOf('/')
-                    return str[2].substring(0, index)
+                val outputs = elem.split("\\s".toRegex())
+                if (outputs[1].contains(path)) {
+                    val index = outputs[2].lastIndexOf('/')
+                    return outputs[2].substring(0, index)
                 }
             }
         }

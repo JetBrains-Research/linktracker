@@ -107,6 +107,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      */
     override fun getLocalDirectoryChanges(link: Link): Change {
         link as RelativeLinkToDirectory
+        val similarityThreshold = 50
 
         return try {
             val relativeLink = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
@@ -132,7 +133,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         return CustomChange(CustomChangeType.MOVED, afterPathString = newDirectory)
                     }
                 } else {
-                    val afterPath = gitOperationManager.getMoveCommits(relativeLink)
+                    val afterPath = gitOperationManager.getMoveCommits(relativeLink, similarityThreshold)
                     // if it has an after path the directory is moved otherwise deleted
                     if (afterPath != "") {
                         return CustomChange(CustomChangeType.MOVED, afterPathString = afterPath)
