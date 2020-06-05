@@ -71,11 +71,9 @@ class CheckBoxHelper {
      */
     fun checkChildren() {
         if(getParentNode().second!!.isChecked) {
-            println("here")
             var last = false
             for(link in getLinkNodes()) {
                 if(!link.key.isChecked) {
-                    println("not checked ${link.key}")
                     var result = false
                     for(l in link.value) {
                         if(l.isChecked) {
@@ -90,16 +88,12 @@ class CheckBoxHelper {
                     last = true
                 }
             }
-            println("last $last")
             if(!last) {
-                println("oops")
                 val node = getParentNode()
                 for(n in TreeView.nodesCheckingState) {
                     if(n.key == node.first && n.value == node.second) {
-                        println("uncheck parent")
                         n.value.isChecked = false
                         TreeView.checkedPaths.remove(node.first!!)
-                        println(n.value.isChecked)
                     }
                 }
             }

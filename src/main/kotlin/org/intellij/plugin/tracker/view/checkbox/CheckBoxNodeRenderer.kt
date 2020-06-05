@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker.view.checkbox
 import com.intellij.icons.AllIcons
 import icons.MarkdownIcons
 import org.intellij.plugin.tracker.view.CustomCellRenderer
+import org.intellij.plugin.tracker.view.TreeView
 import java.awt.Color
 import java.awt.Component
 import java.awt.Font
@@ -95,8 +96,14 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                 selected, expanded, leaf, row, hasFocus
             )
         }
-        //panel.label.text = data.text
-        panel.check.isSelected = data.isChecked
+        var selected = true
+        val nodes  = TreeView.nodesCheckingState
+        for(node in nodes) {
+            if(node.key.lastPathComponent.toString().replace(" ","") == panel.label.text.replace(" ","")) {
+                selected = node.value.isChecked
+            }
+        }
+        panel.check.isSelected = selected
         return panel
     }
 

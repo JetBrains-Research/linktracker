@@ -192,13 +192,11 @@ class TreeView : JPanel(BorderLayout()) {
     private fun checkCheckBoxes(selPath: TreePath) {
         if (nodesCheckingState.keys.contains(selPath)) {
             val data = nodesCheckingState[selPath]
-            println(data!!.isChecked)
-            if (!data.isChecked) {
+            if (!data!!.isChecked) {
                 when (selPath.pathCount) {
                     2 -> {
                         for(node in nodesCheckingState) {
                             if(!node.value.isChecked) {
-                                println("added 1 ${node.key}")
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
                                 if(node.key.pathCount==4) {
@@ -208,22 +206,16 @@ class TreeView : JPanel(BorderLayout()) {
                         }
                     }
                     3 -> {
-                        println("added 2 $selPath")
-                        data.isChecked = true
-                        checkedPaths.add(selPath)
-                        println(selPath.toString() + " " + data.isChecked)
                         for(node in nodesCheckingState) {
-                            if(!node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
-                                println("added 2 ${node.key}")
+                            if(!node.value.isChecked && node.key.toString().contains(selPath.toString().replace("]", ""))) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
-                                checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                println(node.key.toString() + " " + node.value.isChecked)
-                            }
+                                if(node.key.pathCount==4) {
+                                    checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                }                            }
                         }
                     }
                     else -> {
-                        println("added 3 $selPath")
                         data.isChecked = true
                         checkedPaths.add(selPath)
                         checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, selPath)
@@ -234,7 +226,6 @@ class TreeView : JPanel(BorderLayout()) {
                     2 -> {
                         for(node in nodesCheckingState) {
                             if(node.value.isChecked) {
-                                println("removed 1 ${node.key}")
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
                                 if(node.key.pathCount==4) {
@@ -243,21 +234,16 @@ class TreeView : JPanel(BorderLayout()) {
                         }
                     }
                     3 -> {
-                        data.isChecked = false
-                        checkedPaths.remove(selPath)
-                        println("removed 2 $selPath")
                         for(node in nodesCheckingState) {
-                            if(node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
-                                println("removed 2 ${node.key}")
+                            if(node.value.isChecked && node.key.toString().contains(selPath.toString().replace("]", ""))) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                println(node.key.toString() + " " + node.value.isChecked)
-                            }
+                                if(node.key.pathCount==4) {
+                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                }                                                          }
                         }
                     }
                     else -> {
-                        println("removed 3 $selPath")
                         data.isChecked = false
                         checkedPaths.remove(selPath)
                         checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, selPath)
@@ -267,6 +253,7 @@ class TreeView : JPanel(BorderLayout()) {
             checkBoxHelper.checkChildren()
             println("nodes checking state $nodesCheckingState")
             println("checked paths $checkedPaths")
+            println("accepted $acceptedChangeList")
         }
     }
 

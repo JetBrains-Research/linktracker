@@ -40,16 +40,12 @@ class AcceptAction : AnAction() {
         }
         TreeView.acceptedChangeList = mutableListOf()
         TreeView.checkedPaths = HashSet<TreePath>()
-        println("reset")
-        println("accepted ${TreeView.acceptedChangeList}")
-        println("accepted 2 ${TreeView.checkedPaths}")
     }
 
     /**
      * Checks if the link is still valid, if so updates the link, otherwise shows the refresh dialog.
      */
     private fun updateLink(link: Link, change: Change, scanResult : ScanResult, project : Project, commitSHA : String?) {
-        println("updating link ${link.path}")
         val myLinkUpdaterService = LinkUpdaterService(project)
         ApplicationManager.getApplication().runWriteAction {
             WriteCommandAction.runWriteCommandAction(project) {
