@@ -97,7 +97,7 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().getDiffWithWorkingTree(any()) } returns mutableListOf()
         every { anyConstructed<GitOperationManager>().getDirectoryCommits(any()) } returns mutableListOf(
                 mutableListOf("main"), mutableListOf<String>(), mutableMapOf<String, String>())
-        every { anyConstructed<GitOperationManager>().getMoveCommits(any()) } returns ""
+        every { anyConstructed<GitOperationManager>().getMoveCommits(any(), any()) } returns ""
         every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
         every { anyConstructed<GitOperationManager>().getContentsOfLinesInFileAtCommit(any(), any(), any(), any()) } returns mock()
         every {
