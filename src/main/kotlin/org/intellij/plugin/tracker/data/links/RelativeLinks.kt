@@ -27,9 +27,7 @@ data class RelativeLinkToDirectory(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: CustomChange, commitSHA: String?): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)

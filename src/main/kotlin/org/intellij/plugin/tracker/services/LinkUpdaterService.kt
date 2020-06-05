@@ -9,7 +9,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.elementType
 import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 import org.intellij.plugins.markdown.lang.MarkdownTokenTypes.GFM_AUTOLINK
