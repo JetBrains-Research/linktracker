@@ -35,6 +35,7 @@ class TreePopup(
                 if (information[0].toString() == myName && information[1].toString() == path && information[2].toString() == line) {
                     val pair = changes[counter]
                     updateLink(pair.first, pair.second)
+                    LinkTrackerAction.run(myProject)
                 }
             }
         }
