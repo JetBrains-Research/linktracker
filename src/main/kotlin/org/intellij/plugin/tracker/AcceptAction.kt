@@ -62,6 +62,7 @@ class AcceptAction : AnAction() {
                 myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), commitSHA)
             }
         }
+        LinkTrackerAction.run(project)
     }
 
 }

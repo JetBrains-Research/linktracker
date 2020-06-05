@@ -233,7 +233,9 @@ class TreeView : JPanel(BorderLayout()) {
                                     println("added 1 ${node.key}")
                                     node.value.isChecked = true
                                     checkedPaths.add(node.key)
-                                    addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    if(node.key.pathCount==4) {
+                                        addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    }
                                 }
                             }
                         } else if(selPath.pathCount==3) {
@@ -261,8 +263,9 @@ class TreeView : JPanel(BorderLayout()) {
                                     println("removed 1 ${node.key}")
                                     node.value.isChecked = false
                                     checkedPaths.remove(node.key)
-                                    removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                }
+                                    if(node.key.pathCount==4) {
+                                        removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    }                                }
                             }
                         } else if(selPath.pathCount==3) {
                             data!!.isChecked = false
@@ -326,6 +329,9 @@ class TreeView : JPanel(BorderLayout()) {
 
         (myTree.model as DefaultTreeModel).reload()
         myTree.isRootVisible = false
+
+        checkedPaths= HashSet()
+        acceptedChangeList = mutableListOf()
 
         val scrollPane = JScrollPane(myTree)
         val border: Border = SideBorder(Color.LIGHT_GRAY, SideBorder.LEFT, 1)
