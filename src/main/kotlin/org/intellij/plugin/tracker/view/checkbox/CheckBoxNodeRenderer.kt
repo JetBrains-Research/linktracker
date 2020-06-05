@@ -20,8 +20,6 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
     private val defaultRenderer = DefaultTreeCellRenderer()
     private val selectionForeground: Color
     private val selectionBackground: Color
-    private val textForeground: Color
-    private val textBackground: Color
 
     // -- TreeCellRenderer methods --
     override fun getTreeCellRendererComponent(
@@ -40,17 +38,17 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
             panel.label.icon = MarkdownIcons.EditorActions.Link
             panel.check.isSelected = false
             panel.isEnabled = tree.isEnabled
-            if (selected) {
-                panel.foreground = selectionForeground
-                panel.background = selectionBackground
-                panel.label.foreground = selectionForeground
-                panel.label.background = selectionBackground
-            } else {
-                panel.foreground = textForeground
-                panel.background = textBackground
-                panel.label.foreground = textForeground
-                panel.label.background = textBackground
-            }
+//            if (selected) {
+//                panel.foreground = selectionForeground
+//                panel.background = selectionBackground
+//                panel.label.foreground = selectionForeground
+//                panel.label.background = selectionBackground
+//            } else {
+//                panel.foreground = textForeground
+//                panel.background = textBackground
+//                panel.label.foreground = textForeground
+//                panel.label.background = textBackground
+//            }
 
             if (panel.label.text.contains("DELETED") || panel.label.text.contains("MOVED")) {
                 panel.label.icon = AllIcons.General.BalloonInformation
@@ -61,7 +59,7 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                     val text = value.parent.toString()
                     if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                         val texts = userObject.toString().split(" ")
-                        panel.label.text = texts[0] + texts[1]
+                        panel.label.text = texts[0]
                             //"<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
                         panel.label.icon = MarkdownIcons.MarkdownPlugin
                     }
@@ -119,9 +117,8 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
         if (fontValue != null) panel.label.font = fontValue
         val focusPainted = UIManager.get("Tree.drawsFocusBorderAroundIcon") as Boolean
         panel.check.isFocusPainted = focusPainted != null && focusPainted
-        selectionForeground = UIManager.getColor("Tree.selectionForeground")
-        selectionBackground = UIManager.getColor("Tree.selectionBackground")
-        textForeground = UIManager.getColor("Tree.textForeground")
-        textBackground = UIManager.getColor("Tree.textBackground")
+        selectionForeground = defaultRenderer
+            .backgroundNonSelectionColor
+        selectionBackground = defaultRenderer.backgroundSelectionColor
     }
 }

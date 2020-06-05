@@ -16,9 +16,11 @@ import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.view.TreeView
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.util.HashSet
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.tree.TreePath
 
 class AcceptAction : AnAction() {
 
@@ -42,6 +44,11 @@ class AcceptAction : AnAction() {
         for(change in changes) {
             updateLink(change.first, change.second, scanResult, project, commitSHA)
         }
+        TreeView.acceptedChangeList = mutableListOf()
+        TreeView.checkedPaths = HashSet<TreePath>()
+        println("reset")
+        println("accepted ${TreeView.acceptedChangeList}")
+        println("accepted 2 ${TreeView.checkedPaths}")
     }
 
     /**
