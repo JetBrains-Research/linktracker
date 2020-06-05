@@ -70,38 +70,9 @@ class CheckBoxHelper {
      * Checks children of a node and makes required updates
      */
     fun checkChildren() {
-        if(getParentNode().second!!.isChecked) {
-            var last = false
-            for(link in getLinkNodes()) {
-                if(!link.key.isChecked) {
-                    var result = false
-                    for(l in link.value) {
-                        if(l.isChecked) {
-                            result = true
-                        }
-                    }
-                    if(result) {
-                        last = true
-                    }
-                }
-                if(link.key.isChecked) {
-                    last = true
-                }
-            }
-            if(!last) {
-                val node = getParentNode()
-                for(n in TreeView.nodesCheckingState) {
-                    if(n.key == node.first && n.value == node.second) {
-                        n.value.isChecked = false
-                        TreeView.checkedPaths.remove(node.first!!)
-                    }
-                }
-            }
-        }
         val links = getLinkNodes()
         for(link in links) {
             if(link.key.isChecked) {
-                println("checked")
                 var result = false
                 for(c in link.value) {
                     if(c.isChecked) {
@@ -110,6 +81,17 @@ class CheckBoxHelper {
                 }
                 if(!result) {
                     link.key.isChecked = false
+                }
+            }
+            if(!link.key.isChecked) {
+                var result = true
+                for(c in link.value) {
+                    if(!c.isChecked) {
+                        result = false
+                    }
+                }
+                if(result) {
+                    link.key.isChecked = true
                 }
             }
         }
@@ -164,19 +146,6 @@ class CheckBoxHelper {
                 TreeView.acceptedChangeList.remove(pair)
             }
         }
-    }
-
-    /**
-     * Gets parent node of a node
-     */
-    private fun getParentNode() : Pair<TreePath?, CheckBoxNodeData?> {
-        var result : Pair<TreePath?, CheckBoxNodeData?> = Pair(null, null)
-        for(node in TreeView.nodesCheckingState) {
-            if(node.key.pathCount==2) {
-                result = Pair(node.key, node.value)
-            }
-        }
-        return result
     }
 
     /**
