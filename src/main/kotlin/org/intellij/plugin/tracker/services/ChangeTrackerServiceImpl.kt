@@ -131,7 +131,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     val moved = mutableListOf<String>()
                     for (move in movedFiles) {
                         val file = move.key.replaceFirst(link.path, "")
-                        moved.add(move.value.replace(file, ""))
+                        val index = move.value.lastIndexOf(file)
+                        moved.add(move.value.substring(0, index))
                     }
 
                     val countMap: Map<String, Int> = moved.groupingBy {it}.eachCount()

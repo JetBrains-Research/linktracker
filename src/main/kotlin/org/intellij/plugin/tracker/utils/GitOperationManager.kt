@@ -176,8 +176,8 @@ class GitOperationManager(private val project: Project) {
                 if (paths[0].startsWith("R")) {
                     val prev = paths[1]
                     val curr = paths[2]
-                    if (!prev.contains(path) && curr.contains(path)) addedFiles.add(curr)
-                    if (prev.contains(path)) movedFiles[prev] = curr
+                    if (!prev.startsWith(path) && curr.startsWith(path)) addedFiles.add(curr)
+                    if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles[prev] = curr
                 }
             }
         }
