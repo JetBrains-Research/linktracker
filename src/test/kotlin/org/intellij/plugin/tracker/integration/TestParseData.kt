@@ -95,9 +95,8 @@ class TestParseData : BasePlatformTestCase() {
                 "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project.git"
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
         every { anyConstructed<GitOperationManager>().getDiffWithWorkingTree(any()) } returns mutableListOf()
-        every { anyConstructed<GitOperationManager>().getDirectoryCommits(any()) } returns mutableListOf(
+        every { anyConstructed<GitOperationManager>().getDirectoryCommits(any(), any()) } returns mutableListOf(
                 mutableListOf("main"), mutableListOf<String>(), mutableMapOf<String, String>())
-        every { anyConstructed<GitOperationManager>().getMoveCommits(any(), any()) } returns ""
         every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
         every { anyConstructed<GitOperationManager>().getContentsOfLinesInFileAtCommit(any(), any(), any(), any()) } returns mock()
         every {

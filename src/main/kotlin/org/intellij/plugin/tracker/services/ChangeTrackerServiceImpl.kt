@@ -110,37 +110,37 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         val similarityThreshold = 50
 
         return try {
-            val relativeLink = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
-            val files = gitOperationManager.getDirectoryCommits(relativeLink)
+            var relativeLink = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
+            if (relativeLink.endsWith('/')) { relativeLink = relativeLink.substringBeforeLast('/') }
+
+            val files = gitOperationManager.getDirectoryCommits(relativeLink, similarityThreshold)
 
             // list of all the files that have been added, deleted or moved
-            val addedFiles = files[0].castSafelyTo<MutableList<String>>()!!
+            var addedFiles = files[0].castSafelyTo<MutableList<String>>()!!
             val deletedFiles = files[1].castSafelyTo<MutableList<String>>()!!
             val movedFiles = files[2].castSafelyTo<MutableMap<String, String>>()!!
 
-            // can only happen when the directory does not exist
+            addedFiles = addedFiles.distinct().toMutableList()
+
+            // can only happen when the directory did not exist
             if (addedFiles.size == 0) {
                 throw LocalDirectoryNeverExistedException()
-            } else if (addedFiles.size == deletedFiles.size + movedFiles.size) {
-                // if the directory is a subdirectory goes if statement otherwise else
-                if (relativeLink.contains("/")) {
-                    val parentPath = relativeLink.substring(0, relativeLink.lastIndexOf("/"))
-                    val fileList = gitOperationManager.getDirectoryCommits(parentPath)
-                    val moveMap = fileList[2].castSafelyTo<MutableMap<String, String>>()!!
-                    if (moveMap.keys.containsAll(deletedFiles)) {
-                        val fileName = deletedFiles[0].replaceFirst(link.path, "")
-                        val newDirectory = moveMap[deletedFiles[0]]!!.replaceFirst(fileName, "")
-                        return CustomChange(CustomChangeType.MOVED, afterPathString = newDirectory)
-                    }
-                } else {
-                    val afterPath = gitOperationManager.getMoveCommits(relativeLink, similarityThreshold)
-                    // if it has an after path the directory is moved otherwise deleted
-                    if (afterPath != "") {
-                        return CustomChange(CustomChangeType.MOVED, afterPathString = afterPath)
+            }
+            if (addedFiles.size == deletedFiles.size + movedFiles.size) {
+                if (movedFiles.isNotEmpty()) {
+                    val countMap: Map<String, Int> = movedFiles.values.toList()
+                            .groupingBy { it.substring(0, it.lastIndexOf('/')) }.eachCount()
+                    val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
+                    val similarityPair = Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFiles.size * 100).toInt())
+
+                    if (similarityPair.second >= similarityThreshold) {
+                        return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
                     }
                 }
                 return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
             }
+
+            // as long as there is something in the directory, we can declare it valid
             CustomChange(CustomChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchLocalDirectoryChangesException(e.message)
@@ -305,9 +305,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
         // list of all the files that have been added to this folder
         var addedFiles: MutableList<String> = mutableListOf()
-        // list of all the files that have been moved out of this folder
+        // list of all the files that have been delete from this folder
         val deletedFiles: MutableList<String> = mutableListOf()
-        // list of all the files deletes from this folder
+        // list of all the files that have been moved out out this folder
         val movedFiles: MutableList<String> = mutableListOf()
 
         return try {

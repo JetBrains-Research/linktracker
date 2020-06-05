@@ -156,57 +156,32 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Get all commits which affected the directory path
-     * Runs git command `git log --follow --name-status --oneline -- path`
-     */
-    @Throws(VcsException::class)
-    fun getDirectoryCommits(path: String): MutableList<Any> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("--follow", "--name-status", "--oneline", "--", path)
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val addedFiles: MutableList<String> = mutableListOf()
-        val deletedFiles: MutableList<String> = mutableListOf()
-        val renamedFiles: MutableMap<String, String> = mutableMapOf()
-        if (output.exitCode == 0) {
-            val outputList = output.output.reversed()
-            for (elem in outputList) {
-                if (elem.startsWith("A")) addedFiles.add(elem.replaceFirst("A", "").trim())
-                if (elem.startsWith("D")) deletedFiles.add(elem.replaceFirst("D", "").trim())
-                if (elem.startsWith("R")) {
-                    val outputs = elem.split("\\s".toRegex())
-                    val prev = outputs[1]
-                    val curr = outputs[2]
-                    if (addedFiles.contains(prev)) {
-                        addedFiles.remove(prev)
-                        addedFiles.add(curr)
-                        renamedFiles[prev] = curr
-                    }
-                }
-            }
-        }
-        return mutableListOf(addedFiles, deletedFiles, renamedFiles)
-    }
-
-    /**
-     * Get move commits in all repo and finds the after path of moved directory
+     * Gets added, deleted and moved out files of specific directory
      * Runs git command `git log --name-status --oneline --find-renames=<sim_threshold>`
      */
     @Throws(VcsException::class)
-    fun getMoveCommits(path: String, similarityThreshold: Int): String {
+    fun getDirectoryCommits(path: String, similarityThreshold: Int): MutableList<Any> {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("--name-status", "--oneline", "--find-renames=$similarityThreshold")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
+        val addedFiles: MutableList<String> = mutableListOf()
+        val deletedFiles: MutableList<String> = mutableListOf()
+        val movedFiles: MutableMap<String, String> = mutableMapOf()
         if (output.exitCode == 0) {
-            val outputList = output.output.filter { it.startsWith("R") }
+            val outputList = output.output
             for (elem in outputList) {
-                val outputs = elem.split("\\s".toRegex())
-                if (outputs[1].contains(path)) {
-                    val index = outputs[2].lastIndexOf('/')
-                    return outputs[2].substring(0, index)
+                val paths = elem.split("\\s".toRegex())
+                if (paths[0] == "A" && paths[1].startsWith(path)) addedFiles.add(paths[1])
+                if (paths[0] == "D" && paths[1].startsWith(path)) deletedFiles.add(paths[1])
+                if (paths[0].startsWith("R")) {
+                    val prev = paths[1]
+                    val curr = paths[2]
+                    if (!prev.contains(path) && curr.contains(path)) addedFiles.add(curr)
+                    if (prev.contains(path)) movedFiles[prev] = curr
                 }
             }
         }
-        return ""
+        return mutableListOf(addedFiles, deletedFiles, movedFiles)
     }
 
     /**
