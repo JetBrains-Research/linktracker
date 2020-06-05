@@ -128,8 +128,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             }
             if (addedFiles.size == deletedFiles.size + movedFiles.size) {
                 if (movedFiles.isNotEmpty()) {
-                    val countMap: Map<String, Int> = movedFiles.values.toList()
-                            .groupingBy { it.substring(0, it.lastIndexOf('/')) }.eachCount()
+                    val moved = mutableListOf<String>()
+                    for (move in movedFiles) {
+                        val file = move.key.replaceFirst(link.path, "")
+                        moved.add(move.value.replace(file, ""))
+                    }
+
+                    val countMap: Map<String, Int> = moved.groupingBy {it}.eachCount()
                     val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
                     val similarityPair = Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFiles.size * 100).toInt())
 
