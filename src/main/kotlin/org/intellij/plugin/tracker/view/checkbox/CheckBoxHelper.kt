@@ -98,6 +98,50 @@ class CheckBoxHelper {
                 }
             }
         }
+        val links = getLinkNodes()
+        for(link in links) {
+            if(link.key.isChecked) {
+                println("checked")
+                var result = false
+                for(c in link.value) {
+                    if(c.isChecked) {
+                        result = true
+                    }
+                }
+                if(!result) {
+                    link.key.isChecked = false
+                }
+            }
+        }
+        var parentSelected = false
+        var allOtherSelected = true
+        var nonSelected = true
+        for(n in TreeView.nodesCheckingState) {
+            if(n.key.pathCount == 2 && n.value.isChecked) {
+                parentSelected = true
+            }
+        }
+        for(n in TreeView.nodesCheckingState) {
+            if(n.key.pathCount != 2 && !n.value.isChecked) {
+                allOtherSelected = false
+            } else if(n.key.pathCount != 2 && n.value.isChecked) {
+                nonSelected = false
+            }
+        }
+        if(!parentSelected && allOtherSelected) {
+            for(n in TreeView.nodesCheckingState) {
+                if(n.key.pathCount == 2) {
+                    n.value.isChecked = true
+                }
+            }
+        }
+        if(parentSelected && nonSelected) {
+            for(n in TreeView.nodesCheckingState) {
+                if(n.key.pathCount == 2) {
+                    n.value.isChecked = false
+                }
+            }
+        }
     }
 
     /**
