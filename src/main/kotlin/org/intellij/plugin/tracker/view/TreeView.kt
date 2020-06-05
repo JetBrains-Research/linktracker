@@ -82,9 +82,12 @@ class TreeView : JPanel(BorderLayout()) {
         val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
-        val changed = checkBoxHelper.add(root, "Changed Links ${count(changedOnes)} links", false)
-        val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
-        val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
+        val changed = checkBoxHelper.add(root, "Changed Links " +
+                "${changedOnes.map {it.value}.sumBy {it.size}} links", false)
+        val unchanged = DefaultMutableTreeNode("Unchanged Links " +
+                "${unchangedOnes.map {it.value}.sumBy {it.size}} links")
+        val invalid = DefaultMutableTreeNode("Invalid Links " +
+                "${invalidOnes.map {it.value}.sumBy {it.size}} links")
 
         val info = changes.map {
             mutableListOf(
@@ -137,17 +140,6 @@ class TreeView : JPanel(BorderLayout()) {
             node.add(file)
         }
         return node
-    }
-
-    /**
-     * Counts number of links
-     */
-    private fun count(list: Map<String, List<Pair<Link, Change>>>): Int {
-        var count = 0
-        for (el in list) {
-            count += el.value.size
-        }
-        return count
     }
 
     /**
