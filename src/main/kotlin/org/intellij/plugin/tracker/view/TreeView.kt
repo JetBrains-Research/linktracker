@@ -15,6 +15,7 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxHelper
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
@@ -39,6 +40,7 @@ class TreeView : JPanel(BorderLayout()) {
     private var myTree: JTree = JTree(DefaultMutableTreeNode("markdown"))
     private var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
+    private val checkBoxHelper = CheckBoxHelper()
 
     companion object {
         var checkedPaths = HashSet<TreePath>()
@@ -48,7 +50,7 @@ class TreeView : JPanel(BorderLayout()) {
     }
 
     /**
-     * Updating tree view
+     * Updates the tree model and adds required nodes for links
      */
     fun updateModel(scanResult: ScanResult) {
         // Parse data from result
@@ -71,7 +73,6 @@ class TreeView : JPanel(BorderLayout()) {
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
-
         val changedOnes = changes.filter {
             (it.second.requiresUpdate || it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }) && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
@@ -81,7 +82,7 @@ class TreeView : JPanel(BorderLayout()) {
         val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
-        val changed = add(root, "Changed Links ${count(changedOnes)} links", false)
+        val changed = checkBoxHelper.add(root, "Changed Links ${count(changedOnes)} links", false)
         val unchanged = DefaultMutableTreeNode("Unchanged Links ${count(unchangedOnes)} links")
         val invalid = DefaultMutableTreeNode("Invalid Links ${count(invalidOnes)} links")
 
@@ -94,14 +95,16 @@ class TreeView : JPanel(BorderLayout()) {
 
         callListener(info)
 
-        root.add(addCheckBoxNodeTree(changedOnes, changed))
+        root.add(checkBoxHelper.addCheckBoxNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
         (myTree.model as DefaultTreeModel).reload()
     }
 
-    private fun addNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode):
-            DefaultMutableTreeNode {
+    /**
+     * Adds a new node to the tree
+     */
+    private fun addNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode): DefaultMutableTreeNode {
         for (linkList in changeList) {
             val fileName = linkList.value[0].first.linkInfo.fileName
             var path = linkList.key.replace(fileName, "")
@@ -129,53 +132,16 @@ class TreeView : JPanel(BorderLayout()) {
                 } else if (links.second.errorMessage != null) {
                     link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
                 }
-
                 file.add(link)
             }
             node.add(file)
         }
-
         return node
     }
 
-    private fun addCheckBoxNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode):
-            DefaultMutableTreeNode {
-        for (linkList in changeList) {
-            val fileName = linkList.value[0].first.linkInfo.fileName
-            var path = linkList.key.replace(fileName, "")
-            if (path.endsWith("/")) {
-                path = path.dropLast(1)
-            }
-            val file = add(node, "$fileName $path", false)
-            for (links in linkList.value) {
-                val link = add(file, links.first.linkInfo.linkPath, false)
-                link.add(
-                    DefaultMutableTreeNode(
-                        "(${links.first.linkInfo.foundAtLineNumber}) " +
-                                links.first.linkInfo.linkText
-                    )
-                )
-                if (links.second.requiresUpdate) {
-                    var displayString = ""
-                    for ((index: Int, changeType: ChangeType) in links.second.changes.withIndex()) {
-                        displayString += changeType.changeTypeString
-                        if (index != links.second.changes.size - 1) {
-                            displayString += " and "
-                        }
-                    }
-                    link.add(DefaultMutableTreeNode(displayString))
-                } else if (links.second.errorMessage != null) {
-                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
-                }
-
-                file.add(link)
-            }
-            node.add(file)
-        }
-
-        return node
-    }
-
+    /**
+     * Counts number of links
+     */
     private fun count(list: Map<String, List<Pair<Link, Change>>>): Int {
         var count = 0
         for (el in list) {
@@ -184,6 +150,9 @@ class TreeView : JPanel(BorderLayout()) {
         return count
     }
 
+    /**
+     * Adds mouse listener for left and right click
+     */
     private fun callListener(info: List<MutableList<*>>) {
         myTree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
@@ -220,171 +189,92 @@ class TreeView : JPanel(BorderLayout()) {
                         }
                     }
                 }
-
-                // check checkboxes
-                if(nodesCheckingState.keys.contains(selPath)) {
-                    val data = nodesCheckingState[selPath]
-                    println(data!!.isChecked)
-                    if(!data!!.isChecked) {
-                        if(selPath.pathCount==2) {
-                            for(node in nodesCheckingState) {
-                                if(!node.value.isChecked) {
-                                    println("added 1 ${node.key}")
-                                    node.value.isChecked = true
-                                    checkedPaths.add(node.key)
-                                    if(node.key.pathCount==4) {
-                                        addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                    }
-                                }
-                            }
-                        } else if(selPath.pathCount==3) {
-                            println("added 2 $selPath")
-                            data!!.isChecked = true
-                            checkedPaths.add(selPath)
-                            println(selPath.toString() + " " + data.isChecked)
-                            for(node in nodesCheckingState) {
-                                if(!node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
-                                    println("added 2 ${node.key}")
-                                    node.value.isChecked = true
-                                    checkedPaths.add(node.key)
-                                    addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                    println(node.key.toString() + " " + node.value.isChecked)
-                                }
-                            }
-                        } else {
-                            println("added 3 $selPath")
-                            data!!.isChecked = true
-                            checkedPaths.add(selPath)
-                            addToAcceptedChangeList(myScanResult.myLinkChanges, selPath)
-                        }
-                    } else {
-                        if(selPath.pathCount==2) {
-                            for(node in nodesCheckingState) {
-                                if(node.value.isChecked) {
-                                    println("removed 1 ${node.key}")
-                                    node.value.isChecked = false
-                                    checkedPaths.remove(node.key)
-                                    if(node.key.pathCount==4) {
-                                        removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                    }                                }
-                            }
-                        } else if(selPath.pathCount==3) {
-                            data!!.isChecked = false
-                            checkedPaths.remove(selPath)
-                            println("removed 2 $selPath")
-                            for(node in nodesCheckingState) {
-                                if(node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
-                                    println("removed 2 ${node.key}")
-                                    node.value.isChecked = false
-                                    checkedPaths.remove(node.key)
-                                    removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                    println(node.key.toString() + " " + node.value.isChecked)
-                                }
-                            }
-                        } else {
-                            println("removed 3 $selPath")
-                            data!!.isChecked = false
-                            checkedPaths.remove(selPath)
-                            removeFromAcceptedChangeList(myScanResult.myLinkChanges, selPath)
-                        }
-                    }
-                    checkChildren()
-                    println("nodes checking state $nodesCheckingState")
-                    println("checked paths $checkedPaths")
-                }
+                if (selPath != null) checkCheckBoxes(selPath)
             }
         })
     }
 
-    fun getParentNode() : Pair<TreePath?, CheckBoxNodeData?> {
-        var result : Pair<TreePath?, CheckBoxNodeData?> = Pair(null, null)
-        for(node in nodesCheckingState) {
-            if(node.key.pathCount==2) {
-                result = Pair(node.key, node.value)
-            }
-        }
-        return result
-    }
-
-    private fun getFileNodes() : MutableList<Pair<TreePath, CheckBoxNodeData>> {
-        var result : MutableList<Pair<TreePath, CheckBoxNodeData>> = mutableListOf()
-        val paths = mutableListOf<TreePath>()
-        for(node in nodesCheckingState) {
-            if(node.key.pathCount==3) {
-                val pair = Pair(node.key, node.value)
-                if(!paths.contains(node.key)) {
-                    result.add(pair)
-                    paths.add(node.key)
-                }
-            }
-        }
-        return result
-    }
-
-    fun getLinkNodes() : HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> {
-        var result : HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> = HashMap()
-        for(file in getFileNodes()) {
-            val list = mutableListOf<CheckBoxNodeData>()
-            for(node in nodesCheckingState) {
-                if(node.key.pathCount==4 && node.key.toString().contains(file.first.toString().replace("]", ""))) {
-                    list.add(node.value)
-                }
-            }
-            result[file.second] = list
-        }
-        return result
-    }
-
-    fun checkChildren() {
-        if(getParentNode().second!!.isChecked) {
-            println("here")
-            var last = false
-            for(link in getLinkNodes()) {
-                if(!link.key.isChecked) {
-                    println("not checked ${link.key}")
-                    var result = false
-                    for(l in link.value) {
-                        if(l.isChecked) {
-                            result = true
+    /**
+     * Checks the situation of checkboxes and makes required updates
+     */
+    private fun checkCheckBoxes(selPath: TreePath) {
+        if (nodesCheckingState.keys.contains(selPath)) {
+            val data = nodesCheckingState[selPath]
+            println(data!!.isChecked)
+            if (!data.isChecked) {
+                when (selPath.pathCount) {
+                    2 -> {
+                        for(node in nodesCheckingState) {
+                            if(!node.value.isChecked) {
+                                println("added 1 ${node.key}")
+                                node.value.isChecked = true
+                                checkedPaths.add(node.key)
+                                if(node.key.pathCount==4) {
+                                    checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                }
+                            }
                         }
                     }
-                    if(result) {
-                        last = true
+                    3 -> {
+                        println("added 2 $selPath")
+                        data.isChecked = true
+                        checkedPaths.add(selPath)
+                        println(selPath.toString() + " " + data.isChecked)
+                        for(node in nodesCheckingState) {
+                            if(!node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
+                                println("added 2 ${node.key}")
+                                node.value.isChecked = true
+                                checkedPaths.add(node.key)
+                                checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                println(node.key.toString() + " " + node.value.isChecked)
+                            }
+                        }
+                    }
+                    else -> {
+                        println("added 3 $selPath")
+                        data.isChecked = true
+                        checkedPaths.add(selPath)
+                        checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, selPath)
                     }
                 }
-                if(link.key.isChecked) {
-                    last = true
-                }
-            }
-            println("last $last")
-            if(!last) {
-                println("oops")
-                val node = getParentNode()!!
-                for(n in nodesCheckingState) {
-                    if(n.key == node.first && n.value == node.second) {
-                        println("uncheck parent")
-                        n.value.isChecked = false
-                        checkedPaths.remove(node.first!!)
-                        println(n.value.isChecked)
+            } else {
+                when (selPath.pathCount) {
+                    2 -> {
+                        for(node in nodesCheckingState) {
+                            if(node.value.isChecked) {
+                                println("removed 1 ${node.key}")
+                                node.value.isChecked = false
+                                checkedPaths.remove(node.key)
+                                if(node.key.pathCount==4) {
+                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                }                                }
+                        }
+                    }
+                    3 -> {
+                        data.isChecked = false
+                        checkedPaths.remove(selPath)
+                        println("removed 2 $selPath")
+                        for(node in nodesCheckingState) {
+                            if(node.value.isChecked && node.key.pathCount==4 && node.key.toString().contains(selPath.toString().replace("]", ""))) {
+                                println("removed 2 ${node.key}")
+                                node.value.isChecked = false
+                                checkedPaths.remove(node.key)
+                                checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                println(node.key.toString() + " " + node.value.isChecked)
+                            }
+                        }
+                    }
+                    else -> {
+                        println("removed 3 $selPath")
+                        data.isChecked = false
+                        checkedPaths.remove(selPath)
+                        checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, selPath)
                     }
                 }
             }
-        }
-    }
-
-    private fun addToAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
-        for( pair in changes) {
-            if(pair.first.path == path.lastPathComponent.toString()) {
-                acceptedChangeList.add(pair)
-            }
-        }
-    }
-
-    private fun removeFromAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
-        for(pair in changes) {
-            if(pair.first.path == path.lastPathComponent.toString()) {
-                acceptedChangeList.remove(pair)
-            }
+            checkBoxHelper.checkChildren()
+            println("nodes checking state $nodesCheckingState")
+            println("checked paths $checkedPaths")
         }
     }
 
@@ -427,19 +317,5 @@ class TreeView : JPanel(BorderLayout()) {
         contentPane.add(actionToolbar.component, BorderLayout.WEST)
         contentPane.add(scrollPane, BorderLayout.CENTER)
         add(contentPane, BorderLayout.CENTER)
-    }
-
-    private fun add(
-        parent: DefaultMutableTreeNode, text: String,
-        checked: Boolean
-    ): DefaultMutableTreeNode {
-        val data = CheckBoxNodeData(text, checked)
-        val node = DefaultMutableTreeNode(data)
-        parent.add(node)
-        nodesCheckingState[TreePath(node.path)] = data
-        if(checked) {
-            checkedPaths.add(TreePath(node.path))
-        }
-        return node
     }
 }

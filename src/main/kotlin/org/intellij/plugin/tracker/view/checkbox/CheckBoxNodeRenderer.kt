@@ -33,22 +33,10 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
             if (userObject is CheckBoxNodeData) {
                 data = userObject
             }
-            //val stringValue = tree.convertValueToText(value, selected, expanded, leaf, row, false)
             panel.label.text = userObject.toString()
             panel.label.icon = MarkdownIcons.EditorActions.Link
             panel.check.isSelected = false
             panel.isEnabled = tree.isEnabled
-//            if (selected) {
-//                panel.foreground = selectionForeground
-//                panel.background = selectionBackground
-//                panel.label.foreground = selectionForeground
-//                panel.label.background = selectionBackground
-//            } else {
-//                panel.foreground = textForeground
-//                panel.background = textBackground
-//                panel.label.foreground = textForeground
-//                panel.label.background = textBackground
-//            }
 
             if (panel.label.text.contains("DELETED") || panel.label.text.contains("MOVED")) {
                 panel.label.icon = AllIcons.General.BalloonInformation
@@ -116,7 +104,7 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
         val fontValue = UIManager.getFont("Tree.font")
         if (fontValue != null) panel.label.font = fontValue
         val focusPainted = UIManager.get("Tree.drawsFocusBorderAroundIcon") as Boolean
-        panel.check.isFocusPainted = focusPainted != null && focusPainted
+        panel.check.isFocusPainted = focusPainted
         selectionForeground = defaultRenderer
             .backgroundNonSelectionColor
         selectionBackground = defaultRenderer.backgroundSelectionColor

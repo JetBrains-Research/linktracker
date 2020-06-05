@@ -21,8 +21,7 @@ class CheckBoxNodeEditor(private val theTree: JTree) : AbstractCellEditor(), Tre
 
     override fun isCellEditable(event: EventObject): Boolean {
         if (event !is MouseEvent) return false
-        val mouseEvent = event
-        val path = theTree.getPathForLocation(mouseEvent.x, mouseEvent.y) ?: return false
+        val path = theTree.getPathForLocation(event.x, event.y) ?: return false
         val node = path.lastPathComponent as? DefaultMutableTreeNode ?: return false
         val userObject = node.userObject
         return userObject is CheckBoxNodeData
@@ -49,5 +48,4 @@ class CheckBoxNodeEditor(private val theTree: JTree) : AbstractCellEditor(), Tre
         }
         return editor
     }
-
 }

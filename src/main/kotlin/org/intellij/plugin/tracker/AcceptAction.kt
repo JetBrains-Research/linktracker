@@ -6,7 +6,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
@@ -14,12 +13,7 @@ import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.view.TreeView
-import java.awt.BorderLayout
-import java.awt.Dimension
 import java.util.HashSet
-import javax.swing.JComponent
-import javax.swing.JLabel
-import javax.swing.JPanel
 import javax.swing.tree.TreePath
 
 class AcceptAction : AnAction() {
@@ -64,5 +58,4 @@ class AcceptAction : AnAction() {
         }
         LinkTrackerAction.run(project)
     }
-
 }
