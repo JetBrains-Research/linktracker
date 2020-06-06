@@ -122,10 +122,11 @@ class LinkUpdaterService(val project: Project) {
             link.linkInfo.fileName,
             GlobalSearchScope.projectScope(project)
         )
-        matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
+
+        val filteredFiles = matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
         // Assume only one valid result
-        assert(matchingFiles.size == 1)
-        val psiFile: PsiFile = matchingFiles[0]
+        assert(filteredFiles.size == 1)
+        val psiFile: PsiFile = filteredFiles[0]
 
         val parent: PsiElement? = psiFile.findElementAt(link.linkInfo.textOffset)?.parent
         val child: PsiElement? = psiFile.findElementAt(link.linkInfo.textOffset)
