@@ -180,8 +180,7 @@ class TreeView : JPanel(BorderLayout()) {
                             }
                         }
                     }
-                }
-                if (selPath != null) checkCheckBoxes(selPath)
+                } else if (selPath != null) checkCheckBoxes(selPath)
             }
         })
     }

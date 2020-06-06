@@ -12,6 +12,7 @@ import javax.swing.UIManager
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
+import javax.swing.tree.TreePath
 
 /**
  * A [TreeCellRenderer] for check box tree nodes.
@@ -29,7 +30,9 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
         leaf: Boolean, row: Int, hasFocus: Boolean
     ): Component {
         var data: CheckBoxNodeData? = null
+        var path : TreePath? = null
         if (value is DefaultMutableTreeNode) {
+            path = TreePath(value.path)
             val userObject = value.userObject
             if (userObject is CheckBoxNodeData) {
                 data = userObject
@@ -96,10 +99,10 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                 selected, expanded, leaf, row, hasFocus
             )
         }
-        var selected = true
+        var selected: Boolean = true
         val nodes  = TreeView.nodesCheckingState
         for(node in nodes) {
-            if(node.key.lastPathComponent.toString().replace(" ","") == panel.label.text.replace(" ","")) {
+            if(path == node.key) {
                 selected = node.value.isChecked
             }
         }
