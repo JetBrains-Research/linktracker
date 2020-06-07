@@ -35,23 +35,24 @@ class AcceptAction : AnAction() {
         } catch (e: VcsException) {
             null
         }
-        for(change in changes) {
+        for (change in changes) {
             updateLink(change.first, change.second, scanResult, project, commitSHA)
         }
         TreeView.acceptedChangeList = mutableListOf()
         TreeView.checkedPaths = HashSet<TreePath>()
+        TreeView.nodesCheckingState = HashMap()
+        LinkTrackerAction.run(project)
     }
 
     /**
      * Checks if the link is still valid, if so updates the link, otherwise shows the refresh dialog.
      */
-    private fun updateLink(link: Link, change: Change, scanResult : ScanResult, project : Project, commitSHA : String?) {
+    private fun updateLink(link: Link, change: Change, scanResult: ScanResult, project: Project, commitSHA: String?) {
         val myLinkUpdaterService = LinkUpdaterService(project)
         ApplicationManager.getApplication().runWriteAction {
             WriteCommandAction.runWriteCommandAction(project) {
                 myLinkUpdaterService.updateLinks(mutableListOf(Pair(link, change)), commitSHA)
             }
         }
-        LinkTrackerAction.run(project)
     }
 }

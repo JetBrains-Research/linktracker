@@ -41,12 +41,13 @@ class TreeView : JPanel(BorderLayout()) {
     private var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
     private val checkBoxHelper = CheckBoxHelper()
+    private var callListenerInfo: List<MutableList<*>> = listOf()
 
     companion object {
         var checkedPaths = HashSet<TreePath>()
         var nodesCheckingState = HashMap<TreePath, CheckBoxNodeData>()
-        var acceptedChangeList : MutableList<Pair<Link, Change>> = mutableListOf()
-        var scanResults : MutableList<ScanResult> = mutableListOf()
+        var acceptedChangeList: MutableList<Pair<Link, Change>> = mutableListOf()
+        var scanResults: MutableList<ScanResult> = mutableListOf()
     }
 
     /**
@@ -77,17 +78,24 @@ class TreeView : JPanel(BorderLayout()) {
             (it.second.requiresUpdate || it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }) && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
         val unchangedOnes = changes.filter {
-            !it.second.requiresUpdate && it.second.errorMessage == null && !it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }
+            !it.second.requiresUpdate && it.second.errorMessage == null && !it.second.afterPath.any { path ->
+                it.first.markdownFileMoved(
+                    path
+                )
+            }
         }.groupBy { it.first.linkInfo.proveniencePath }
         val invalidOnes = changes.filter { it.second.errorMessage != null }
             .groupBy { it.first.linkInfo.proveniencePath }
 
         val changed = checkBoxHelper.add(root, "Changed Links " +
-                "${changedOnes.map {it.value}.sumBy {it.size}} links", false)
+                "${changedOnes.map { it.value }.sumBy { it.size }} links", false
+        )
         val unchanged = DefaultMutableTreeNode("Unchanged Links " +
-                "${unchangedOnes.map {it.value}.sumBy {it.size}} links")
+                "${unchangedOnes.map { it.value }.sumBy { it.size }} links"
+        )
         val invalid = DefaultMutableTreeNode("Invalid Links " +
-                "${invalidOnes.map {it.value}.sumBy {it.size}} links")
+                "${invalidOnes.map { it.value }.sumBy { it.size }} links"
+        )
 
         val info = changes.map {
             mutableListOf(
@@ -96,7 +104,8 @@ class TreeView : JPanel(BorderLayout()) {
             )
         }
 
-        callListener(info)
+        callListenerInfo = info
+        callListener()
 
         root.add(checkBoxHelper.addCheckBoxNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
@@ -107,7 +116,10 @@ class TreeView : JPanel(BorderLayout()) {
     /**
      * Adds a new node to the tree
      */
-    private fun addNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode): DefaultMutableTreeNode {
+    private fun addNodeTree(
+        changeList: Map<String, List<Pair<Link, Change>>>,
+        node: DefaultMutableTreeNode
+    ): DefaultMutableTreeNode {
         for (linkList in changeList) {
             val fileName = linkList.value[0].first.linkInfo.fileName
             var path = linkList.key.replace(fileName, "")
@@ -145,47 +157,50 @@ class TreeView : JPanel(BorderLayout()) {
     /**
      * Adds mouse listener for left and right click
      */
-    private fun callListener(info: List<MutableList<*>>) {
-        if (myTree.mouseListeners.size == 2) {
-            myTree.removeMouseListener(myTree.mouseListeners.last())
-        }
-        myTree.addMouseListener(object : MouseAdapter() {
-            override fun mouseReleased(e: MouseEvent) {
-                val selRow = myTree.getRowForLocation(e.x, e.y)
-                val selPath = myTree.getPathForLocation(e.x, e.y)
-                if (selPath != null && selPath.pathCount == 5) {
-                    val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
-                    val name = selPath.parentPath.lastPathComponent.toString()
-                    val line = substringBetween(selPath.toString(), "(", ")")
-                    val paths = selPath.parentPath.parentPath.lastPathComponent.toString().split(" ")
-                    var path = paths[0]
-                    if (paths[1].toCharArray().isNotEmpty()) {
-                        path = paths[1] + "/" + paths[0]
-                    }
-                    if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains("DELETED")) {
-                        myTree.selectionPath = selPath
-                        val treePopup = TreePopup(myScanResult, info, name, line, path, myCommitSHA)
-                        treePopup.show(e.component, e.x, e.y)
-                        if (selRow > -1) {
-                            myTree.setSelectionRow(selRow)
+    private fun callListener() {
+        if (myTree.mouseListeners.size < 2) {
+            myTree.addMouseListener(object : MouseAdapter() {
+                override fun mouseReleased(e: MouseEvent) {
+                    val selRow = myTree.getRowForLocation(e.x, e.y)
+                    val selPath = myTree.getPathForLocation(e.x, e.y)
+                    println("clicked $selPath")
+                    if (selPath != null && selPath.pathCount == 5) {
+                        val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
+                        val name = selPath.parentPath.lastPathComponent.toString()
+                        val line = substringBetween(selPath.toString(), "(", ")")
+                        val paths = selPath.parentPath.parentPath.lastPathComponent.toString().split(" ")
+                        var path = paths[0]
+                        if (paths[1].toCharArray().isNotEmpty()) {
+                            path = paths[1] + "/" + paths[0]
                         }
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e) && !name.contains("MOVED") && !name.contains("DELETED")) {
-                        for (information in info) {
-                            if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
-                                val project = ProjectManager.getInstance().openProjects[0]
-                                val file = File(project.basePath + "/" + information[1])
-                                val virtualFile = VfsUtil.findFileByIoFile(file, true)
-                                OpenFileDescriptor(
-                                    project, virtualFile!!,
-                                    information[2] as Int - 1, 0
-                                ).navigate(true)
+                        if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains(
+                                "DELETED"
+                            )
+                        ) {
+                            myTree.selectionPath = selPath
+                            val treePopup = TreePopup(myScanResult, callListenerInfo, name, line, path, myCommitSHA)
+                            treePopup.show(e.component, e.x, e.y)
+                            if (selRow > -1) {
+                                myTree.setSelectionRow(selRow)
                             }
                         }
-                    }
-                } else if (selPath != null) checkCheckBoxes(selPath)
-            }
-        })
+                        if (SwingUtilities.isLeftMouseButton(e) && !name.contains("MOVED") && !name.contains("DELETED")) {
+                            for (information in callListenerInfo) {
+                                if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
+                                    val project = ProjectManager.getInstance().openProjects[0]
+                                    val file = File(project.basePath + "/" + information[1])
+                                    val virtualFile = VfsUtil.findFileByIoFile(file, true)
+                                    OpenFileDescriptor(
+                                        project, virtualFile!!,
+                                        information[2] as Int - 1, 0
+                                    ).navigate(true)
+                                }
+                            }
+                        }
+                    } else if (selPath != null) checkCheckBoxes(selPath)
+                }
+            })
+        }
     }
 
     /**
@@ -197,24 +212,27 @@ class TreeView : JPanel(BorderLayout()) {
             if (!data!!.isChecked) {
                 when (selPath.pathCount) {
                     2 -> {
-                        for(node in nodesCheckingState) {
-                            if(!node.value.isChecked) {
+                        for (node in nodesCheckingState) {
+                            if (!node.value.isChecked) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
-                                if(node.key.pathCount==4) {
+                                if (node.key.pathCount == 4) {
                                     checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
                                 }
                             }
                         }
                     }
                     3 -> {
-                        for(node in nodesCheckingState) {
-                            if(!node.value.isChecked && node.key.toString().contains(selPath.toString().replace("]", ""))) {
+                        for (node in nodesCheckingState) {
+                            if (!node.value.isChecked && node.key.toString()
+                                    .contains(selPath.toString().replace("]", ""))
+                            ) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
-                                if(node.key.pathCount==4) {
+                                if (node.key.pathCount == 4) {
                                     checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                }                            }
+                                }
+                            }
                         }
                     }
                     else -> {
@@ -226,23 +244,27 @@ class TreeView : JPanel(BorderLayout()) {
             } else {
                 when (selPath.pathCount) {
                     2 -> {
-                        for(node in nodesCheckingState) {
-                            if(node.value.isChecked) {
+                        for (node in nodesCheckingState) {
+                            if (node.value.isChecked) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if(node.key.pathCount==4) {
+                                if (node.key.pathCount == 4) {
                                     checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                }                                }
+                                }
+                            }
                         }
                     }
                     3 -> {
-                        for(node in nodesCheckingState) {
-                            if(node.value.isChecked && node.key.toString().contains(selPath.toString().replace("]", ""))) {
+                        for (node in nodesCheckingState) {
+                            if (node.value.isChecked && node.key.toString()
+                                    .contains(selPath.toString().replace("]", ""))
+                            ) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if(node.key.pathCount==4) {
+                                if (node.key.pathCount == 4) {
                                     checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
-                                }                                                          }
+                                }
+                            }
                         }
                     }
                     else -> {
@@ -279,7 +301,7 @@ class TreeView : JPanel(BorderLayout()) {
         (myTree.model as DefaultTreeModel).reload()
         myTree.isRootVisible = false
 
-        checkedPaths= HashSet()
+        checkedPaths = HashSet()
         acceptedChangeList = mutableListOf()
 
         val scrollPane = JScrollPane(myTree)
