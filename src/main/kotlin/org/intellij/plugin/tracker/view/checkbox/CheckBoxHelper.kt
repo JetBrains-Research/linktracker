@@ -75,25 +75,23 @@ class CheckBoxHelper {
     fun checkChildren() {
         val links = getLinkNodes()
         for (link in links) {
-            if (link.key.isChecked) {
-                var result = false
-                for (c in link.value) {
-                    if (c.isChecked) {
-                        result = true
-                    }
+            var selected  = false
+            var allSelected = true
+            var noSelected = true
+            for ((key, value) in TreeView.nodesCheckingState) {
+                if (key.pathCount == 3 && value == link.key && value.isChecked) {
+                    selected = true
+                } else if(key.pathCount == 4 && link.value.contains(value) && !value.isChecked) {
+                    allSelected = false
+                } else if(key.pathCount == 4 && link.value.contains(value) && value.isChecked) {
+                    noSelected = false
                 }
-                if (!result) {
-                    link.key.isChecked = false
-                }
-            } else {
-                var result = true
-                for (c in link.value) {
-                    if (!c.isChecked) {
-                        result = false
-                    }
-                }
-                if (result) {
-                    link.key.isChecked = true
+            }
+            for ((key, value) in TreeView.nodesCheckingState) {
+                if (key.pathCount == 3 && value == link.key && !selected && allSelected) {
+                    value.isChecked = true
+                } else if (key.pathCount == 3 && value == link.key && selected && noSelected) {
+                    value.isChecked = false
                 }
             }
         }
@@ -108,6 +106,8 @@ class CheckBoxHelper {
             } else if (key.pathCount != 2 && value.isChecked) {
                 nonSelected = false
             }
+        }
+        for ((key, value) in TreeView.nodesCheckingState) {
             if (key.pathCount == 2 && !parentSelected && allOtherSelected) {
                 value.isChecked = true
             } else if (key.pathCount == 2 && parentSelected && nonSelected) {

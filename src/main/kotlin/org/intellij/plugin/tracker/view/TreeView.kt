@@ -54,6 +54,9 @@ class TreeView : JPanel(BorderLayout()) {
      * Updates the tree model and adds required nodes for links
      */
     fun updateModel(scanResult: ScanResult) {
+        acceptedChangeList = mutableListOf()
+        checkedPaths = HashSet<TreePath>()
+        nodesCheckingState = HashMap()
         // Parse data from result
         myScanResult = scanResult
         scanResults.add(myScanResult)
@@ -163,7 +166,6 @@ class TreeView : JPanel(BorderLayout()) {
                 override fun mouseReleased(e: MouseEvent) {
                     val selRow = myTree.getRowForLocation(e.x, e.y)
                     val selPath = myTree.getPathForLocation(e.x, e.y)
-                    println("clicked $selPath")
                     if (selPath != null && selPath.pathCount == 5) {
                         val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
                         val name = selPath.parentPath.lastPathComponent.toString()

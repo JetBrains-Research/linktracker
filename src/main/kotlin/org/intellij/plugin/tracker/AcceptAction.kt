@@ -38,9 +38,6 @@ class AcceptAction : AnAction() {
         for (change in changes) {
             updateLink(change.first, change.second, scanResult, project, commitSHA)
         }
-        TreeView.acceptedChangeList = mutableListOf()
-        TreeView.checkedPaths = HashSet<TreePath>()
-        TreeView.nodesCheckingState = HashMap()
         LinkTrackerAction.run(project)
     }
 
