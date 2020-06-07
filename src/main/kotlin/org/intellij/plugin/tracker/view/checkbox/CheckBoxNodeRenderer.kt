@@ -1,12 +1,9 @@
 package org.intellij.plugin.tracker.view.checkbox
 
-import com.intellij.icons.AllIcons
-import icons.MarkdownIcons
 import org.intellij.plugin.tracker.view.CustomCellRenderer
 import org.intellij.plugin.tracker.view.TreeView
 import java.awt.Color
 import java.awt.Component
-import java.awt.Font
 import javax.swing.JTree
 import javax.swing.UIManager
 import javax.swing.tree.DefaultMutableTreeNode
@@ -30,7 +27,7 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
         leaf: Boolean, row: Int, hasFocus: Boolean
     ): Component {
         var data: CheckBoxNodeData? = null
-        var path : TreePath? = null
+        var path: TreePath? = null
         if (value is DefaultMutableTreeNode) {
             path = TreePath(value.path)
             val userObject = value.userObject
@@ -52,14 +49,14 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
                 selected, expanded, leaf, row, hasFocus
             )
         }
-        var selected: Boolean = true
-        val nodes  = TreeView.nodesCheckingState
-        for(node in nodes) {
-            if(path == node.key) {
-                selected = node.value.isChecked
+        var select = true
+        val nodes = TreeView.nodesCheckingState
+        for (node in nodes) {
+            if (path == node.key) {
+                select = node.value.isChecked
             }
         }
-        panel.check.isSelected = selected
+        panel.check.isSelected = select
         return panel
     }
 

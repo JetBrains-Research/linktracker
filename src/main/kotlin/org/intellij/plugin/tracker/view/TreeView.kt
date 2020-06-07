@@ -9,6 +9,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
+import com.intellij.ui.treeStructure.Tree
 import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
@@ -37,7 +38,7 @@ import javax.swing.tree.TreePath
  */
 class TreeView : JPanel(BorderLayout()) {
 
-    private var myTree: JTree = JTree(DefaultMutableTreeNode("markdown"))
+    private var myTree: JTree = Tree(DefaultMutableTreeNode("markdown"))
     private var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
     private val checkBoxHelper = CheckBoxHelper()
