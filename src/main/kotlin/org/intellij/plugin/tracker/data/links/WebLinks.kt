@@ -118,7 +118,7 @@ data class WebLinkToLine(
 
     override fun generateNewPath(change: LineChange, newPath: String): String? {
         if (change.newLine == null) return null
-        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath}#L${change.newLine.lineNumber}")
+        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}")
     }
 
     override fun visit(visitor: ChangeTrackerService): Change {
