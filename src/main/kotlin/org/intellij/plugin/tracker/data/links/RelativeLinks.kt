@@ -39,13 +39,14 @@ data class RelativeLinkToDirectory(
 
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null
+    override val pattern: Pattern? = null,
+    val relativePath: String
 ) : RelativeLink<FileChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name
         }
 
@@ -140,8 +141,9 @@ data class RelativeLinkToLines(
     }
 }
 
-fun checkRelativeLink(link: String): String {
-    return checkSingleDot(checkDoubleDots(link))
+fun checkRelativeLink(linkPath: String, filePath: String): String {
+    val link = filePath.replace(filePath.split("/").last(), "") + linkPath
+    return checkDoubleDots(checkSingleDot(link))
 }
 
 fun checkDoubleDots(link: String): String {
@@ -160,6 +162,8 @@ fun checkDoubleDots(link: String): String {
             val endMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtEnd.pattern.matcher(result)
             if (endMatcher.matches()) {
                 result = endMatcher.group(2)
+            } else {
+                return result
             }
         }
     }
@@ -170,14 +174,16 @@ fun checkSingleDot(link: String): String {
     var result = link
     while (result.contains("/.")) {
         val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
-        if (matcher.matches()) {
+        result = if (matcher.matches()) {
             val firstPart = matcher.group(2)
             val secondPart = matcher.group(3)
-            result = "$firstPart/$secondPart"
+            "$firstPart/$secondPart"
         } else {
             val endMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtEnd.pattern.matcher(result)
             if (endMatcher.matches()) {
-                result = endMatcher.group(2)
+                endMatcher.group(2)
+            } else {
+                return result
             }
         }
     }
