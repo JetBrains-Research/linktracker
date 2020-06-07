@@ -68,7 +68,8 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
             project = project
         )
         val link = RelativeLinkToFile(
-            linkInfo = linkInfo
+            linkInfo = linkInfo,
+            relativePath = "file.txt"
         )
         val change = FileChange(
             fileChangeType = FileChangeType.MOVED,
@@ -109,7 +110,8 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
             project = project
         )
         val link = RelativeLinkToFile(
-            linkInfo = linkInfo
+            linkInfo = linkInfo,
+            relativePath = "file.txt#L1"
         )
         val change = FileChange(
             fileChangeType = FileChangeType.MOVED,
@@ -169,13 +171,16 @@ class TestRelativeLinks : TestUpdateLinks() {
             project = project
         )
         val link1 = RelativeLinkToFile(
-            linkInfo = linkInfo1
+            linkInfo = linkInfo1,
+            relativePath = "file.txt"
         )
         val link2 = RelativeLinkToFile(
-            linkInfo = linkInfo2
+            linkInfo = linkInfo2,
+            relativePath = "file1.txt"
         )
         val link3 = RelativeLinkToFile(
-            linkInfo = linkInfo3
+            linkInfo = linkInfo3,
+            relativePath = "file2.txt"
         )
         val change1 = FileChange(
             fileChangeType = FileChangeType.MOVED,
@@ -248,7 +253,8 @@ class TestMultipleLinks : TestUpdateLinks() {
             project = project
         )
         val linkToFile = RelativeLinkToFile(
-            linkInfo = linkInfoToFile
+            linkInfo = linkInfoToFile,
+            relativePath = "file.txt"
         )
         val linkToLine = RelativeLinkToLine(
             linkInfo = linkInfoToLine

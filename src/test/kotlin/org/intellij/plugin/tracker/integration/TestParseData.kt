@@ -2,7 +2,6 @@ package org.intellij.plugin.tracker.integration
 
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.vcs.FilePath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
@@ -14,11 +13,6 @@ import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.DirectoryChange
-import org.intellij.plugin.tracker.data.changes.FileChange
-import org.intellij.plugin.tracker.data.changes.FileChangeType
-import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.utils.DataParsingTask
@@ -65,7 +59,7 @@ class TestParseData : BasePlatformTestCase() {
         super.tearDown()
     }
 
-    fun performMocks() {
+    private fun performMocks() {
         val repositoryMock: GitRepository = mock()
         whenever(repositoryMock.root).doReturn(mock())
         mockkStatic("git4idea.repo.GitRepositoryManager")
@@ -131,7 +125,8 @@ class TestParseData : BasePlatformTestCase() {
                 textOffset = 33,
                 fileName = "testParseRelativeLinks.md",
                 project = ProjectManager.getInstance().openProjects[0]
-            )
+            ),
+            relativePath = "file.txt"
         )
         ProgressManager.getInstance().run(myDataParsingTask)
         val result: ScanResult = myDataParsingTask.getResult()
