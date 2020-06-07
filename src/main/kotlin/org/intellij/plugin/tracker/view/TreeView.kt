@@ -146,6 +146,9 @@ class TreeView : JPanel(BorderLayout()) {
      * Adds mouse listener for left and right click
      */
     private fun callListener(info: List<MutableList<*>>) {
+        if (myTree.mouseListeners.size == 2) {
+            myTree.removeMouseListener(myTree.mouseListeners.last())
+        }
         myTree.addMouseListener(object : MouseAdapter() {
             override fun mouseReleased(e: MouseEvent) {
                 val selRow = myTree.getRowForLocation(e.x, e.y)

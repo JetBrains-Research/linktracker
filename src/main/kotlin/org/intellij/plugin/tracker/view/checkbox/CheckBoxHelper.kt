@@ -16,7 +16,10 @@ class CheckBoxHelper {
     /**
      * Adds checkbox node to tree
      */
-    fun addCheckBoxNodeTree(changeList: Map<String, List<Pair<Link, Change>>>, node: DefaultMutableTreeNode): DefaultMutableTreeNode {
+    fun addCheckBoxNodeTree(
+        changeList: Map<String, List<Pair<Link, Change>>>,
+        node: DefaultMutableTreeNode
+    ): DefaultMutableTreeNode {
         for (linkList in changeList) {
             val fileName = linkList.value[0].first.linkInfo.fileName
             var path = linkList.key.replace(fileName, "")
@@ -55,7 +58,7 @@ class CheckBoxHelper {
     /**
      * Updates nodesCheckingState and checkedPaths
      */
-    fun add (parent: DefaultMutableTreeNode, text: String, checked: Boolean): DefaultMutableTreeNode {
+    fun add(parent: DefaultMutableTreeNode, text: String, checked: Boolean): DefaultMutableTreeNode {
         val data = CheckBoxNodeData(text, checked)
         val node = DefaultMutableTreeNode(data)
         parent.add(node)
@@ -71,26 +74,25 @@ class CheckBoxHelper {
      */
     fun checkChildren() {
         val links = getLinkNodes()
-        for(link in links) {
-            if(link.key.isChecked) {
+        for (link in links) {
+            if (link.key.isChecked) {
                 var result = false
-                for(c in link.value) {
-                    if(c.isChecked) {
+                for (c in link.value) {
+                    if (c.isChecked) {
                         result = true
                     }
                 }
-                if(!result) {
+                if (!result) {
                     link.key.isChecked = false
                 }
-            }
-            if(!link.key.isChecked) {
+            } else {
                 var result = true
-                for(c in link.value) {
-                    if(!c.isChecked) {
+                for (c in link.value) {
+                    if (!c.isChecked) {
                         result = false
                     }
                 }
-                if(result) {
+                if (result) {
                     link.key.isChecked = true
                 }
             }
@@ -98,30 +100,18 @@ class CheckBoxHelper {
         var parentSelected = false
         var allOtherSelected = true
         var nonSelected = true
-        for(n in TreeView.nodesCheckingState) {
-            if(n.key.pathCount == 2 && n.value.isChecked) {
+        for ((key, value) in TreeView.nodesCheckingState) {
+            if (key.pathCount == 2 && value.isChecked) {
                 parentSelected = true
-            }
-        }
-        for(n in TreeView.nodesCheckingState) {
-            if(n.key.pathCount != 2 && !n.value.isChecked) {
+            } else if (key.pathCount != 2 && !value.isChecked) {
                 allOtherSelected = false
-            } else if(n.key.pathCount != 2 && n.value.isChecked) {
+            } else if (key.pathCount != 2 && value.isChecked) {
                 nonSelected = false
             }
-        }
-        if(!parentSelected && allOtherSelected) {
-            for(n in TreeView.nodesCheckingState) {
-                if(n.key.pathCount == 2) {
-                    n.value.isChecked = true
-                }
-            }
-        }
-        if(parentSelected && nonSelected) {
-            for(n in TreeView.nodesCheckingState) {
-                if(n.key.pathCount == 2) {
-                    n.value.isChecked = false
-                }
+            if (key.pathCount == 2 && !parentSelected && allOtherSelected) {
+                value.isChecked = true
+            } else if (key.pathCount == 2 && parentSelected && nonSelected) {
+                value.isChecked = false
             }
         }
     }
@@ -129,38 +119,31 @@ class CheckBoxHelper {
     /**
      * Adds the change to accepted changes
      */
-    fun addToAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
-        for( pair in changes) {
-            if(pair.first.path == path.lastPathComponent.toString()) {
-                TreeView.acceptedChangeList.add(pair)
-            }
+    fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
+        for (pair in changes) {
+            if (pair.first.path == path.lastPathComponent.toString()) TreeView.acceptedChangeList.add(pair)
         }
     }
 
     /**
      * Removes the changes from accepted changes
      */
-    fun removeFromAcceptedChangeList(changes : MutableList<Pair<Link, Change>>, path : TreePath) {
-        for(pair in changes) {
-            if(pair.first.path == path.lastPathComponent.toString()) {
-                TreeView.acceptedChangeList.remove(pair)
-            }
+    fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
+        for (pair in changes) {
+            if (pair.first.path == path.lastPathComponent.toString()) TreeView.acceptedChangeList.remove(pair)
         }
     }
 
     /**
      * Gets all files nodes with their data
      */
-    private fun getFileNodes() : MutableList<Pair<TreePath, CheckBoxNodeData>> {
-        val result : MutableList<Pair<TreePath, CheckBoxNodeData>> = mutableListOf()
+    private fun getFileNodes(): MutableList<Pair<TreePath, CheckBoxNodeData>> {
+        val result: MutableList<Pair<TreePath, CheckBoxNodeData>> = mutableListOf()
         val paths = mutableListOf<TreePath>()
-        for(node in TreeView.nodesCheckingState) {
-            if(node.key.pathCount==3) {
-                val pair = Pair(node.key, node.value)
-                if(!paths.contains(node.key)) {
-                    result.add(pair)
-                    paths.add(node.key)
-                }
+        for ((key, value) in TreeView.nodesCheckingState) {
+            if (key.pathCount == 3 && !paths.contains(key)) {
+                result.add(Pair(key, value))
+                paths.add(key)
             }
         }
         return result
@@ -169,13 +152,13 @@ class CheckBoxHelper {
     /**
      * Gets all link nodes with their data
      */
-    private fun getLinkNodes() : HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> {
-        val result : HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> = HashMap()
-        for(file in getFileNodes()) {
+    private fun getLinkNodes(): HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> {
+        val result: HashMap<CheckBoxNodeData, MutableList<CheckBoxNodeData>> = HashMap()
+        for (file in getFileNodes()) {
             val list = mutableListOf<CheckBoxNodeData>()
-            for(node in TreeView.nodesCheckingState) {
-                if(node.key.pathCount==4 && node.key.toString().contains(file.first.toString().replace("]", ""))) {
-                    list.add(node.value)
+            for ((key, value) in TreeView.nodesCheckingState) {
+                if (key.pathCount == 4 && key.toString().contains(file.first.toString().replace("]", ""))) {
+                    list.add(value)
                 }
             }
             result[file.second] = list
