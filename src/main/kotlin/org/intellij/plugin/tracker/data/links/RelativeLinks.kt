@@ -135,9 +135,7 @@ data class RelativeLinkToLines(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun updateLink(change: LinesChange, commitSHA: String?): String? {
-        TODO("not implemented")
-    }
+    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.afterPath[0]
 }
 
 fun checkRelativeLink(linkPath: String, filePath: String): String {
