@@ -1,7 +1,5 @@
 package org.intellij.plugin.tracker.view.checkbox
 
-import org.intellij.plugin.tracker.view.CustomCellRenderer
-import org.intellij.plugin.tracker.view.TreeView
 import java.awt.Color
 import java.awt.Component
 import javax.swing.JTree
@@ -10,6 +8,8 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
 import javax.swing.tree.TreePath
+import org.intellij.plugin.tracker.view.CustomCellRenderer
+import org.intellij.plugin.tracker.view.TreeView
 
 /**
  * A [TreeCellRenderer] for check box tree nodes.
@@ -26,8 +26,12 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
      */
     override fun getTreeCellRendererComponent(
         tree: JTree,
-        value: Any, selected: Boolean, expanded: Boolean,
-        leaf: Boolean, row: Int, hasFocus: Boolean
+        value: Any,
+        selected: Boolean,
+        expanded: Boolean,
+        leaf: Boolean,
+        row: Int,
+        hasFocus: Boolean
     ): Component {
         var data: CheckBoxNodeData? = null
         var path: TreePath? = null
@@ -68,8 +72,7 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
         if (fontValue != null) panel.label.font = fontValue
         val focusPainted = UIManager.get("Tree.drawsFocusBorderAroundIcon") as Boolean
         panel.check.isFocusPainted = focusPainted
-        selectionForeground = defaultRenderer
-            .backgroundNonSelectionColor
+        selectionForeground = defaultRenderer.backgroundNonSelectionColor
         selectionBackground = defaultRenderer.backgroundSelectionColor
     }
 }
