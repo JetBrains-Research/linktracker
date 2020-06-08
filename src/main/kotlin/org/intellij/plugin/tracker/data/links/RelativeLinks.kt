@@ -10,9 +10,8 @@ import java.util.regex.Pattern
 
 data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    override var commitSHA: String? = null
-) : RelativeLink<DirectoryChange>(linkInfo, pattern) {
+    override val pattern: Pattern? = null
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
 
@@ -27,21 +26,21 @@ data class RelativeLinkToDirectory(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: DirectoryChange, commitSHA: String?): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
     }
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null
-) : RelativeLink<FileChange>(linkInfo, pattern) {
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
     override val referencedFileName: String
@@ -61,7 +60,7 @@ data class RelativeLinkToFile(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
 
-    override fun updateLink(change: FileChange, commitSHA: String?): String? =
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? =
         linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToFile {

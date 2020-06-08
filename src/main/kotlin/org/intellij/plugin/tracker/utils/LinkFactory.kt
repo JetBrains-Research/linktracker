@@ -29,6 +29,8 @@ class LinkFactory {
             when {
                 webLinkToLineMatcher.matches() -> {
                     link = WebLinkToLine(linkInfo = linkInfo)
+                    if (link.lineReferenced > 0) return link
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 webLinkToLinesMatcher.matches() -> {
                     val startLine = WebLinkToLines(linkInfo = linkInfo).referencedStartingLine
@@ -60,17 +62,15 @@ class LinkFactory {
                 }
                 relativeLinkToLineMatcher.matches() -> {
                     link = RelativeLinkToLine(linkInfo = linkInfo)
+                    if (link.lineReferenced > 0) return link
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 else -> {
                     // Ambiguous link: have to see whether it's a path to a file or directory
                     // not the best way to check for file/directory: directories can also have . in their names
                     // TODO: can be optimized
                     if (linkInfo.linkPath.lastIndexOf(".") == -1) {
-                        val commit: String =
-                            commitSHA ?: GitOperationManager(linkInfo.project).getStartCommit(linkInfo)
-                            ?: return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Can not find start commit")
-
-                        return RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
+                        return RelativeLinkToDirectory(linkInfo = linkInfo)
                     }
                     link = RelativeLinkToFile(linkInfo = linkInfo)
                 }

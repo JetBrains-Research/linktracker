@@ -11,9 +11,8 @@ import java.util.regex.Pattern
 
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern,
-    override var commitSHA: String? = null
-) : WebLink<DirectoryChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern
+) : WebLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
 
@@ -40,7 +39,7 @@ data class WebLinkToDirectory(
         throw NotImplementedError()
     }
 
-    override fun generateNewPath(change: DirectoryChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToDirectory {
@@ -52,7 +51,7 @@ data class WebLinkToDirectory(
 data class WebLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToFile.pattern
-) : WebLink<FileChange>(linkInfo, pattern) {
+) : WebLink<CustomChange>(linkInfo, pattern) {
     override val path: String
         get() {
             if (matcher.matches())
@@ -72,7 +71,7 @@ data class WebLinkToFile(
     override val referencedEndingLine: Int
         get() = -1
 
-    override fun generateNewPath(change: FileChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     override fun visit(visitor: ChangeTrackerService): Change {

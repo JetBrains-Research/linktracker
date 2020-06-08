@@ -74,14 +74,15 @@ class DataParsingTask(
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {
-                myLinksAndChangesList.add(
-                    Pair(
-                        link,
-                        FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)
-                    )
-                )
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)))
             } catch (e: DirectoryChangeGatheringException) {
-                myLinksAndChangesList.add(Pair(link, DirectoryChange(FileChangeType.INVALID, errorMessage = e.message)))
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)))
             } catch (e: LineChangeGatheringException) {
                 val lineChange = LineChange(
                     fileChange = e.fileChange,
@@ -133,7 +134,6 @@ class DataParsingTask(
         ApplicationManager.getApplication().invokeLater {
             WriteCommandAction.runWriteCommandAction(currentProject) {
                 if (myLinksAndChangesList.size != 0) {
-                    myLinksAndChangesList.map { println(it) }
                     val result = myLinkUpdateService.updateLinks(
                         myLinksAndChangesList,
                         myGitOperationManager.getHeadCommitSHA()
