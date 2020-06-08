@@ -115,7 +115,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
 
-        val startCommit: String = gitOperationManager.getStartCommit(link, goBackwards = true) ?: throw CommitSHAIsNullDirectoryException()
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
@@ -171,7 +171,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, return
-        val startCommit: String = gitOperationManager.getStartCommit(link, goBackwards = true)
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
                 ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
@@ -227,7 +227,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, throw an exception
-        val startCommit: String = gitOperationManager.getStartCommit(link, goBackwards = true)
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
                 ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
