@@ -29,8 +29,7 @@ enum class WebLinkReferenceType(private val type: String) {
  */
 abstract class Link(
     open val linkInfo: LinkInfo,
-    open val pattern: Pattern? = null,
-    open var commitSHA: String? = null
+    open val pattern: Pattern? = null
 ) {
 
     /**
@@ -67,8 +66,7 @@ abstract class Link(
  */
 abstract class RelativeLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    override var commitSHA: String? = null
+    override val pattern: Pattern? = null
 ) : Link(linkInfo, pattern) {
 
     override val path: String
@@ -91,8 +89,7 @@ abstract class RelativeLink<in T : Change>(
  */
 abstract class WebLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern,
-    override var commitSHA: String? = null
+    override val pattern: Pattern
 ) : Link(linkInfo, pattern) {
     var referenceType: WebLinkReferenceType? = null
         get() {
@@ -161,7 +158,6 @@ abstract class WebLink<in T : Change>(
 data class NotSupportedLink (
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override var commitSHA: String? = null,
     val errorMessage: String? = null
 ) : Link(linkInfo, pattern) {
     override val lineReferenced: Int

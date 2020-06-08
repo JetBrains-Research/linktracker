@@ -1,36 +1,42 @@
 package org.intellij.plugin.tracker.data
 
-import org.intellij.plugin.tracker.data.changes.FileChange
+import org.intellij.plugin.tracker.data.changes.CustomChange
 
 open class FileChangeGatheringException(override val message: String?) : Exception(message)
 open class DirectoryChangeGatheringException(override val message: String?) : Exception(message)
-open class LineChangeGatheringException(override val message: String?, open val fileChange: FileChange) :
+open class LineChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
     Exception(message)
-open class LinesChangeGatheringException(override val message: String?, open val fileChange: FileChange) :
+open class LinesChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
     Exception(message)
 
 class CommitSHAIsNullLineException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
 class CommitSHAIsNullLinesException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LinesChangeGatheringException(message, fileChange)
+
+class CommitSHAIsNullDirectoryException(
+    override val message: String? =
+        "Could not find the start commit of the line containing this link, " +
+                "please try to commit the file containing the link and run the plugin again."
+) : DirectoryChangeGatheringException(message)
 
 class OriginalLineContentsNotFoundException(
     override val message: String? = "Could not find the contents of the line specified in the link",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
 class OriginalLinesContentsNotFoundException(
     override val message: String? = "Could not find the contents of the lines specified in the link",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
 class InvalidFileChangeTypeException(
@@ -39,12 +45,12 @@ class InvalidFileChangeTypeException(
 
 class FileHasBeenDeletedException(
     override val message: String? = "File has been deleted. Line can not be tracked.",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
 class InvalidFileChangeException(
     override val message: String? = "There was an error gathering the changes for the file",
-    override val fileChange: FileChange
+    override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
 class ReferencedPathNotFoundException(
@@ -73,4 +79,14 @@ class UnableToFetchRemoteDirectoryChangesException(
     override val message: String?
 ) : DirectoryChangeGatheringException(
     "There was a problem in gathering the directory changes from remote repository: $message"
+)
+
+class LocalDirectoryNeverExistedException(
+    override val message: String? = "Could not track this directory"
+) : DirectoryChangeGatheringException(message)
+
+class UnableToFetchLocalDirectoryChangesException(
+    override val message: String?
+) : DirectoryChangeGatheringException(
+    "There was a problem in gathering the directory changes from local directory: $message"
 )

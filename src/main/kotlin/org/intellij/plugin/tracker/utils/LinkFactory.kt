@@ -70,11 +70,7 @@ class LinkFactory {
                     // not the best way to check for file/directory: directories can also have . in their names
                     // TODO: can be optimized
                     if (linkInfo.linkPath.lastIndexOf(".") == -1) {
-                        val commit: String =
-                            commitSHA ?: GitOperationManager(linkInfo.project).getStartCommit(linkInfo)
-                            ?: return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Can not find start commit")
-
-                        return RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
+                        return RelativeLinkToDirectory(linkInfo = linkInfo)
                     }
                     link = RelativeLinkToFile(linkInfo = linkInfo)
                 }
