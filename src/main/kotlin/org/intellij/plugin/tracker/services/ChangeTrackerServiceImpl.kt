@@ -115,7 +115,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
 
-        val startCommit: String = gitOperationManager.getStartCommit(link, isDir = true) ?: throw CommitSHAIsNullDirectoryException()
+        val startCommit: String = gitOperationManager.getStartCommit(link, goBackwards = true) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
