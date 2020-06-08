@@ -397,7 +397,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             for (splitPath in splitPaths) {
                 if (splitPath.isNotBlank()) {
                     pathStart += "$splitPath/"
-                    println("PATH START IS: $pathStart")
                     if (countMap.containsKey(pathStart)) countMap[pathStart] = countMap[pathStart]!! + 1
                     else countMap[pathStart] = 1
                 }
