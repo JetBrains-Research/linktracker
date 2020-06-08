@@ -39,8 +39,6 @@ import javax.swing.tree.TreePath
 class TreeView : JPanel(BorderLayout()) {
 
     private var myTree: JTree = Tree(DefaultMutableTreeNode("markdown"))
-    var myCommitSHA: String? = null
-    private lateinit var myScanResult: ScanResult
     private val checkBoxHelper = CheckBoxHelper()
     private var callListenerInfo: List<MutableList<*>> = listOf()
 
@@ -48,7 +46,8 @@ class TreeView : JPanel(BorderLayout()) {
         var checkedPaths = HashSet<TreePath>()
         var nodesCheckingState = HashMap<TreePath, CheckBoxNodeData>()
         var acceptedChangeList: MutableList<Pair<Link, Change>> = mutableListOf()
-        var scanResults: MutableList<ScanResult> = mutableListOf()
+        var myScanResult: ScanResult? = null
+        var myCommitSHA: String? = null
     }
 
     /**
@@ -60,7 +59,6 @@ class TreeView : JPanel(BorderLayout()) {
         nodesCheckingState = HashMap()
         // Parse data from result
         myScanResult = scanResult
-        scanResults.add(myScanResult)
         val changes = scanResult.myLinkChanges
 
         calculateCommitSHA()
@@ -111,10 +109,10 @@ class TreeView : JPanel(BorderLayout()) {
         myCommitSHA = try {
             ProgressManager.getInstance()
                 .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { GitOperationManager(myScanResult.myProject).getHeadCommitSHA() },
+                    { myScanResult?.myProject?.let { GitOperationManager(it).getHeadCommitSHA() } },
                     "Getting head commit SHA..",
                     true,
-                    myScanResult.myProject
+                    myScanResult!!.myProject
                 )
         } catch (e: VcsException) {
             null
@@ -185,7 +183,7 @@ class TreeView : JPanel(BorderLayout()) {
                             )
                         ) {
                             myTree.selectionPath = selPath
-                            val treePopup = TreePopup(myScanResult, callListenerInfo, name, line, path, myCommitSHA)
+                            val treePopup = TreePopup(myScanResult!!, callListenerInfo, name, line, path, myCommitSHA)
                             treePopup.show(e.component, e.x, e.y)
                             if (selRow > -1) {
                                 myTree.setSelectionRow(selRow)
@@ -224,7 +222,7 @@ class TreeView : JPanel(BorderLayout()) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
                                 if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    checkBoxHelper.addToAcceptedChangeList(myScanResult!!.myLinkChanges, node.key)
                                 }
                             }
                         }
@@ -237,7 +235,7 @@ class TreeView : JPanel(BorderLayout()) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
                                 if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    checkBoxHelper.addToAcceptedChangeList(myScanResult!!.myLinkChanges, node.key)
                                 }
                             }
                         }
@@ -245,7 +243,7 @@ class TreeView : JPanel(BorderLayout()) {
                     else -> {
                         data.isChecked = true
                         checkedPaths.add(selPath)
-                        checkBoxHelper.addToAcceptedChangeList(myScanResult.myLinkChanges, selPath)
+                        checkBoxHelper.addToAcceptedChangeList(myScanResult!!.myLinkChanges, selPath)
                     }
                 }
             } else {
@@ -256,7 +254,7 @@ class TreeView : JPanel(BorderLayout()) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
                                 if (node.key.pathCount == 4) {
-                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult!!.myLinkChanges, node.key)
                                 }
                             }
                         }
@@ -269,7 +267,7 @@ class TreeView : JPanel(BorderLayout()) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
                                 if (node.key.pathCount == 4) {
-                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, node.key)
+                                    checkBoxHelper.removeFromAcceptedChangeList(myScanResult!!.myLinkChanges, node.key)
                                 }
                             }
                         }
@@ -277,7 +275,7 @@ class TreeView : JPanel(BorderLayout()) {
                     else -> {
                         data.isChecked = false
                         checkedPaths.remove(selPath)
-                        checkBoxHelper.removeFromAcceptedChangeList(myScanResult.myLinkChanges, selPath)
+                        checkBoxHelper.removeFromAcceptedChangeList(myScanResult!!.myLinkChanges, selPath)
                     }
                 }
             }

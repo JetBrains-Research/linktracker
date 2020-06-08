@@ -22,9 +22,9 @@ class AcceptAction : AnAction() {
 
         var changes = TreeView.acceptedChangeList
 
-        var scanResult = TreeView.scanResults.get(0)
-        val project = scanResult.myProject
-        val commitSHA = TreeView().myCommitSHA
+        var scanResult = TreeView.myScanResult
+        val project = scanResult!!.myProject
+        val commitSHA = TreeView.myCommitSHA
         for (change in changes) {
             updateLink(change.first, change.second, scanResult, project, commitSHA)
         }
