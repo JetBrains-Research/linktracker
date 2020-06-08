@@ -58,6 +58,7 @@ class TreeView : JPanel(BorderLayout()) {
         acceptedChangeList = mutableListOf()
         checkedPaths = HashSet<TreePath>()
         nodesCheckingState = HashMap()
+
         // Parse data from result
         ourScanResult = currentScanResult
         val changes = currentScanResult.myLinkChanges
@@ -73,6 +74,7 @@ class TreeView : JPanel(BorderLayout()) {
         } catch (e: VcsException) {
             null
         }
+        calculateCommitSHA()
 
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
@@ -114,6 +116,20 @@ class TreeView : JPanel(BorderLayout()) {
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
         (myTree.model as DefaultTreeModel).reload()
+    }
+
+    private fun calculateCommitSHA() {
+        myCommitSHA = try {
+            ProgressManager.getInstance()
+                .runProcessWithProgressSynchronously<String?, VcsException>(
+                    { GitOperationManager(ourScanResult.myProject).getHeadCommitSHA() },
+                    "Getting head commit SHA..",
+                    true,
+                    ourScanResult.myProject
+                )
+        } catch (e: VcsException) {
+            null
+        }
     }
 
     /**

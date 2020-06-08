@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="22" failures="0" name="org.jetbrains.jetCheck.GeneratorTest" time="0.656" errors="0" skipped="0">
+  <properties>
+    <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
+    <property name="java.vm.version" value="11.0.5+10-LTS"/>
+    <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-11.0.5\bin"/>
+    <property name="maven.multiModuleProjectDirectory" value="C:\Users\Tommaso\Desktop\Code\JetBrains\LinkTracker\libs\jetCheck-0.2.1"/>
+    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="java.vendor.url" value="http://java.oracle.com/"/>
+    <property name="guice.disable.misplaced.annotation.check" value="true"/>
+    <property name="path.separator" value=";"/>
+    <property name="java.vm.name" value="Java HotSpot(TM) 64-Bit Server VM"/>
+    <property name="sun.os.patch.level" value=""/>
+    <property name="user.script" value=""/>
+    <property name="user.country" value="US"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="user.dir" value="C:\Users\Tommaso\Desktop\Code\JetBrains\LinkTracker\libs\jetCheck-0.2.1"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="java.runtime.version" value="11.0.5+10-LTS"/>
+    <property name="java.awt.graphicsenv" value="sun.awt.Win32GraphicsEnvironment"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.io.tmpdir" value="C:\Users\Tommaso\AppData\Local\Temp\"/>
+    <property name="line.separator" value="
+"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="user.variant" value=""/>
+    <property name="os.name" value="Windows 10"/>
+    <property name="maven.ext.class.path" value="C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven-event-listener.jar"/>
+    <property name="classworlds.conf" value="C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven3\bin\m2.conf"/>
+    <property name="sun.jnu.encoding" value="Cp1252"/>
+    <property name="java.library.path" value="C:\Program Files\Java\jdk-11.0.5\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files (x86)\Common Files\Intel\Shared Libraries\redist\intel64_win\compiler;C:\Python37\Scripts\;C:\Python37\;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files\Apache Maven\apache-maven-3.6.0\bin;C:\Program Files (x86)\GnuPG\bin;C:\Windows\System32;C:\Windows;C:\Windows\System32\wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Gradle\gradle-6.0.1;C:\Program Files\Python;C:\Program Files\Python\Scripts;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\ProgramData\chocolatey\bin;C:\Program Files\OpenSSL\bin;C:\Program Files\Git\cmd;C:\Program Files\Git\bin\git.exe;C:\Program Files\Gradle\gradle-6.0.1\bin;C:\Program Files (x86)\GTK2-Runtime\bin;C:\Program Files\Calibre2\;C:\Program Files\nodejs\;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\OpenJDK\jdk-14.0.1\bin;C:\Program Files\MongoDB\Server\4.2\bin;C:\Program Files\MiKTeX 2.9\miktex\bin\x64\;C:\Users\Tommaso\scoop\shims;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files\Apache Maven\apache-maven-3.6.0\bin;C:\Program Files\nodejs\;C:\Program Files (x86)\Gpg4win\..\GnuPG\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Gradle\gradle-6.0.1;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Python;C:\Program Files\Python\Scripts;C:\Program Files\Intel\WiFi\bin\;C:\Program Files\Common Files\Intel\WirelessCommon\;C:\ProgramData\chocolatey\bin;C:\Program Files\Apache Maven\apache-maven-3.6.0;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2018.3.5\bin;C:\Users\Tommaso\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Git\bin\git.exe;C:\Users\Tommaso\AppData\Local\Microsoft\WindowsApps;C:\Users\Tommaso\AppData\Roaming\npm;."/>
+    <property name="maven.conf" value="C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven3/conf"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="java.class.version" value="55.0"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="os.version" value="10.0"/>
+    <property name="user.home" value="C:\Users\Tommaso"/>
+    <property name="user.timezone" value="Europe/Berlin"/>
+    <property name="java.awt.printerjob" value="sun.awt.windows.WPrinterJob"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.specification.version" value="11"/>
+    <property name="user.name" value="Tommaso"/>
+    <property name="java.class.path" value="C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven3\boot\plexus-classworlds-2.6.0.jar;C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven3\boot\plexus-classworlds.license"/>
+    <property name="java.vm.specification.version" value="11"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="sun.java.command" value="org.codehaus.classworlds.Launcher -Didea.version2020.1.1 install"/>
+    <property name="java.home" value="C:\Program Files\Java\jdk-11.0.5"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="idea.version2020.1.1" value="true"/>
+    <property name="awt.toolkit" value="sun.awt.windows.WToolkit"/>
+    <property name="java.vm.info" value="mixed mode"/>
+    <property name="java.version" value="11.0.5"/>
+    <property name="java.vendor" value="Oracle Corporation"/>
+    <property name="maven.home" value="C:\Program Files\JetBrains\IntelliJ IDEA 2019.1.1\plugins\maven\lib\maven3"/>
+    <property name="file.separator" value="\"/>
+    <property name="java.version.date" value="2019-10-15"/>
+    <property name="java.vendor.url.bug" value="http://bugreport.java.com/bugreport/"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="java.vendor.version" value="18.9"/>
+    <property name="sun.desktop" value="windows"/>
+    <property name="sun.cpu.isalist" value="amd64"/>
+  </properties>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testRecheckWithGivenSeeds" time="0.001"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testListNotLongerThanMaxDefaultSize" time="0.539"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testMod" time="0.003"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testSuchThat" time="0.002"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testNestedSometimesVeryRareSuchThat" time="0.016"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testOneOf" time="0.004"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testSameFrequency" time="0.005"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testShrinkToRangeStart" time="0.005"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testListSumMod" time="0.005"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testBoolean" time="0.004"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testAsciiIdentifier" time="0.015"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testListContainsDivisible" time="0.003"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testIsSorted" time="0.012"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testSortedDoublesNonDescending" time="0.01"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testNonEmptyList" time="0.003"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testStringContains" time="0.009"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testRecheckingIterationPrecedenceOverWithIterationCount" time="0.002"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testReplay" time="0.006"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testNoDuplicateData" time="0.002"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testLetterStringContains" time="0.002"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testSuccess" time="0.003"/>
+  <testcase classname="org.jetbrains.jetCheck.GeneratorTest" name="testStringOfStringChecksAllChars" time="0.005"/>
+</testsuite>
