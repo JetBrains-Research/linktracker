@@ -11,8 +11,7 @@ import java.util.regex.Pattern
 
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern,
-    override var commitSHA: String? = null
+    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern
 ) : WebLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1

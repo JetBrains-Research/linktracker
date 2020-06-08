@@ -16,6 +16,7 @@ import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import java.io.File
+import kotlin.math.max
 import kotlin.math.min
 
 
@@ -34,6 +35,39 @@ class GitOperationManager(private val project: Project) {
         } else {
             throw VcsException("Could not find Git Repository")
         }
+    }
+
+    fun getDirectoryContentsAtCommit(directoryPath: String, commitSHA: String): MutableList<String>? {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
+        gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
+        val result: GitCommandResult = git.runCommand(gitLineHandler)
+
+        println("result exit code ${result.getOutputOrThrow()}")
+        if (result.exitCode == 0) {
+            println("here, output is: ${result.output}")
+            return result.output
+        }
+        return null
+    }
+
+    @Throws(VcsException::class)
+    fun isFolderDeleted(directoryPath: String): Boolean {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        gitLineHandler.addParameters("--pretty=%H", "--", directoryPath)
+        val result: GitCommandResult = git.runCommand(gitLineHandler)
+
+        if (result.exitCode == 0) {
+            val commitSHACollection = result.output
+
+            if (commitSHACollection.size == 0) return false
+
+            println("COMMIT SHA COLLECTION for path $directoryPath is $commitSHACollection")
+            val secondGitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
+            secondGitLineHandler.addParameters("-r", commitSHACollection[0], "--", directoryPath)
+            val secondResult: GitCommandResult = git.runCommand(secondGitLineHandler)
+            if (secondResult.exitCode == 0 && secondResult.output.isEmpty()) return true
+        }
+        return false
     }
 
     /**
@@ -162,26 +196,31 @@ class GitOperationManager(private val project: Project) {
     @Throws(VcsException::class)
     fun getDirectoryCommits(path: String, similarityThreshold: Int): MutableList<Any> {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("--name-status", "--oneline", "--find-renames=$similarityThreshold")
+        gitLineHandler.addParameters(
+            "--name-status",
+            "--oneline",
+            "--find-renames=$similarityThreshold"
+        )
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         val addedFiles: MutableList<String> = mutableListOf()
-        val deletedFiles: MutableList<String> = mutableListOf()
-        val movedFiles: MutableMap<String, String> = mutableMapOf()
+        val movedFiles: MutableList<Pair<String, Int>> = mutableListOf()
+
+        var order = 0
         if (output.exitCode == 0) {
             val outputList = output.output
             for (elem in outputList) {
                 val paths = elem.split("\\s".toRegex())
                 if (paths[0] == "A" && paths[1].startsWith(path)) addedFiles.add(paths[1])
-                if (paths[0] == "D" && paths[1].startsWith(path)) deletedFiles.add(paths[1])
-                if (paths[0].startsWith("R")) {
+                else if (paths[0].startsWith("R")) {
                     val prev = paths[1]
                     val curr = paths[2]
+
                     if (!prev.startsWith(path) && curr.startsWith(path)) addedFiles.add(curr)
-                    if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles[prev] = curr
+                    else if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles.add(Pair(curr, order++))
                 }
             }
         }
-        return mutableListOf(addedFiles, deletedFiles, movedFiles)
+        return mutableListOf(addedFiles, movedFiles)
     }
 
     /**
@@ -465,7 +504,7 @@ class GitOperationManager(private val project: Project) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[lookUpIndex - 1]),
+                                parseContent(subList[max(0, lookUpIndex - 1)]),
                                 parseContent(lookUpContent)
                             )
                         )
@@ -514,7 +553,7 @@ class GitOperationManager(private val project: Project) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[lookUpIndex - 1]),
+                                parseContent(subList[max(0, lookUpIndex - 1)]),
                                 parseContent(lookUpContent)
                             )
                         )

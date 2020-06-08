@@ -10,8 +10,7 @@ import java.util.regex.Pattern
 
 data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    override var commitSHA: String? = null
+    override val pattern: Pattern? = null
 ) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
@@ -33,6 +32,8 @@ data class RelativeLinkToDirectory(
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
     }
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 data class RelativeLinkToFile(

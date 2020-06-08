@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.util.castSafelyTo
+import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.Change
@@ -12,7 +12,6 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -106,51 +105,62 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      * Get change for a local directory
      */
     override fun getLocalDirectoryChanges(link: Link): Change {
-        link as RelativeLinkToDirectory
-        val similarityThreshold = 50
+        val similarityThresholdSettings: SimilarityThresholdSettings =
+            SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+        val similarityThreshold: Int = similarityThresholdSettings.directorySimilarity
 
-        return try {
-            var relativeLink = link.linkInfo.getMarkdownDirectoryRelativeLinkPath()
-            if (relativeLink.endsWith('/')) { relativeLink = relativeLink.substringBeforeLast('/') }
-
-            val files = gitOperationManager.getDirectoryCommits(relativeLink, similarityThreshold)
-
-            // list of all the files that have been added, deleted or moved
-            var addedFiles = files[0].castSafelyTo<MutableList<String>>()!!
-            val deletedFiles = files[1].castSafelyTo<MutableList<String>>()!!
-            val movedFiles = files[2].castSafelyTo<MutableMap<String, String>>()!!
-
-            addedFiles = addedFiles.distinct().toMutableList()
-
-            // can only happen when the directory did not exist
-            if (addedFiles.size == 0) {
-                throw LocalDirectoryNeverExistedException()
-            }
-            if (addedFiles.size == deletedFiles.size + movedFiles.size) {
-                if (movedFiles.isNotEmpty()) {
-                    val moved = mutableListOf<String>()
-                    for (move in movedFiles) {
-                        val file = move.key.replaceFirst(link.path, "")
-                        val index = move.value.lastIndexOf(file)
-                        moved.add(move.value.substring(0, index))
-                    }
-
-                    val countMap: Map<String, Int> = moved.groupingBy {it}.eachCount()
-                    val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
-                    val similarityPair = Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFiles.size * 100).toInt())
-
-                    if (similarityPair.second >= similarityThreshold) {
-                        return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
-                    }
-                }
-                return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
-            }
-
-            // as long as there is something in the directory, we can declare it valid
-            CustomChange(CustomChangeType.ADDED, afterPathString = link.path)
-        } catch (e: IOException) {
-            throw UnableToFetchLocalDirectoryChangesException(e.message)
+        val linkPath: String = link.linkInfo.linkPath
+        val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
+        if (currentContents == null || currentContents) {
+            return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
+
+        val startCommit: String =
+            gitOperationManager.getStartCommit(link.linkInfo) ?: throw CommitSHAIsNullDirectoryException()
+
+        val directoryContents: MutableList<String>? =
+            gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
+
+        if (directoryContents == null || directoryContents.size == 0) {
+            throw LocalDirectoryNeverExistedException()
+        }
+
+        val movedFiles: MutableList<String> = mutableListOf()
+        var deletedFiles = 0
+
+        for (filePath: String in directoryContents) {
+            val fileLink: Link = link.copyWithAfterPath(link, filePath)
+
+            try {
+                val fileChange: CustomChange = gitOperationManager.getAllChangesForFile(
+                    fileLink,
+                    similarityThreshold
+                )
+
+                if (fileChange.customChangeType == CustomChangeType.MOVED) {
+                    movedFiles.add(fileChange.afterPathString)
+                }
+                if (fileChange.customChangeType == CustomChangeType.DELETED) {
+                    deletedFiles++
+                }
+            } catch (e: FileChangeGatheringException) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            } catch (e: VcsException) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            } catch (e: Exception) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            }
+        }
+
+        if (deletedFiles + movedFiles.size == directoryContents.size) {
+            val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, directoryContents.size)
+
+            if (similarityPair.second >= similarityThreshold) {
+                return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
+            }
+            return CustomChange(CustomChangeType.DELETED, afterPathString = linkPath)
+        }
+        return CustomChange(CustomChangeType.ADDED, linkPath)
     }
 
     /**
@@ -314,7 +324,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         // list of all the files that have been delete from this folder
         val deletedFiles: MutableList<String> = mutableListOf()
         // list of all the files that have been moved out out this folder
-        val movedFiles: MutableList<String> = mutableListOf()
+        var movedFiles: MutableList<String> = mutableListOf()
 
         return try {
             val github: GitHub = githubBuilder.build()
@@ -376,6 +386,52 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             .eachCount()
         val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
         return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
+    }
+
+
+    private fun extractMostCommonSubPath(
+        pathList: List<Pair<String, Int>>,
+        visitedList: MutableList<String>
+    ): Pair<String, Int>? {
+        var pathMap: HashMap<String, Pair<Int, Int>> = hashMapOf()
+
+        println("PATH LIST IS: $pathList")
+
+        for (path: Pair<String, Int> in pathList) {
+            var pathStart = path.first.replace(File(path.first).name, "")
+            //val firstPaths: List<String> = path.first.split("/")
+            //for (path1 in firstPaths) {
+            //  pathStart += "$path1/"
+            if (pathMap.containsKey(pathStart)) {
+                pathMap[pathStart] = Pair(pathMap[pathStart]!!.first + 1, pathMap[pathStart]!!.second)
+            } else pathMap[pathStart] = Pair(1, path.second)
+        }
+        println("VISITED LIST IS: $visitedList")
+        println("PATH MAP IS here1: $pathMap")
+        pathMap = pathMap.filter { entry -> entry.key !in visitedList } as HashMap<String, Pair<Int, Int>>
+        println("PATH MAP IS here2: $pathMap")
+
+        // get the path with the most appearances and the fullest one
+        val maxValue = pathMap.maxBy { it.value.first }?.value?.first ?: return null
+
+        println("MAX VALUE IS: $maxValue")
+        val filteredMap = pathMap.filter { entry -> entry.value.first == maxValue }
+
+        println("FILTERED MAP IS: $filteredMap")
+
+        var minOrder = Int.MAX_VALUE
+        var maxLength = Int.MIN_VALUE
+        var foundPath: Pair<String, Int>? = null
+        for (entry in filteredMap) {
+            if (entry.value.second <= minOrder && entry.key.length >= maxLength) {
+                minOrder = entry.value.second
+                maxLength = entry.key.length
+                foundPath = Pair(entry.key, entry.value.first)
+            }
+        }
+
+        println("found path is: $foundPath")
+        return foundPath
     }
 
     private fun getDiffOutput(
