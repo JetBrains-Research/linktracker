@@ -125,8 +125,7 @@ class TestParseData : BasePlatformTestCase() {
                 textOffset = 33,
                 fileName = "testParseRelativeLinks.md",
                 project = ProjectManager.getInstance().openProjects[0]
-            ),
-            relativePath = "/src/file.txt"
+            )
         )
         ProgressManager.getInstance().run(myDataParsingTask)
         val result: ScanResult = myDataParsingTask.getResult()

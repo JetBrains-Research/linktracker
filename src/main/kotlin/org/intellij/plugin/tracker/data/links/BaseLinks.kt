@@ -74,6 +74,9 @@ abstract class RelativeLink<in T : Change>(
     override val path: String
         get() = linkInfo.linkPath
 
+    val relativePath: String
+        get() = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+
     override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(linkInfo
         .getAfterPathToOriginalFormat(afterPath)!!, linkInfo.proveniencePath) != afterPath
 

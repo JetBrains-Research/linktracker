@@ -72,8 +72,7 @@ class LinkFactory {
 
                         return RelativeLinkToDirectory(linkInfo = linkInfo, commitSHA = commit)
                     }
-                    val relativePath = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
-                    link = RelativeLinkToFile(linkInfo = linkInfo, relativePath = relativePath)
+                    link = RelativeLinkToFile(linkInfo = linkInfo)
                 }
             }
             return link
