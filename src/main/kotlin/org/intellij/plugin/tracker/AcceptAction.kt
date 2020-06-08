@@ -24,17 +24,7 @@ class AcceptAction : AnAction() {
 
         var scanResult = TreeView.scanResults.get(0)
         val project = scanResult.myProject
-        val commitSHA = try {
-            ProgressManager.getInstance()
-                .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { GitOperationManager(project).getHeadCommitSHA() },
-                    "Getting head commit SHA..",
-                    true,
-                    project
-                )
-        } catch (e: VcsException) {
-            null
-        }
+        val commitSHA = TreeView().myCommitSHA
         for (change in changes) {
             updateLink(change.first, change.second, scanResult, project, commitSHA)
         }

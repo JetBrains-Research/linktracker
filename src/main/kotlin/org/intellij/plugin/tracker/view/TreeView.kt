@@ -39,7 +39,7 @@ import javax.swing.tree.TreePath
 class TreeView : JPanel(BorderLayout()) {
 
     private var myTree: JTree = Tree(DefaultMutableTreeNode("markdown"))
-    private var myCommitSHA: String? = null
+    var myCommitSHA: String? = null
     private lateinit var myScanResult: ScanResult
     private val checkBoxHelper = CheckBoxHelper()
     private var callListenerInfo: List<MutableList<*>> = listOf()
@@ -62,18 +62,8 @@ class TreeView : JPanel(BorderLayout()) {
         myScanResult = scanResult
         scanResults.add(myScanResult)
         val changes = scanResult.myLinkChanges
-        val project = myScanResult.myProject
-        myCommitSHA = try {
-            ProgressManager.getInstance()
-                .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { GitOperationManager(project).getHeadCommitSHA() },
-                    "Getting head commit SHA..",
-                    true,
-                    project
-                )
-        } catch (e: VcsException) {
-            null
-        }
+
+        calculateCommitSHA()
 
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
@@ -115,6 +105,20 @@ class TreeView : JPanel(BorderLayout()) {
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
         (myTree.model as DefaultTreeModel).reload()
+    }
+
+    private fun calculateCommitSHA() {
+        myCommitSHA = try {
+            ProgressManager.getInstance()
+                .runProcessWithProgressSynchronously<String?, VcsException>(
+                    { GitOperationManager(myScanResult.myProject).getHeadCommitSHA() },
+                    "Getting head commit SHA..",
+                    true,
+                    myScanResult.myProject
+                )
+        } catch (e: VcsException) {
+            null
+        }
     }
 
     /**
