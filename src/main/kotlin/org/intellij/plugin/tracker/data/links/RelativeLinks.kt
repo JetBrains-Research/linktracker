@@ -161,7 +161,7 @@ fun checkDoubleDots(link: String): String {
             } else {
                 val startMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtStart.pattern.matcher(result)
                 if (startMatcher.matches()) {
-                    startMatcher.group(2)
+                    result = startMatcher.group(2)
                 } else {
                     return result
                 }
