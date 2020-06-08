@@ -37,6 +37,7 @@ data class RelativeLinkToDirectory(
     }
 }
 
+
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null
@@ -48,6 +49,9 @@ data class RelativeLinkToFile(
             val file = File(relativePath)
             return file.name
         }
+
+    override val path: String
+        get() = relativePath
 
     override val referencedStartingLine: Int
         get() = -1

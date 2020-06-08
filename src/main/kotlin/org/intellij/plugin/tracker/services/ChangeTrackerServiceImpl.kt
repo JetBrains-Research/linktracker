@@ -118,7 +118,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     ): Change {
         // if we cannot get the start commit, return
         val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
+            gitOperationManager.getStartCommit(link, goBackwards = true)
                 ?: throw CommitSHAIsNullLineException(fileChange = FileChange(FileChangeType.INVALID, ""))
 
         try {
@@ -158,8 +158,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     diffOutputList,
                     originalLineContent = originalLineContent
                 )
-            return LineTracker.trackLine(link, diffOutputMultipleRevisions)
 
+            return LineTracker.trackLine(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
             throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
         }
@@ -172,7 +172,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     ): Change {
         // if we cannot get the start commit, throw an exception
         val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
+            gitOperationManager.getStartCommit(link, goBackwards = true)
                 ?: throw CommitSHAIsNullLinesException(fileChange = FileChange(FileChangeType.INVALID, ""))
 
         try {
