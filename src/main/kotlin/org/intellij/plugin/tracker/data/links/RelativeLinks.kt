@@ -159,7 +159,12 @@ fun checkDoubleDots(link: String): String {
             if (endMatcher.matches()) {
                 result = endMatcher.group(2)
             } else {
-                return result
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }
@@ -168,7 +173,7 @@ fun checkDoubleDots(link: String): String {
 
 fun checkSingleDot(link: String): String {
     var result = link
-    while (result.contains("/.")) {
+    while (result.contains("/.") || result.contains("./")) {
         val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
         result = if (matcher.matches()) {
             val firstPart = matcher.group(2)
@@ -179,7 +184,12 @@ fun checkSingleDot(link: String): String {
             if (endMatcher.matches()) {
                 endMatcher.group(2)
             } else {
-                return result
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }
