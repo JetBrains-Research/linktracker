@@ -29,6 +29,8 @@ class LinkFactory {
             when {
                 webLinkToLineMatcher.matches() -> {
                     link = WebLinkToLine(linkInfo = linkInfo)
+                    if (link.lineReferenced > 0) return link
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 webLinkToLinesMatcher.matches() -> {
                     val startLine = WebLinkToLines(linkInfo = linkInfo).referencedStartingLine
@@ -60,6 +62,8 @@ class LinkFactory {
                 }
                 relativeLinkToLineMatcher.matches() -> {
                     link = RelativeLinkToLine(linkInfo = linkInfo)
+                    if (link.lineReferenced > 0) return link
+                    return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 else -> {
                     // Ambiguous link: have to see whether it's a path to a file or directory
