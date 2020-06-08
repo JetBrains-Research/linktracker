@@ -17,6 +17,9 @@ import javax.swing.JMenuItem
 import javax.swing.JPanel
 import javax.swing.JPopupMenu
 
+/**
+ * [TreePopup] class which is used to accept changes
+ */
 class TreePopup(
         private val myScanResult: ScanResult,
         private val myInfo: List<MutableList<*>>,
@@ -81,6 +84,9 @@ class TreePopup(
             title = "Link Out Of Date"
         }
 
+        /**
+         * method creates the center panel for popup
+         */
         override fun createCenterPanel(): JComponent? {
             val dialogPanel = JPanel(BorderLayout())
             val label = JLabel(text)

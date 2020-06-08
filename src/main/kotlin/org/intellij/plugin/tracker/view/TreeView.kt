@@ -66,6 +66,7 @@ class TreeView : JPanel(BorderLayout()) {
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
 
+        // groups the changes to show in the ui
         val changedOnes = changes.filter {
             (it.second.requiresUpdate || it.second.afterPath.any { path -> it.first.markdownFileMoved(path) }) && it.second.errorMessage == null
         }.groupBy { it.first.linkInfo.proveniencePath }
@@ -99,12 +100,16 @@ class TreeView : JPanel(BorderLayout()) {
         callListenerInfo = info
         callListener()
 
+        // adds created nodes to tree according to their groups
         root.add(checkBoxHelper.addCheckBoxNodeTree(changedOnes, changed))
         root.add(addNodeTree(unchangedOnes, unchanged))
         root.add(addNodeTree(invalidOnes, invalid))
         (myTree.model as DefaultTreeModel).reload()
     }
 
+    /**
+     * Method which calculates the commitSHA
+     */
     private fun calculateCommitSHA() {
         myCommitSHA = try {
             ProgressManager.getInstance()
@@ -133,6 +138,8 @@ class TreeView : JPanel(BorderLayout()) {
                 path = path.dropLast(1)
             }
             val file = DefaultMutableTreeNode("$fileName $path")
+
+            // for each link adds nodes to the tree
             for (links in linkList.value) {
                 val link = DefaultMutableTreeNode(links.first.linkInfo.linkPath)
                 link.add(
@@ -164,7 +171,11 @@ class TreeView : JPanel(BorderLayout()) {
      * Adds mouse listener for left and right click
      */
     private fun callListener() {
+
+        // adds the mouse listener if it is the first time
         if (myTree.mouseListeners.size < 2) {
+
+            // mouse listener for selection in tree
             myTree.addMouseListener(object : MouseAdapter() {
                 override fun mouseReleased(e: MouseEvent) {
                     val selRow = myTree.getRowForLocation(e.x, e.y)
@@ -178,6 +189,11 @@ class TreeView : JPanel(BorderLayout()) {
                         if (paths[1].toCharArray().isNotEmpty()) {
                             path = paths[1] + "/" + paths[0]
                         }
+
+                        /**
+                         * if right mouse button is clicked in this ceratin level of the tree
+                         * shows the tree popup
+                         */
                         if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains(
                                 "DELETED"
                             )
@@ -189,6 +205,11 @@ class TreeView : JPanel(BorderLayout()) {
                                 myTree.setSelectionRow(selRow)
                             }
                         }
+
+                        /**
+                         * if left mouse button clicked in this certain level of the tree
+                         * shows the mentioned line in the editor
+                         */
                         if (SwingUtilities.isLeftMouseButton(e) && !name.contains("MOVED") && !name.contains("DELETED")) {
                             for (information in callListenerInfo) {
                                 if (information[0].toString() == name && information[1].toString() == path && information[2].toString() == line) {
@@ -212,10 +233,16 @@ class TreeView : JPanel(BorderLayout()) {
      * Checks the situation of checkboxes and makes required updates
      */
     private fun checkCheckBoxes(selPath: TreePath) {
+        /**
+         * if the clicked node is one of our link's node
+         * call the relevant methods and make it checked/unchecked
+         * and add it to the [checkedPaths] and/or [acceptedChangeList]
+         */
         if (nodesCheckingState.keys.contains(selPath)) {
             val data = nodesCheckingState[selPath]
             if (!data!!.isChecked) {
                 when (selPath.pathCount) {
+                    // case for the first level parent node
                     2 -> {
                         for (node in nodesCheckingState) {
                             if (!node.value.isChecked) {
@@ -227,6 +254,7 @@ class TreeView : JPanel(BorderLayout()) {
                             }
                         }
                     }
+                    // case for second level nodes
                     3 -> {
                         for (node in nodesCheckingState) {
                             if (!node.value.isChecked && node.key.toString()
@@ -240,6 +268,7 @@ class TreeView : JPanel(BorderLayout()) {
                             }
                         }
                     }
+                    // case for the fourth level nodes
                     else -> {
                         data.isChecked = true
                         checkedPaths.add(selPath)
@@ -248,6 +277,7 @@ class TreeView : JPanel(BorderLayout()) {
                 }
             } else {
                 when (selPath.pathCount) {
+                    // case of the first level parent node
                     2 -> {
                         for (node in nodesCheckingState) {
                             if (node.value.isChecked) {
@@ -259,6 +289,7 @@ class TreeView : JPanel(BorderLayout()) {
                             }
                         }
                     }
+                    // case for second level nodes
                     3 -> {
                         for (node in nodesCheckingState) {
                             if (node.value.isChecked && node.key.toString()
@@ -272,6 +303,7 @@ class TreeView : JPanel(BorderLayout()) {
                             }
                         }
                     }
+                    // case for the fourth level nodes
                     else -> {
                         data.isChecked = false
                         checkedPaths.remove(selPath)
@@ -279,6 +311,7 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                 }
             }
+            //call @checkChildren method to make parents/children of the respective node selected/unselected
             checkBoxHelper.checkChildren()
             println("nodes checking state $nodesCheckingState")
             println("checked paths $checkedPaths")

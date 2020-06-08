@@ -4,18 +4,16 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.view.TreeView
-import java.util.HashSet
-import javax.swing.tree.TreePath
 
+/**
+ * Action for accepting link changes
+ */
 class AcceptAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
