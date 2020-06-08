@@ -97,6 +97,9 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().getDiffWithWorkingTree(any()) } returns mutableListOf()
         every { anyConstructed<GitOperationManager>().getDirectoryCommits(any(), any()) } returns mutableListOf(
                 mutableListOf("main"), mutableListOf<String>(), mutableMapOf<String, String>())
+
+        every { anyConstructed<GitOperationManager>().getDirectoryContentsAtCommit(any(), any()) } returns mutableListOf(
+            "main/txt.txt")
         every { anyConstructed<GitOperationManager>().getContentsOfLineInFileAtCommit(any(), any(), any()) } returns ""
         every { anyConstructed<GitOperationManager>().getContentsOfLinesInFileAtCommit(any(), any(), any(), any()) } returns mock()
         every {
@@ -150,8 +153,7 @@ class TestParseData : BasePlatformTestCase() {
                 textOffset = 127,
                 fileName = "testParseRelativeLinks.md",
                 project = ProjectManager.getInstance().openProjects[0]
-            ),
-            commitSHA = "edbb2f5"
+            )
         )
         val resultedLink: Link = getLinkWithText(linkText = "single - relative link to directory")
         Assertions.assertEquals(expectedLink, resultedLink)
