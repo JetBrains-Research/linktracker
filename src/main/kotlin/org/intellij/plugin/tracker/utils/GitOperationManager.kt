@@ -15,6 +15,7 @@ import org.intellij.plugin.tracker.data.changes.FileChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import java.io.File
 import kotlin.math.min

@@ -39,8 +39,7 @@ data class RelativeLinkToDirectory(
 
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    val relativePath: String
+    override val pattern: Pattern? = null
 ) : RelativeLink<FileChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
@@ -76,7 +75,7 @@ data class RelativeLinkToLine(
         get() = matcher.group(1).toInt()
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}", "")
         }
 
@@ -88,8 +87,8 @@ data class RelativeLinkToLine(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace("#L$lineReferenced", "")
-            return linkInfo.linkPath
+                return relativePath.replace("#L$lineReferenced", "")
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
@@ -99,9 +98,8 @@ data class RelativeLinkToLine(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun updateLink(change: LineChange, commitSHA: String?): String? {
-        TODO("not implemented")
-    }
+    override fun updateLink(change: LineChange, commitSHA: String?): String? = change.afterPath[0]
+
 }
 
 data class RelativeLinkToLines(
@@ -112,7 +110,7 @@ data class RelativeLinkToLines(
         get() = -1
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
         }
     override val referencedStartingLine: Int
@@ -123,10 +121,10 @@ data class RelativeLinkToLines(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace(
+                return relativePath.replace(
                     "#L$referencedStartingLine-L$referencedEndingLine", ""
                 )
-            return linkInfo.linkPath
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLinesChanges(this)
@@ -136,9 +134,7 @@ data class RelativeLinkToLines(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun updateLink(change: LinesChange, commitSHA: String?): String? {
-        TODO("not implemented")
-    }
+    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.afterPath[0]
 }
 
 fun checkRelativeLink(linkPath: String, filePath: String): String {
@@ -163,7 +159,12 @@ fun checkDoubleDots(link: String): String {
             if (endMatcher.matches()) {
                 result = endMatcher.group(2)
             } else {
-                return result
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    result = startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }
@@ -172,7 +173,7 @@ fun checkDoubleDots(link: String): String {
 
 fun checkSingleDot(link: String): String {
     var result = link
-    while (result.contains("/.")) {
+    while (result.contains("/.") || result.contains("./")) {
         val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
         result = if (matcher.matches()) {
             val firstPart = matcher.group(2)
@@ -183,7 +184,12 @@ fun checkSingleDot(link: String): String {
             if (endMatcher.matches()) {
                 endMatcher.group(2)
             } else {
-                return result
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }
