@@ -188,7 +188,7 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(link: Link, goBackwards: Boolean = false, maxCommitsBackwards: Int = 5): String? {
+    fun getStartCommit(link: Link, goBackwards: Boolean = false, maxCommitsBackwards: Int = 5, isDir: Boolean = false): String? {
         val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
@@ -197,8 +197,12 @@ class GitOperationManager(private val project: Project) {
             // return most recent finding
             if (outputLog.output.size != 0) {
                 val commitSHA = outputLog.output[0].split(" ")[0]
-                if (fileExistsAtCommit(commitSHA, link.path)) {
-                    return outputLog.output[0].split(" ")[0]
+                if (!isDir) {
+                    if (fileExistsAtCommit(commitSHA, link.path)) {
+                        return outputLog.output[0].split(" ")[0]
+                    }
+                } else {
+                    return commitSHA
                 }
 
                 // file does not exist at the found commit
@@ -493,7 +497,7 @@ class GitOperationManager(private val project: Project) {
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
                 }
-                //throw ReferencedPathNotFoundException(linkPath)
+                throw ReferencedPathNotFoundException(linkPath)
             }
 
             additionList = additionList.reversed()

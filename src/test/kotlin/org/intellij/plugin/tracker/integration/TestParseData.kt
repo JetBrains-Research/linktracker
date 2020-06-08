@@ -89,7 +89,7 @@ class TestParseData : BasePlatformTestCase() {
         every { anyConstructed<GitOperationManager>().isRefATag(any()) } returns false
         every { anyConstructed<GitOperationManager>().isRefACommit(any()) } returns false
         every { anyConstructed<GitOperationManager>().getHeadCommitSHA() } returns "edbb2f5"
-        every { anyConstructed<GitOperationManager>().getStartCommit(any()) } returns "edbb2f5"
+        every { anyConstructed<GitOperationManager>().getStartCommit(any(), any()) } returns "edbb2f5"
         every { anyConstructed<GitOperationManager>().getRemoteOriginUrl() } returns
                 "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project.git"
         every { anyConstructed<GitOperationManager>().checkWorkingTreeChanges(any()) } returns null
