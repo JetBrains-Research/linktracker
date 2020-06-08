@@ -388,52 +388,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
-
-    private fun extractMostCommonSubPath(
-        pathList: List<Pair<String, Int>>,
-        visitedList: MutableList<String>
-    ): Pair<String, Int>? {
-        var pathMap: HashMap<String, Pair<Int, Int>> = hashMapOf()
-
-        println("PATH LIST IS: $pathList")
-
-        for (path: Pair<String, Int> in pathList) {
-            var pathStart = path.first.replace(File(path.first).name, "")
-            //val firstPaths: List<String> = path.first.split("/")
-            //for (path1 in firstPaths) {
-            //  pathStart += "$path1/"
-            if (pathMap.containsKey(pathStart)) {
-                pathMap[pathStart] = Pair(pathMap[pathStart]!!.first + 1, pathMap[pathStart]!!.second)
-            } else pathMap[pathStart] = Pair(1, path.second)
-        }
-        println("VISITED LIST IS: $visitedList")
-        println("PATH MAP IS here1: $pathMap")
-        pathMap = pathMap.filter { entry -> entry.key !in visitedList } as HashMap<String, Pair<Int, Int>>
-        println("PATH MAP IS here2: $pathMap")
-
-        // get the path with the most appearances and the fullest one
-        val maxValue = pathMap.maxBy { it.value.first }?.value?.first ?: return null
-
-        println("MAX VALUE IS: $maxValue")
-        val filteredMap = pathMap.filter { entry -> entry.value.first == maxValue }
-
-        println("FILTERED MAP IS: $filteredMap")
-
-        var minOrder = Int.MAX_VALUE
-        var maxLength = Int.MIN_VALUE
-        var foundPath: Pair<String, Int>? = null
-        for (entry in filteredMap) {
-            if (entry.value.second <= minOrder && entry.key.length >= maxLength) {
-                minOrder = entry.value.second
-                maxLength = entry.key.length
-                foundPath = Pair(entry.key, entry.value.first)
-            }
-        }
-
-        println("found path is: $foundPath")
-        return foundPath
-    }
-
     private fun getDiffOutput(
         before: String,
         after: String,

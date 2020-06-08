@@ -134,7 +134,6 @@ class DataParsingTask(
         ApplicationManager.getApplication().invokeLater {
             WriteCommandAction.runWriteCommandAction(currentProject) {
                 if (myLinksAndChangesList.size != 0) {
-                    myLinksAndChangesList.map { println(it) }
                     val result = myLinkUpdateService.updateLinks(
                         myLinksAndChangesList,
                         myGitOperationManager.getHeadCommitSHA()

@@ -42,52 +42,12 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
         val result: GitCommandResult = git.runCommand(gitLineHandler)
 
-        println("result exit code ${result.getOutputOrThrow()}")
         if (result.exitCode == 0) {
-            println("here, output is: ${result.output}")
             return result.output
         }
         return null
     }
 
-    @Throws(VcsException::class)
-    fun isFolderDeleted(directoryPath: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters("--pretty=%H", "--", directoryPath)
-        val result: GitCommandResult = git.runCommand(gitLineHandler)
-
-        if (result.exitCode == 0) {
-            val commitSHACollection = result.output
-
-            if (commitSHACollection.size == 0) return false
-
-            println("COMMIT SHA COLLECTION for path $directoryPath is $commitSHACollection")
-            val secondGitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
-            secondGitLineHandler.addParameters("-r", commitSHACollection[0], "--", directoryPath)
-            val secondResult: GitCommandResult = git.runCommand(secondGitLineHandler)
-            if (secondResult.exitCode == 0 && secondResult.output.isEmpty()) return true
-        }
-        return false
-    }
-
-    /**
-     * Checks whether the commit represented by commitSHA1 is an ancestor of commitSHA2
-     * and returns a boolean indicating the result
-     *
-     * Runs git command `git merge-base --is-ancestor commitSHA1 commitSHA2`
-     */
-    @Throws(VcsException::class)
-    fun isAncestorOf(commitSHA1: String, commitSHA2: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.MERGE_BASE)
-        gitLineHandler.addParameters(
-            "--is-ancestor",
-            commitSHA1,
-            commitSHA2
-        )
-        val result: GitCommandResult = git.runCommand(gitLineHandler)
-        if (result.exitCode == 0) return true
-        return false
-    }
 
     /**
      * Returns the contents of a line in a specified file at a specified commit
@@ -172,21 +132,6 @@ class GitOperationManager(private val project: Project) {
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         if (output.exitCode == 0) return true
         return false
-    }
-
-
-    /**
-     * Get the date of a commit in a timestamp format
-     *
-     * Runs git command `git show -s --format=%ct <commitSHA>`
-     *
-     */
-    @Throws(VcsException::class)
-    private fun getDateOfCommit(commitSHA: String): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
-        gitLineHandler.addParameters("-s", "--format=%ct", commitSHA)
-        val timestampOutput: GitCommandResult = git.runCommand(gitLineHandler)
-        return timestampOutput.getOutputOrThrow()
     }
 
     /**
