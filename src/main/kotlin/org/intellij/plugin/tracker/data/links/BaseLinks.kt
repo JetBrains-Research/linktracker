@@ -2,14 +2,13 @@ package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
@@ -17,7 +16,6 @@ enum class WebLinkReferenceType(private val type: String) {
     TAG("TAG"),
     INVALID("INVALID")
 }
-
 
 /**
  * Base class for links
@@ -80,7 +78,6 @@ abstract class RelativeLink<in T : Change>(
 
     abstract fun updateLink(change: T, commitSHA: String?): String?
 }
-
 
 /**
  * Abstract class for web links
@@ -155,7 +152,7 @@ abstract class WebLink<in T : Change>(
  * Data class which encapsulates information about links which are not supported and the reasoning
  * why they are not supported
  */
-data class NotSupportedLink (
+data class NotSupportedLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
     val errorMessage: String? = null
@@ -176,7 +173,7 @@ data class NotSupportedLink (
         get() = linkInfo.linkPath
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun copyWithAfterPath(link: Link, afterPath: String): NotSupportedLink {
@@ -186,7 +183,6 @@ data class NotSupportedLink (
 
     override fun markdownFileMoved(afterPath: String): Boolean = false
 }
-
 
 /**
  * Data class containing information about the link, which was retrieved from markdown files
