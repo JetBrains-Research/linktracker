@@ -13,6 +13,9 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.TreeCellRenderer
 
+/**
+ * [CustomCellRenderer] class makes the rendering operations for nodes which does not have checkbox
+ */
 internal class CustomCellRenderer : TreeCellRenderer {
     private var titleLabel = JLabel("")
     private var renderer: JPanel = JPanel()
@@ -20,16 +23,17 @@ internal class CustomCellRenderer : TreeCellRenderer {
     private var backgroundSelectionColor: Color
     private var backgroundNonSelectionColor: Color
 
+    /**
+     * Method of [TreeCellRenderer] class
+     * makes the rendering operations
+     */
     override fun getTreeCellRendererComponent(
             tree: JTree, value: Any, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean
     ): Component {
         var returnValue: Component? = null
         if (value is DefaultMutableTreeNode) {
-
             renderComponents(titleLabel, value)
-
             renderer.isEnabled = tree.isEnabled
-
             returnValue = renderer
         }
         if (null == returnValue) {
@@ -38,12 +42,19 @@ internal class CustomCellRenderer : TreeCellRenderer {
         return returnValue!!
     }
 
+    /**
+     * Helper [renderComponents] method which is used in [getTreeCellRendererComponent]
+     */
     fun renderComponents(titleLabel : JLabel, value : DefaultMutableTreeNode) {
         val userObject = value.userObject
 
         titleLabel.text = userObject.toString()
         titleLabel.icon = MarkdownIcons.EditorActions.Link
 
+        /**
+         * According to level of links add correct information
+         * makes the texts colored and adds the icons
+         */
         if (titleLabel.text.contains("DELETED") || titleLabel.text.contains("MOVED")) {
             titleLabel.icon = AllIcons.General.BalloonInformation
         } else if (titleLabel.text.contains("MESSAGE: ")) {
@@ -73,13 +84,15 @@ internal class CustomCellRenderer : TreeCellRenderer {
             }
         }
 
+        /**
+         * Adds correct icons and texts for different types of nodes
+         */
         when {
             userObject.toString().contains("Changed Links") -> {
                 if(!userObject.toString().contains("<html>")) {
                     titleLabel.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
                             userObject.toString().substring(13) + "</font></html>"
                 }
-
                 titleLabel.icon = null
             }
             userObject.toString().contains("Unchanged Links") -> {

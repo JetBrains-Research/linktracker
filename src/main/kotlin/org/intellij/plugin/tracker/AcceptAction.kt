@@ -4,14 +4,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.view.TreeView
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -19,25 +16,17 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 
+/**
+ * Action for accepting link changes
+ */
 class AcceptAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
 
         val myChanges = TreeView.acceptedChangeList
-
         val myScanResult = TreeView.ourScanResult
         val myProject = myScanResult.myProject
-        val commitSHA = try {
-            ProgressManager.getInstance()
-                .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { GitOperationManager(myProject).getHeadCommitSHA() },
-                    "Getting head commit SHA..",
-                    true,
-                    myProject
-                )
-        } catch (e: VcsException) {
-            null
-        }
+        val commitSHA = TreeView.myCommitSHA
 
         // Check validity of each link
         val validChanges = mutableListOf<Pair<Link, Change>>()

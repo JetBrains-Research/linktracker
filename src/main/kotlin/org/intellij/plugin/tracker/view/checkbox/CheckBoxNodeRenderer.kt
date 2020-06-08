@@ -20,7 +20,10 @@ class CheckBoxNodeRenderer : TreeCellRenderer {
     private val selectionForeground: Color
     private val selectionBackground: Color
 
-    // -- TreeCellRenderer methods --
+    /**
+     * method of [TreeCellRenderer] class
+     * makes the rendering operations
+     */
     override fun getTreeCellRendererComponent(
         tree: JTree,
         value: Any, selected: Boolean, expanded: Boolean,

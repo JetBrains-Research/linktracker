@@ -135,7 +135,7 @@ class CheckBoxHelper {
     }
 
     /**
-     * Gets all files nodes with their data
+     * Gets all files and respective nodes with their data
      */
     private fun getFileNodes(): MutableList<Pair<TreePath, CheckBoxNodeData>> {
         val result: MutableList<Pair<TreePath, CheckBoxNodeData>> = mutableListOf()
