@@ -65,10 +65,10 @@ class JenkinsHash {
      * Convert 4 bytes from the buffer at offset into a long value.
      */
     private fun fourByteToLong(bytes: ByteArray, offset: Int): Long {
-        return (byteToLong(bytes[offset + 0]) +
-                (byteToLong(bytes[offset + 1]) shl 8) +
-                (byteToLong(bytes[offset + 2]) shl 16) +
-                (byteToLong(bytes[offset + 3]) shl 24))
+        return (byteToLong(bytes[offset + 0])
+                + (byteToLong(bytes[offset + 1]) shl 8)
+                + (byteToLong(bytes[offset + 2]) shl 16)
+                + (byteToLong(bytes[offset + 3]) shl 24))
     }
 
     /**
@@ -230,7 +230,7 @@ class JenkinsHash {
                 a = add(a, byteToLong(buffer[pos + 0]))
             }
             1 -> a = add(a, byteToLong(buffer[pos + 0]))
-        } // case 0: nothing left to add
+        }// case 0: nothing left to add
         hashMix()
 
         return c
