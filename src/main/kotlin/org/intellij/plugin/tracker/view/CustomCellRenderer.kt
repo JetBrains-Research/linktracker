@@ -52,7 +52,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
         titleLabel.icon = MarkdownIcons.EditorActions.Link
 
         /**
-         * According to level of links add correct information
+         * According to level of links adds correct information
          * makes the texts colored and adds the icons
          */
         if (titleLabel.text.contains("DELETED") || titleLabel.text.contains("MOVED")) {
