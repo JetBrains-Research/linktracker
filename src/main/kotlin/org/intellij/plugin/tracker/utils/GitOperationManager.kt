@@ -294,7 +294,7 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        if (link is RelativeLink<*>) {
+        if (link is RelativeLinkToFile) {
             return processChangesForFile(link.relativePath, outputLog.getOutputOrThrow(), specificCommit)
         }
         return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)

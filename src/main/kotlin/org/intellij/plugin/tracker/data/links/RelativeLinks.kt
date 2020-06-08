@@ -75,7 +75,7 @@ data class RelativeLinkToLine(
         get() = matcher.group(1).toInt()
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}", "")
         }
 
@@ -87,8 +87,8 @@ data class RelativeLinkToLine(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace("#L$lineReferenced", "")
-            return linkInfo.linkPath
+                return relativePath.replace("#L$lineReferenced", "")
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
@@ -110,7 +110,7 @@ data class RelativeLinkToLines(
         get() = -1
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
         }
     override val referencedStartingLine: Int
@@ -121,10 +121,10 @@ data class RelativeLinkToLines(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace(
+                return relativePath.replace(
                     "#L$referencedStartingLine-L$referencedEndingLine", ""
                 )
-            return linkInfo.linkPath
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLinesChanges(this)
