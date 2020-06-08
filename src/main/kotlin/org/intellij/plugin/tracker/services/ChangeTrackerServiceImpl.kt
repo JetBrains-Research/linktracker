@@ -153,9 +153,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
 
         if (deletedFiles + movedFiles.size == directoryContents.size) {
-            val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, directoryContents.size)
+            val similarityPair: Pair<String, Int>? = calculateSimilarity(movedFiles, directoryContents.size)
 
-            if (similarityPair.second >= similarityThreshold) {
+            if (similarityPair != null && similarityPair.second >= similarityThreshold) {
                 return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
             }
             return CustomChange(CustomChangeType.DELETED, afterPathString = linkPath)
@@ -365,9 +365,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 // if the similarity is above a certain settable number, declare the directory as moved
                 // else, deleted
 
-                val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
+                val similarityPair: Pair<String, Int>? = calculateSimilarity(movedFiles, addedFiles.size)
 
-                if (similarityPair.second >= similarityThreshold) {
+                if (similarityPair != null && similarityPair.second >= similarityThreshold) {
                     return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
                 }
                 return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
@@ -380,11 +380,33 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
     }
 
-    private fun calculateSimilarity(movedFiles: List<String>, addedFilesSize: Int): Pair<String, Int> {
-        val countMap: Map<String, Int> = movedFiles.map { path -> path.replace(File(path).name, "") }
-            .groupingBy { it }
-            .eachCount()
-        val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
+    /**
+     * Method that takes in a list of paths of the moved files and the size of the
+     * added files list as parameters. It then tries to split each path in the moved files
+     * into separate sub-paths, adding each to a counting map
+     *
+     * It then fetches the most numerous sub-path amongst all the moved files paths
+     * and divides the number of occurences to the added files list size.
+     */
+    private fun calculateSimilarity(movedFiles: List<String>, addedFilesSize: Int): Pair<String, Int>? {
+        val countMap: HashMap<String, Int> = hashMapOf()
+        for (path in movedFiles) {
+            val usePath = path.replace(File(path).name, "")
+            val splitPaths: List<String> = usePath.split("/")
+            var pathStart = ""
+            for (splitPath in splitPaths) {
+                if (splitPath.isNotBlank()) {
+                    pathStart += "$splitPath/"
+                    println("PATH START IS: $pathStart")
+                    if (countMap.containsKey(pathStart)) countMap[pathStart] = countMap[pathStart]!! + 1
+                    else countMap[pathStart] = 1
+                }
+            }
+        }
+
+        val maxValue: Int = countMap.maxBy { it.value }?.value ?: return null
+        val maxPair =
+            countMap.filter { entry -> entry.value == maxValue }.maxBy { it.key.length }
         return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
