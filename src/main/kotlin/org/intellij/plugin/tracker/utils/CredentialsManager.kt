@@ -14,7 +14,7 @@ class CredentialsManager {
         }
 
         fun storeCredentials(platform: String, username: String, token: String) {
-            val credentialAttributes: CredentialAttributes =  createCredentialAttributes("$platform-$username")
+            val credentialAttributes: CredentialAttributes = createCredentialAttributes("$platform-$username")
             val passwordSafe: PasswordSafe = PasswordSafe.instance
             val credentials = Credentials(username, token)
             passwordSafe.set(credentialAttributes, credentials)
@@ -28,7 +28,5 @@ class CredentialsManager {
             }
             return null
         }
-
     }
-
 }
