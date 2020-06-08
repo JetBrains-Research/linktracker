@@ -35,6 +35,9 @@
         <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings"
                 description="Settings"  icon="AllIcons.Ide.Notification.GearHover">
         </action>
+        <action id="AcceptChanges" class="org.intellij.plugin.tracker.AcceptAction" text="Accept Changes"
+                description="Accept Changes Selected"  icon="AllIcons.Actions.Commit">
+        </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
