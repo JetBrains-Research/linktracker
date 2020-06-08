@@ -67,7 +67,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
         gitLineHandler.addParameters("$commitSHA:$path")
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             val lines: List<String> = result.output
             if (lines.size >= lineNumber) return lines[lineNumber - 1]
@@ -176,13 +175,42 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(linkInfo: LinkInfo): String? {
+    fun getStartCommit(link: Link, goBackwards: Boolean = false, maxCommitsBackwards: Int = 5): String? {
+        val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
-        if (outputLog.exitCode == 0)
-        // return most recent finding
-            if (outputLog.output.size != 0) return outputLog.output[0].split(" ")[0]
+        if (outputLog.exitCode == 0) {
+            // return most recent finding
+            if (outputLog.output.size != 0) {
+                val commitSHA = outputLog.output[0].split(" ")[0]
+                if (fileExistsAtCommit(commitSHA, link.path)) {
+                    return outputLog.output[0].split(" ")[0]
+                }
+
+                // file does not exist at the found commit
+                // find the most recent commit at which this file exists
+                // starting at the initially found `start commit`.
+                if (goBackwards) {
+                    if (commitSHA != getFirstCommitSHA()) {
+                        val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+                        gitLineHandlerLog.addParameters("$commitSHA^", "--oneline")
+                        val resultLog = git.runCommand(gitLineHandlerLog)
+                        if (resultLog.exitCode == 0) {
+                            var index = 0
+                            for (line in resultLog.output) {
+                                if (index > maxCommitsBackwards) break
+                                index++
+                                val commit = line.substring(0, 7)
+                                if (fileExistsAtCommit(commit, link.path)) {
+                                    return commit
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         return null
     }
 
@@ -294,9 +322,6 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        if (link is RelativeLinkToFile) {
-            return processChangesForFile(link.relativePath, outputLog.getOutputOrThrow(), specificCommit)
-        }
         return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 
@@ -455,7 +480,7 @@ class GitOperationManager(private val project: Project) {
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
                     return linkChange
                 }
-                throw ReferencedPathNotFoundException(linkPath)
+                //throw ReferencedPathNotFoundException(linkPath)
             }
 
             additionList = additionList.reversed()
