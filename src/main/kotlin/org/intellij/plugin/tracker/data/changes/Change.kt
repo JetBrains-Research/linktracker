@@ -1,10 +1,8 @@
 package org.intellij.plugin.tracker.data.changes
 
-
 interface ChangeType {
     val changeTypeString: String
 }
-
 
 interface Change {
     val requiresUpdate: Boolean

@@ -10,6 +10,20 @@ import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
 import com.intellij.ui.treeStructure.Tree
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.io.File
+import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JTree
+import javax.swing.SwingConstants
+import javax.swing.SwingUtilities
+import javax.swing.border.Border
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
+import javax.swing.tree.TreePath
 import org.apache.commons.lang.StringUtils.substringBetween
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
@@ -20,17 +34,6 @@ import org.intellij.plugin.tracker.view.checkbox.CheckBoxHelper
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
-import java.io.File
-import java.util.*
-import javax.swing.*
-import javax.swing.border.Border
-import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.DefaultTreeModel
-import javax.swing.tree.TreePath
 
 /**
  * Class creating tree view
@@ -169,7 +172,7 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                     link.add(DefaultMutableTreeNode(displayString))
                 } else if (links.second.errorMessage != null) {
-                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
+                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage}"))
                 }
                 file.add(link)
             }
@@ -322,7 +325,7 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                 }
             }
-            //call @checkChildren method to make parents/children of the respective node selected/unselected
+            // call @checkChildren method to make parents/children of the respective node selected/unselected
             checkBoxHelper.checkChildren()
             println("nodes checking state $nodesCheckingState")
             println("checked paths $checkedPaths")

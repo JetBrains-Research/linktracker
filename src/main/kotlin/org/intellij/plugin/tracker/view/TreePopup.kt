@@ -4,11 +4,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import org.intellij.plugin.tracker.LinkTrackerAction
-import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.LinkUpdaterService
 import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.JComponent
@@ -16,15 +11,22 @@ import javax.swing.JLabel
 import javax.swing.JMenuItem
 import javax.swing.JPanel
 import javax.swing.JPopupMenu
+import org.intellij.plugin.tracker.LinkTrackerAction
+import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.LinkUpdaterService
 
 /**
  * [TreePopup] class which is used to accept changes
  */
 class TreePopup(
-        private val myScanResult: ScanResult,
-        private val myInfo: List<MutableList<*>>,
-        private val myName: String, line: String, path: String,
-        private val myCommitSHA: String?
+    private val myScanResult: ScanResult,
+    private val myInfo: List<MutableList<*>>,
+    private val myName: String,
+    line: String,
+    path: String,
+    private val myCommitSHA: String?
 ) : JPopupMenu() {
 
     private val myProject: Project = myScanResult.myProject

@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.RunResult
 
-
 /**
  * @author Tommaso Brandirali
  *
@@ -52,7 +51,6 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
         this.stateObject = state
     }
 
-
     fun setResultsList(resultsList: ArrayList<RunResult>) {
         state.resultsList = resultsList
     }
@@ -60,7 +58,6 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
     fun getResultsList(): ArrayList<RunResult> {
         return state.resultsList
     }
-
 
     fun saveCommitSHA(commitSHA: String) {
         stateObject.commitSHA = commitSHA

@@ -7,12 +7,26 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.psi.PsiManager
-import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.DirectoryChangeGatheringException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.LineChangeGatheringException
+import org.intellij.plugin.tracker.data.LinesChangeGatheringException
+import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
-import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.services.UIService
 
 /**
  * A runnable task that executes the plugin's main logic:
@@ -77,7 +91,8 @@ class DataParsingTask(
                 myLinksAndChangesList.add(Pair(link, CustomChange(
                     CustomChangeType.INVALID,
                     afterPathString = "",
-                    errorMessage = e.message)))
+                    errorMessage = e.message)
+                ))
             } catch (e: DirectoryChangeGatheringException) {
                 myLinksAndChangesList.add(Pair(link, CustomChange(
                     CustomChangeType.INVALID,
@@ -105,10 +120,9 @@ class DataParsingTask(
         try {
             myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
         } catch (e: VcsException) {
-
+            println("here: ${e.message}")
         }
     }
-
 
     /**
      * Callback executed when link data parsing is complete.

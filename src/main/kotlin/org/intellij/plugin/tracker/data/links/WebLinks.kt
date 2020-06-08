@@ -1,13 +1,15 @@
 package org.intellij.plugin.tracker.data.links
 
+import java.io.File
+import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
-import java.io.File
-import java.util.regex.Pattern
-
 
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
@@ -142,7 +144,6 @@ data class WebLinkToLine(
     }
 }
 
-
 data class WebLinkToLines(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToLines.pattern
@@ -167,7 +168,7 @@ data class WebLinkToLines(
     }
 
     override fun generateNewPath(change: LinesChange, newPath: String): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToLines {
