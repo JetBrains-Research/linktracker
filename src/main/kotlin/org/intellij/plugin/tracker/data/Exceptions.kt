@@ -23,6 +23,12 @@ class CommitSHAIsNullLinesException(
     override val fileChange: CustomChange
 ) : LinesChangeGatheringException(message, fileChange)
 
+class CommitSHAIsNullDirectoryException(
+    override val message: String? =
+        "Could not find the start commit of the line containing this link, " +
+                "please try to commit the file containing the link and run the plugin again."
+) : DirectoryChangeGatheringException(message)
+
 class OriginalLineContentsNotFoundException(
     override val message: String? = "Could not find the contents of the line specified in the link",
     override val fileChange: CustomChange
@@ -76,7 +82,7 @@ class UnableToFetchRemoteDirectoryChangesException(
 )
 
 class LocalDirectoryNeverExistedException(
-    override val message: String? = "Directory never existed"
+    override val message: String? = "Could not track this directory"
 ) : DirectoryChangeGatheringException(message)
 
 class UnableToFetchLocalDirectoryChangesException(
