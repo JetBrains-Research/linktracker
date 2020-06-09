@@ -122,7 +122,7 @@ class CheckBoxHelper {
      */
     fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            if (pair.first.path == path.lastPathComponent.toString()) TreeView.acceptedChangeList.add(pair)
+            if (pair.first.path == path.lastPathComponent.toString().split(" ").last()) TreeView.acceptedChangeList.add(pair)
         }
     }
 
@@ -131,7 +131,7 @@ class CheckBoxHelper {
      */
     fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            if (pair.first.path == path.lastPathComponent.toString()) TreeView.acceptedChangeList.remove(pair)
+            if (pair.first.path == path.lastPathComponent.toString().split(" ").last()) TreeView.acceptedChangeList.remove(pair)
         }
     }
 
