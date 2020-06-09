@@ -9,12 +9,13 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.elementType
 import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.links.*
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLink
+import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 import org.intellij.plugins.markdown.lang.MarkdownTokenTypes.GFM_AUTOLINK
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
-
 
 /**
  * A service to update broken links.
@@ -77,8 +78,7 @@ class LinkUpdaterService(val project: Project) {
             if (link is RelativeLink<*>) {
                 val castLink: RelativeLink<Change> = link as RelativeLink<Change>
                 afterPath = castLink.updateLink(change, newCommit)
-            }
-            else if (link is WebLink<*>) {
+            } else if (link is WebLink<*>) {
                 val castLink: WebLink<Change> = link as WebLink<Change>
                 afterPath = castLink.updateLink(change, newCommit)
             }
@@ -90,10 +90,8 @@ class LinkUpdaterService(val project: Project) {
             element.replace(newElement)
             return true
         }
-
         // only change changes of type MOVED
         return false
-
     }
 
     /**

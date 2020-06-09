@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.data.changes
 
 import org.intellij.plugin.tracker.data.Line
 
-enum class LineChangeType(val change: String): ChangeType {
+enum class LineChangeType(val change: String) : ChangeType {
     DELETED("LINE DELETED") {
         override val changeTypeString: String
             get() = change
