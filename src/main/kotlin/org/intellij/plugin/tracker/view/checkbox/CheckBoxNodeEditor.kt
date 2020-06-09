@@ -3,7 +3,7 @@ package org.intellij.plugin.tracker.view.checkbox
 import java.awt.Component
 import java.awt.event.ItemListener
 import java.awt.event.MouseEvent
-import java.util.*
+import java.util.EventObject
 import javax.swing.AbstractCellEditor
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
@@ -40,8 +40,11 @@ class CheckBoxNodeEditor(private val theTree: JTree) : AbstractCellEditor(), Tre
      */
     override fun getTreeCellEditorComponent(
         tree: JTree,
-        value: Any, selected: Boolean, expanded: Boolean,
-        leaf: Boolean, row: Int
+        value: Any,
+        selected: Boolean,
+        expanded: Boolean,
+        leaf: Boolean,
+        row: Int
     ): Component {
         val editor = renderer.getTreeCellRendererComponent(
             tree, value, true, expanded, leaf,

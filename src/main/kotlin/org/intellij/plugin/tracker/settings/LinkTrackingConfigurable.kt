@@ -3,8 +3,7 @@ package org.intellij.plugin.tracker.settings
 import com.intellij.openapi.options.SearchableConfigurable
 import javax.swing.JComponent
 
-
-class LinkTrackingConfigurable: SearchableConfigurable {
+class LinkTrackingConfigurable : SearchableConfigurable {
     private var linkTrackingSettingsForm: LinkTrackingSettingsForm? = null
 
     private fun getForm(): LinkTrackingSettingsForm {
@@ -18,9 +17,9 @@ class LinkTrackingConfigurable: SearchableConfigurable {
 
     override fun getDisplayName(): String = "Link Tracking"
 
-    override fun isModified(): Boolean =  getForm().similarityThresholdSettings.isModified()
+    override fun isModified(): Boolean = getForm().similarityThresholdSettings.isModified()
 
-    override fun apply() =  SimilarityThresholdSettings.saveSetValues(getForm().similarityThresholdSettings)
+    override fun apply() = SimilarityThresholdSettings.saveSetValues(getForm().similarityThresholdSettings)
 
     override fun reset() = getForm().reset()
 

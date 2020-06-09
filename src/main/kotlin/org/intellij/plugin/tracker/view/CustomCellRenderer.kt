@@ -28,7 +28,13 @@ internal class CustomCellRenderer : TreeCellRenderer {
      * makes the rendering operations
      */
     override fun getTreeCellRendererComponent(
-            tree: JTree, value: Any, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean
+        tree: JTree,
+        value: Any,
+        selected: Boolean,
+        expanded: Boolean,
+        leaf: Boolean,
+        row: Int,
+        hasFocus: Boolean
     ): Component {
         var returnValue: Component? = null
         if (value is DefaultMutableTreeNode) {
@@ -37,7 +43,8 @@ internal class CustomCellRenderer : TreeCellRenderer {
             returnValue = renderer
         }
         if (null == returnValue) {
-            returnValue = defaultRenderer.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus)
+            returnValue =
+                defaultRenderer.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus)
         }
         return returnValue!!
     }
@@ -45,7 +52,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
     /**
      * Helper [renderComponents] method which is used in [getTreeCellRendererComponent]
      */
-    fun renderComponents(titleLabel : JLabel, value : DefaultMutableTreeNode) {
+    fun renderComponents(titleLabel: JLabel, value: DefaultMutableTreeNode) {
         val userObject = value.userObject
 
         titleLabel.text = userObject.toString()
@@ -63,9 +70,10 @@ internal class CustomCellRenderer : TreeCellRenderer {
             if (value.parent != null) {
                 val text = value.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
-                    if(!userObject.toString().contains("<html>")) {
+                    if (!userObject.toString().contains("<html>")) {
                         val texts = userObject.toString().split(" ")
-                        titleLabel.text = "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
+                        titleLabel.text =
+                            "<html><font color='rgb(0, 142, 204)'>" + texts[0] + "</font> <font color='gray'>" + texts[1] + "</font></html>"
                     }
                     titleLabel.icon = MarkdownIcons.MarkdownPlugin
                 }
@@ -85,12 +93,11 @@ internal class CustomCellRenderer : TreeCellRenderer {
             if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
                 val text = value.parent.parent.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
-                    if(!userObject.toString().contains("<html>")) {
+                    if (!userObject.toString().contains("<html>")) {
                         val texts = userObject.toString().split(") ")
                         titleLabel.text = "<html><font>" + texts[0] + ")</font> <font color='gray'> New path: </font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
                     }
                     titleLabel.icon = AllIcons.General.TodoDefault
-
                 }
             }
         }
@@ -100,7 +107,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
          */
         when {
             userObject.toString().contains("Changed Links") -> {
-                if(!userObject.toString().contains("<html>")) {
+                if (!userObject.toString().contains("<html>")) {
                     titleLabel.text = "<html>" + "<strong>Changed Links </strong></font> <font color='gray'>" +
                             userObject.toString().substring(13) + "</font></html>"
                 }
@@ -116,7 +123,9 @@ internal class CustomCellRenderer : TreeCellRenderer {
                         userObject.toString().substring(13) + "</font></html>"
                 titleLabel.icon = null
             }
-            else -> { titleLabel.font = titleLabel.font.deriveFont(PLAIN) }
+            else -> {
+                titleLabel.font = titleLabel.font.deriveFont(PLAIN)
+            }
         }
     }
 
@@ -124,11 +133,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
         renderer = JPanel(GridLayout(0, 1))
         titleLabel = JLabel(" ")
         renderer.add(titleLabel)
-        backgroundSelectionColor = defaultRenderer
-                .backgroundSelectionColor
-        backgroundNonSelectionColor = defaultRenderer
-                .backgroundNonSelectionColor
+        backgroundSelectionColor = defaultRenderer.backgroundSelectionColor
+        backgroundNonSelectionColor = defaultRenderer.backgroundNonSelectionColor
     }
-
-
 }

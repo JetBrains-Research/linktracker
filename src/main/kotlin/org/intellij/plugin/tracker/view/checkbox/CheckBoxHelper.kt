@@ -1,12 +1,12 @@
 package org.intellij.plugin.tracker.view.checkbox
 
+import java.util.HashMap
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.TreePath
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.TreeView
-import java.util.HashMap
-import javax.swing.tree.DefaultMutableTreeNode
-import javax.swing.tree.TreePath
 
 /**
  * Helper methods for checkbox operations.
@@ -46,7 +46,7 @@ class CheckBoxHelper {
                     }
                     link.add(DefaultMutableTreeNode(displayString))
                 } else if (links.second.errorMessage != null) {
-                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage.toString()}"))
+                    link.add(DefaultMutableTreeNode("MESSAGE: ${links.second.errorMessage}"))
                 }
 
                 file.add(link)
@@ -76,15 +76,15 @@ class CheckBoxHelper {
     fun checkChildren() {
         val links = getLinkNodes()
         for (link in links) {
-            var selected  = false
+            var selected = false
             var allSelected = true
             var noSelected = true
             for ((key, value) in TreeView.nodesCheckingState) {
                 if (key.pathCount == 3 && value == link.key && value.isChecked) {
                     selected = true
-                } else if(key.pathCount == 4 && link.value.contains(value) && !value.isChecked) {
+                } else if (key.pathCount == 4 && link.value.contains(value) && !value.isChecked) {
                     allSelected = false
-                } else if(key.pathCount == 4 && link.value.contains(value) && value.isChecked) {
+                } else if (key.pathCount == 4 && link.value.contains(value) && value.isChecked) {
                     noSelected = false
                 }
             }

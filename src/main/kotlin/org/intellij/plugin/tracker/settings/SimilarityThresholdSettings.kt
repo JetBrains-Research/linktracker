@@ -9,12 +9,10 @@ data class SimilarityThresholdSettings(
 ) {
     companion object {
         private val propertiesComponent: PropertiesComponent = PropertiesComponent.getInstance()
-
         private const val FILE_SIMILARITY = "FILE_SIMILARITY"
         private const val DIRECTORY_SIMILARITY = "DIRECTORY_SIMILARITY"
         private const val LINE_SIMILARITY = "LINE_SIMILARITY"
         private const val DEFAULT_VALUE = "60"
-
 
         fun getCurrentSimilarityThresholdSettings(): SimilarityThresholdSettings {
             val fileSimilarity: Int = propertiesComponent.getValue(FILE_SIMILARITY, DEFAULT_VALUE).toInt()
@@ -37,7 +35,6 @@ data class SimilarityThresholdSettings(
                 "${similarityThresholdSettings.lineSimilarity}"
             )
         }
-
     }
 
     fun isModified(): Boolean = this != (getCurrentSimilarityThresholdSettings())

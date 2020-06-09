@@ -10,7 +10,6 @@ import com.intellij.ui.content.ContentFactory
 import org.intellij.plugin.tracker.data.ScanResult
 import org.intellij.plugin.tracker.view.TreeView
 
-
 class UIService(val project: Project) {
 
     private val treeView: TreeView = TreeView()
