@@ -29,7 +29,7 @@ class CheckBoxHelper {
             val file = add(node, "$fileName $path", false)
             for (links in linkList.value) {
                 val link = add(file, "${links.first.linkInfo.linkText} ${links.first.linkInfo.linkPath}", false)
-                for(i in 0 until links.second.afterPath.size) {
+                for (i in 0 until links.second.afterPath.size) {
                     link.add(
                         DefaultMutableTreeNode(
                             "(${links.first.linkInfo.foundAtLineNumber}) ${links.second.afterPath[i]}"
@@ -122,7 +122,7 @@ class CheckBoxHelper {
      */
     fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            if (pair.first.linkInfo.linkPath == path.lastPathComponent.toString().split(" ").last()){
+            if (pair.first.linkInfo.linkPath == path.lastPathComponent.toString().split(" ").last()) {
                 TreeView.acceptedChangeList.add(pair)
             }
         }

@@ -82,10 +82,10 @@ internal class CustomCellRenderer : TreeCellRenderer {
             if (value.parent != null && value.parent.parent != null) {
                 val text = value.parent.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
-                    if(!userObject.toString().contains("<html>")) {
+                    if (!userObject.toString().contains("<html>")) {
                         val texts = userObject.toString().split(" ")
-                        val text = userObject.toString().replace(texts[texts.size-1], "")
-                        titleLabel.text = "<html><font>" + text + "</font> <font color='gray'>" + texts[texts.size-1] + "</font></html>"
+                        val textLabel = userObject.toString().replace(texts[texts.size - 1], "")
+                        titleLabel.text = "<html><font>" + textLabel + "</font> <font color='gray'>" + texts[texts.size - 1] + "</font></html>"
                     }
                 }
             }
@@ -98,7 +98,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
                         titleLabel.text = "<html><font>" + texts[0] + ")</font> <font color='gray'> New path: </font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
                     }
                     titleLabel.icon = AllIcons.General.TodoDefault
-                } else if(text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                } else if (text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     if (!userObject.toString().contains("<html>")) {
                         titleLabel.text = userObject.toString()
                     }

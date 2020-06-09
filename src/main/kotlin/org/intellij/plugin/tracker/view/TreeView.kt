@@ -155,7 +155,7 @@ class TreeView : JPanel(BorderLayout()) {
 
             // for each link adds nodes to the tree
             for (links in linkList.value) {
-                val link = DefaultMutableTreeNode( "${links.first.linkInfo.linkText} ${links.first.linkInfo.linkPath}")
+                val link = DefaultMutableTreeNode("${links.first.linkInfo.linkText} ${links.first.linkInfo.linkPath}")
                 link.add(
                     DefaultMutableTreeNode(
                         "(${links.first.linkInfo.foundAtLineNumber})"
