@@ -92,10 +92,15 @@ internal class CustomCellRenderer : TreeCellRenderer {
 
             if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
                 val text = value.parent.parent.parent.toString()
-                if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                if (text.contains("Changed Links")) {
                     if (!userObject.toString().contains("<html>")) {
                         val texts = userObject.toString().split(") ")
                         titleLabel.text = "<html><font>" + texts[0] + ")</font> <font color='gray'> New path: </font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                    }
+                    titleLabel.icon = AllIcons.General.TodoDefault
+                } else if(text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                    if (!userObject.toString().contains("<html>")) {
+                        titleLabel.text = userObject.toString()
                     }
                     titleLabel.icon = AllIcons.General.TodoDefault
                 }
