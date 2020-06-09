@@ -196,7 +196,7 @@ class TreeView : JPanel(BorderLayout()) {
                     val selPath = myTree.getPathForLocation(e.x, e.y)
                     if (selPath != null && selPath.pathCount == 5) {
                         val changed = selPath.getPathComponent(1).toString().contains("Changed Links")
-                        val name = selPath.parentPath.lastPathComponent.toString()
+                        val name = selPath.parentPath.lastPathComponent.toString().split(" ").last()
                         val line = substringBetween(selPath.toString(), "(", ")")
                         val paths = selPath.parentPath.parentPath.lastPathComponent.toString().split(" ")
                         var path = paths[0]
@@ -205,7 +205,7 @@ class TreeView : JPanel(BorderLayout()) {
                         }
 
                         /**
-                         * if right mouse button is clicked in this ceratin level of the tree
+                         * if right mouse button is clicked in this certain level of the tree
                          * shows the tree popup
                          */
                         if (SwingUtilities.isRightMouseButton(e) && changed && !name.contains("MOVED") && !name.contains(
