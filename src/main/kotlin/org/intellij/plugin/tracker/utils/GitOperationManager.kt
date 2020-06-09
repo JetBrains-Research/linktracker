@@ -9,7 +9,6 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
@@ -22,10 +21,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import java.io.File
-import kotlin.math.max
-import kotlin.math.min
-import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+
 
 /**
  * Class that handles the logic of git operations
