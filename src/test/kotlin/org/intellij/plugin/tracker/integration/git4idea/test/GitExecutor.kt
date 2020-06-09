@@ -12,12 +12,31 @@ import com.intellij.testFramework.vcs.ExecutableHelper
 import com.intellij.vcs.log.util.VcsLogUtil
 import git4idea.commands.Git
 import git4idea.commands.GitBinaryHandler
+import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
-import git4idea.commands.getGitCommandInstance
 import git4idea.repo.GitRepository
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.io.File
+
+
+/**
+ * Returns an instance of GitCommand object corresponding to the given Git command.
+ *
+ * It allows to support the convenient syntax `git("commit -m msg")`.
+ * In addition to that, it dynamically constructs new GitCommand objects for commands which are not used in the production.
+ */
+fun getGitCommandInstance(commandName: String): GitCommand {
+  return try {
+    val fieldName = commandName.toUpperCase().replace('-', '_')
+    GitCommand::class.java.getDeclaredField(fieldName).get(null) as GitCommand
+  }
+  catch (e: NoSuchFieldException) {
+    val constructor = GitCommand::class.java.getDeclaredConstructor(String::class.java)
+    constructor.isAccessible = true
+    constructor.newInstance(commandName) as GitCommand
+  }
+}
 
 fun gitExecutable() = GitExecutorHolder.PathHolder.GIT_EXECUTABLE
 
