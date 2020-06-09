@@ -61,6 +61,7 @@ class TestParseChanges : VcsPlatformTest() {
         commitHandler = GitLineHandler(project, testRootFile, commitCommand)
     }
 
+    @Disabled
     @Test
     fun test() {
 
