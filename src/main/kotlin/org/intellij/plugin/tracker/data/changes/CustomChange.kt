@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.data.changes
 
 import org.intellij.plugin.tracker.data.diff.FileHistory
 
-enum class CustomChangeType(val change: String): ChangeType {
+enum class CustomChangeType(val change: String) : ChangeType {
     ADDED("ADDED") {
         override val changeTypeString: String
             get() = change

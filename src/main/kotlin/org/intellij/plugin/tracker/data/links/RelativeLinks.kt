@@ -1,12 +1,14 @@
 package org.intellij.plugin.tracker.data.links
 
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.utils.LinkPatterns
 
 data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
@@ -69,7 +71,6 @@ data class RelativeLinkToFile(
     }
 }
 
-
 data class RelativeLinkToLine(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern
@@ -102,7 +103,6 @@ data class RelativeLinkToLine(
     }
 
     override fun updateLink(change: LineChange, commitSHA: String?): String? = change.afterPath[0]
-
 }
 
 data class RelativeLinkToLines(

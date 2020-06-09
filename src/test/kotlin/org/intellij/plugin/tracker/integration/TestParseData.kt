@@ -13,11 +13,26 @@ import io.mockk.mockk
 import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.links.*
-import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
+import org.intellij.plugin.tracker.data.links.WebLinkToFile
+import org.intellij.plugin.tracker.data.links.WebLinkToLine
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl
+import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.services.UIService
 import org.intellij.plugin.tracker.utils.DataParsingTask
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 
 /**
  * This class tests the parsing of links and changes.

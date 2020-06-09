@@ -1,10 +1,17 @@
 package org.intellij.plugin.tracker.utils
 
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.links.*
-import java.nio.file.Path
 import java.util.regex.Matcher
-
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.NotSupportedLink
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
+import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
+import org.intellij.plugin.tracker.data.links.WebLinkToFile
+import org.intellij.plugin.tracker.data.links.WebLinkToLine
+import org.intellij.plugin.tracker.data.links.WebLinkToLines
 
 class LinkFactory {
 

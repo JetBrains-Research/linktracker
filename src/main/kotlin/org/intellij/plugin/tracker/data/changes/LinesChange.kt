@@ -25,7 +25,6 @@ enum class LinesChangeType(val change: String) : ChangeType {
     }
 }
 
-
 data class LinesChange(
     val fileChange: CustomChange,
     val linesChangeType: LinesChangeType,

@@ -9,7 +9,14 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import org.intellij.plugin.tracker.data.*
+import java.io.File
+import kotlin.math.max
+import kotlin.math.min
+import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
+import org.intellij.plugin.tracker.data.OriginalLineContentsNotFoundException
+import org.intellij.plugin.tracker.data.OriginalLinesContentsNotFoundException
+import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
+import org.intellij.plugin.tracker.data.ReferencedPathNotFoundException
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
@@ -17,7 +24,8 @@ import org.intellij.plugin.tracker.data.links.Link
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
-
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 
 /**
  * Class that handles the logic of git operations
@@ -46,7 +54,6 @@ class GitOperationManager(private val project: Project) {
         }
         return null
     }
-
 
     /**
      * Returns the contents of a line in a specified file at a specified commit
@@ -615,5 +622,4 @@ class GitOperationManager(private val project: Project) {
         val output = git.runCommand(gitLineHandler)
         return output.getOutputOrThrow()
     }
-
 }

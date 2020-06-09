@@ -3,8 +3,24 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import java.io.File
+import java.io.IOException
+import java.util.regex.Matcher
+import kotlin.math.max
+import kotlin.math.min
 import org.intellij.plugin.tracker.core.LineTracker
-import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
+import org.intellij.plugin.tracker.data.InvalidFileChangeException
+import org.intellij.plugin.tracker.data.InvalidFileChangeTypeException
+import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.LocalDirectoryNeverExistedException
+import org.intellij.plugin.tracker.data.RemoteDirectoryNeverExistedException
+import org.intellij.plugin.tracker.data.UnableToFetchLocalDirectoryChangesException
+import org.intellij.plugin.tracker.data.UnableToFetchRemoteDirectoryChangesException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -17,13 +33,12 @@ import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
-import org.kohsuke.github.*
-import java.io.File
-import java.io.IOException
-import java.util.regex.Matcher
-import kotlin.math.max
-import kotlin.math.min
-
+import org.kohsuke.github.GHCommit
+import org.kohsuke.github.GHCommitQueryBuilder
+import org.kohsuke.github.GHRepository
+import org.kohsuke.github.GitHub
+import org.kohsuke.github.GitHubBuilder
+import org.kohsuke.github.PagedIterable
 
 class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
@@ -211,7 +226,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     diffOutputList,
                     originalLineContent = originalLineContent
                 )
-
             return LineTracker.trackLine(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
             throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
@@ -284,15 +298,15 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     }
 
     override fun getRemoteFileChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun getRemoteLineChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun getRemoteLinesChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     /***
@@ -462,10 +476,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // as well as all of the context line on the lower side of the line:
             // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
             val contextLines: MutableList<Line> = contextLinesAdded.filter { line ->
-                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
-                    l.lineNumber + contextLinesNumber,
-                    maxContextLineNumber
+                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber)) ||
+                        (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber,
+                            maxContextLineNumber
                 ))
             }.toMutableList()
             l.contextLines = contextLines
@@ -481,10 +494,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // as well as all of the context line on the lower side of the line:
             // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
             val contextLines: MutableList<Line> = contextLinesDeleted.filter { line ->
-                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
-                    l.lineNumber + contextLinesNumber,
-                    maxContextLineNumber
+                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber)) ||
+                        (line.lineNumber > l.lineNumber && line.lineNumber <= min(l.lineNumber + contextLinesNumber,
+                            maxContextLineNumber
                 ))
             }.toMutableList()
             l.contextLines = contextLines
