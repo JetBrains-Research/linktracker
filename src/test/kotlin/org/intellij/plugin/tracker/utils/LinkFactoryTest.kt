@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 class LinkFactoryTest {
 
     @Test
-    fun testCreateRelativeLinkToFile() {
+    fun `create a relative link to a file`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "file.txt",
@@ -33,7 +33,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateRelativeLinkToLine() {
+    fun `create a relative link to a line`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "file.txt#L22",
@@ -49,7 +49,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateRelativeLinkToLines() {
+    fun `create a relative link to multiple lines`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "file.txt#L22-L25",
@@ -65,7 +65,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateWebLinkToFile() {
+    fun `create a web link to a file`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java",
@@ -81,7 +81,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateWebLinkToLine() {
+    fun `create a web link to a line`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L22",
@@ -97,7 +97,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateWebLinkToLines() {
+    fun `create a web link to multiple lines`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L22-L25",
@@ -113,7 +113,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateWebLinkToDirectory() {
+    fun `create a web link to a directory`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/",
@@ -129,7 +129,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateWebLinkToLineInvalidLines() {
+    fun `create a web link to a line with invalid lines`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/Mark.java#L25-L22",
@@ -145,7 +145,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateInvalidWebLink1() {
+    fun `create an invalid web link 1`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project",
@@ -161,7 +161,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateInvalidWebLink2() {
+    fun `create an invalid web link 2`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "https://github.com/tudorpopovici1.com",
@@ -177,7 +177,7 @@ class LinkFactoryTest {
     }
 
     @Test
-    fun testCreateValidWebLinkToFileStartsWithWWW() {
+    fun `create a web link to a file with 'www' prefix`() {
         val linkInfo = LinkInfo(
             linkText = "dummy text",
             linkPath = "www.github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/Mark",

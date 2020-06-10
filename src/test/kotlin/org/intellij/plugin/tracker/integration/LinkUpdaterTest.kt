@@ -70,7 +70,7 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
 class TestRelativeLinkToFile : TestUpdateLinks() {
 
     @Test
-    fun updateRelativeLinkToFile() {
+    fun `update a relative link to a file`() {
         val linkInfo = LinkInfo(
             linkText = "relative link to file",
             linkPath = "file.txt",
@@ -111,7 +111,7 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
 class TestRelativeLinkToLine : TestUpdateLinks() {
 
     @Test
-    fun updateRelativeLinkToLine() {
+    fun `update a relative link to a line`() {
         val linkInfo = LinkInfo(
             linkText = "relative link to line",
             linkPath = "file.txt#L1",
@@ -153,7 +153,7 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
 class TestRelativeLinks : TestUpdateLinks() {
 
     @Test
-    fun updateRelativeLinks() {
+    fun `update multiple relative links`() {
         val linkInfo1 = LinkInfo(
             linkText = "relative link 1",
             linkPath = "file.txt",
@@ -232,7 +232,7 @@ class TestMultipleLinks : TestUpdateLinks() {
     // Do not remove the test.
     @Disabled
     @Test
-    fun updateMultipleLinks() {
+    fun `update multiple links of different types`() {
         val linkInfoToFile = LinkInfo(
             linkText = "relative link to file",
             linkPath = "file.txt",
