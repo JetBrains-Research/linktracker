@@ -49,7 +49,7 @@ class TestParseChanges : GitSingleRepoTest() {
     }
 
     @Test
-    fun test() {
+    fun `parse changes for a moved file`() {
 
         // Create and commit linked file
         val linkedFile = file("file.txt").create("Some content")

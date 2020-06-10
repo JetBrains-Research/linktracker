@@ -135,7 +135,7 @@ class TestParseLinks : BasePlatformTestCase() {
     private fun getLinkWithText(linkText: String) = retrievedLinks.first { link -> link.linkInfo.linkText == linkText }
 
     @Test
-    fun parseRelativeLinkToFile() {
+    fun `parse a relative link to a file`() {
         val expectedLink = RelativeLinkToFile(
             linkInfo = LinkInfo(
                 linkText = "single - relative link to file",
@@ -157,7 +157,7 @@ class TestParseLinks : BasePlatformTestCase() {
     }
 
     @Test
-    fun parseRelativeLinkToDirectory() {
+    fun `parse a relative link to a directory`() {
         val expectedLink = RelativeLinkToDirectory(
             linkInfo = LinkInfo(
                 linkText = "single - relative link to directory",
@@ -174,7 +174,7 @@ class TestParseLinks : BasePlatformTestCase() {
     }
 
     @Test
-    fun parseRelativeLinkToLine() {
+    fun `parse a relative link to a line`() {
         val expectedLink = RelativeLinkToLine(
             linkInfo = LinkInfo(
                 linkText = "single - relative link to line",
@@ -191,7 +191,7 @@ class TestParseLinks : BasePlatformTestCase() {
     }
 
     @Test
-    fun parseWebLinkToFile() {
+    fun `parse a web link to a file`() {
         val expectedLink = WebLinkToFile(
             linkInfo = LinkInfo(
                 linkText = "single - web link to file",
@@ -208,7 +208,7 @@ class TestParseLinks : BasePlatformTestCase() {
     }
 
     @Test
-    fun parseWebLinkToLine() {
+    fun `parse a web link to a line`() {
         val expectedLink = WebLinkToLine(
             linkInfo = LinkInfo(
                 linkText = "single - web link to line",
@@ -225,7 +225,7 @@ class TestParseLinks : BasePlatformTestCase() {
     }
 
     @Test
-    fun parseMultipleLinks() {
+    fun `parse multiple links of different types`() {
         ProgressManager.getInstance().run(myDataParsingTask)
         val multiLinks = retrievedLinks.filter { link -> link.linkInfo.fileName == "testParseMultipleLinks.md" }
         Assertions.assertEquals(3, multiLinks.size)
