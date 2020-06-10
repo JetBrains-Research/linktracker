@@ -28,6 +28,7 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -124,7 +125,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val similarityThreshold: Int = similarityThresholdSettings.directorySimilarity
 
-        val linkPath: String = link.linkInfo.linkPath
+        link as RelativeLinkToDirectory
+        val linkPath: String = link.relativePath
+
         val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
         if (currentContents == null || currentContents) {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
