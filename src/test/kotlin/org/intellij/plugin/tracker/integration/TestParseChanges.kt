@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.integration
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vcs.VcsTestUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -20,6 +21,7 @@ import org.intellij.plugin.tracker.integration.git4idea.test.TestFile
 import org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.junit.jupiter.api.*
+import java.io.File
 
 /**
  * This class is a template for testing parsing changes from the Git integration.
@@ -46,7 +48,6 @@ class TestParseChanges : GitSingleRepoTest() {
         changeTracker = ChangeTrackerServiceImpl.getInstance(project)
     }
 
-    @Disabled
     @Test
     fun test() {
 
@@ -60,9 +61,11 @@ class TestParseChanges : GitSingleRepoTest() {
         val linkingVirtualFile = getVirtualFile(linkingFile.file)
         linkingFile.addCommit("Second commit")
 
-        // Move linked file
-        val mainDir = createChildDirectory(projectRoot, "main")
-        move(linkedVirtualFile, mainDir)
+        val dir = Executor.mkdir("mydirectory")
+        val mvFile = File(dir.path, "file.txt")
+        repo.mv(linkedFile.file, mvFile)
+        repo.commit("Move file.txt to mydirectory/file.txt")
+
         refresh()
         updateChangeListManager()
         printVfsTree(projectRoot)
@@ -79,9 +82,12 @@ class TestParseChanges : GitSingleRepoTest() {
         )
         val link = RelativeLinkToFile(linkInfo)
 
-        val changes = changeTracker.getLocalFileChanges(link)
-        changes.changes.map{ println(it.changeTypeString) }
-        Assertions.assertTrue(changes.changes.contains(CustomChangeType.MOVED))
+        val change: CustomChange = changeTracker.getLocalFileChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "mydirectory/file.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
     /**
