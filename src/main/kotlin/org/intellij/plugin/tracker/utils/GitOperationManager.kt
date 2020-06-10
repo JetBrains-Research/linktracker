@@ -22,7 +22,6 @@ import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 
 /**
  * Class that handles the logic of git operations
@@ -308,9 +307,6 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        if (link is RelativeLinkToFile) {
-            return processChangesForFile(link.relativePath, outputLog.getOutputOrThrow(), specificCommit)
-        }
         return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 
@@ -326,25 +322,21 @@ class GitOperationManager(private val project: Project) {
     private fun extractChangeType(linkPath: String, line: String): CustomChange {
         when {
             line.startsWith("A") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
-                assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
-
-                return CustomChange(CustomChangeType.ADDED, lineSplit[1])
+                val path = line.substring(2)
+                if (path != linkPath) return CustomChange(CustomChangeType.MOVED, path)
+                return CustomChange(CustomChangeType.ADDED, path)
             }
             line.startsWith("M") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
-                assert(lineSplit.size == 2)
-                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
-
-                return CustomChange(CustomChangeType.MODIFIED, lineSplit[1])
+                val path = line.substring(2)
+                if (path != linkPath) return CustomChange(CustomChangeType.MOVED, path)
+                return CustomChange(CustomChangeType.MODIFIED, path)
             }
             line.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
-                assert(lineSplit.size == 3)
-                if (lineSplit[2] == linkPath) return CustomChange(CustomChangeType.MODIFIED, lineSplit[2])
-                return CustomChange(CustomChangeType.MOVED, lineSplit[2])
+                if (line.endsWith(linkPath)) return CustomChange(CustomChangeType.MODIFIED, linkPath)
+                val index = line.trim().indexOf(linkPath)
+                val path = line.substring(index + linkPath.length + 1)
+                return CustomChange(CustomChangeType.MOVED, path)
             }
             else -> throw ChangeTypeExtractionException()
         }
@@ -358,12 +350,12 @@ class GitOperationManager(private val project: Project) {
      * retrieves the after path
      * Otherwise, a line will only have 1 non-changed path. We want to retrieve this path in this case.
      */
-    private fun parseContent(content: String): String {
+    private fun parseContent(content: String, linkPath: String): String {
         return when {
             content.startsWith("R") -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
-                assert(lineSplit.size == 3)
-                lineSplit[2]
+                if (content.endsWith(linkPath)) return linkPath
+                val index = content.trim().indexOf(linkPath)
+                content.substring(index + linkPath.length + 1)
             }
             // line containing a commit along with the commit description
             content.matches("[a-z0-9]{6}.*".toRegex()) -> {
@@ -371,11 +363,7 @@ class GitOperationManager(private val project: Project) {
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"
             }
-            else -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
-                assert(lineSplit.size == 2)
-                lineSplit[1]
-            }
+            else -> content.trim().substring(2)
         }
     }
 
@@ -433,10 +421,10 @@ class GitOperationManager(private val project: Project) {
                 if (fileExistsAtCommit(specificCommit, linkPath)) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1], linkPath), parseContent(lookUpContent, linkPath)))
 
                 while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
+                    val parsedLookUpContent: String = parseContent(lookUpContent, linkPath).trim()
 
                     if (lookUpContent.contains(linkPath)) linkPathFound = true
 
@@ -448,15 +436,15 @@ class GitOperationManager(private val project: Project) {
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
                     lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
+                        line.contains(parsedLookUpContent) && !parseContent(line, linkPath).startsWith("Commit: ")
                     }
 
                     if (lookUpIndex != -1) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
+                                parseContent(subList[max(0, lookUpIndex - 1)], linkPath),
+                                parseContent(lookUpContent, linkPath)
                             )
                         )
                     }
@@ -482,10 +470,11 @@ class GitOperationManager(private val project: Project) {
                 var deletionsAndAdditions = 0
 
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1], linkPath),
+                    parseContent(lookUpContent, linkPath)))
 
                 while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
+                    val parsedLookUpContent: String = parseContent(lookUpContent, linkPath).trim()
 
                     if (lookUpContent.contains(linkPath)) linkPathFound = true
 
@@ -497,15 +486,15 @@ class GitOperationManager(private val project: Project) {
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
                     lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
+                        line.contains(parsedLookUpContent) && !parseContent(line, linkPath).startsWith("Commit: ")
                     }
 
                     if (lookUpIndex != -1) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
+                                parseContent(subList[max(0, lookUpIndex - 1)], linkPath),
+                                parseContent(lookUpContent, linkPath)
                             )
                         )
                     }
