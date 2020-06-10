@@ -44,7 +44,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             return result.output
         }
@@ -61,7 +60,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
         gitLineHandler.addParameters("$commitSHA:$path")
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             val lines: List<String> = result.output
             if (lines.size >= lineNumber) return lines[lineNumber - 1]
@@ -134,40 +132,6 @@ class GitOperationManager(private val project: Project) {
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         if (output.exitCode == 0) return true
         return false
-    }
-
-    /**
-     * Gets added, deleted and moved out files of specific directory
-     * Runs git command `git log --name-status --oneline --find-renames=<sim_threshold>`
-     */
-    @Throws(VcsException::class)
-    fun getDirectoryCommits(path: String, similarityThreshold: Int): MutableList<Any> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters(
-            "--name-status",
-            "--oneline",
-            "--find-renames=$similarityThreshold"
-        )
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val addedFiles: MutableList<String> = mutableListOf()
-        val movedFiles: MutableList<Pair<String, Int>> = mutableListOf()
-
-        var order = 0
-        if (output.exitCode == 0) {
-            val outputList = output.output
-            for (elem in outputList) {
-                val paths = elem.split("\\s".toRegex())
-                if (paths[0] == "A" && paths[1].startsWith(path)) addedFiles.add(paths[1])
-                else if (paths[0].startsWith("R")) {
-                    val prev = paths[1]
-                    val curr = paths[2]
-
-                    if (!prev.startsWith(path) && curr.startsWith(path)) addedFiles.add(curr)
-                    else if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles.add(Pair(curr, order++))
-                }
-            }
-        }
-        return mutableListOf(addedFiles, movedFiles)
     }
 
     /**
@@ -322,21 +286,25 @@ class GitOperationManager(private val project: Project) {
     private fun extractChangeType(linkPath: String, line: String): CustomChange {
         when {
             line.startsWith("A") -> {
-                val path = line.substring(2)
-                if (path != linkPath) return CustomChange(CustomChangeType.MOVED, path)
-                return CustomChange(CustomChangeType.ADDED, path)
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
+                assert(lineSplit.size == 2)
+                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
+
+                return CustomChange(CustomChangeType.ADDED, lineSplit[1])
             }
             line.startsWith("M") -> {
-                val path = line.substring(2)
-                if (path != linkPath) return CustomChange(CustomChangeType.MOVED, path)
-                return CustomChange(CustomChangeType.MODIFIED, path)
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
+                assert(lineSplit.size == 2)
+                if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
+
+                return CustomChange(CustomChangeType.MODIFIED, lineSplit[1])
             }
             line.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
-                if (line.endsWith(linkPath)) return CustomChange(CustomChangeType.MODIFIED, linkPath)
-                val index = line.trim().indexOf(linkPath)
-                val path = line.substring(index + linkPath.length + 1)
-                return CustomChange(CustomChangeType.MOVED, path)
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
+                assert(lineSplit.size == 3)
+                if (lineSplit[2] == linkPath) return CustomChange(CustomChangeType.MODIFIED, lineSplit[2])
+                return CustomChange(CustomChangeType.MOVED, lineSplit[2])
             }
             else -> throw ChangeTypeExtractionException()
         }
@@ -350,20 +318,24 @@ class GitOperationManager(private val project: Project) {
      * retrieves the after path
      * Otherwise, a line will only have 1 non-changed path. We want to retrieve this path in this case.
      */
-    private fun parseContent(content: String, linkPath: String): String {
+    private fun parseContent(content: String): String {
         return when {
             content.startsWith("R") -> {
-                if (content.endsWith(linkPath)) return linkPath
-                val index = content.trim().indexOf(linkPath)
-                content.substring(index + linkPath.length + 1)
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
+                assert(lineSplit.size == 3)
+                lineSplit[2]
             }
             // line containing a commit along with the commit description
             content.matches("[a-z0-9]{6}.*".toRegex()) -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"
             }
-            else -> content.trim().substring(2)
+            else -> {
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
+                assert(lineSplit.size == 2)
+                lineSplit[1]
+            }
         }
     }
 
@@ -421,10 +393,10 @@ class GitOperationManager(private val project: Project) {
                 if (fileExistsAtCommit(specificCommit, linkPath)) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1], linkPath), parseContent(lookUpContent, linkPath)))
+                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
 
                 while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent, linkPath).trim()
+                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
 
                     if (lookUpContent.contains(linkPath)) linkPathFound = true
 
@@ -436,15 +408,15 @@ class GitOperationManager(private val project: Project) {
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
                     lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line, linkPath).startsWith("Commit: ")
+                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
                     }
 
                     if (lookUpIndex != -1) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)], linkPath),
-                                parseContent(lookUpContent, linkPath)
+                                parseContent(subList[max(0, lookUpIndex - 1)]),
+                                parseContent(lookUpContent)
                             )
                         )
                     }
@@ -470,11 +442,10 @@ class GitOperationManager(private val project: Project) {
                 var deletionsAndAdditions = 0
 
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1], linkPath),
-                    parseContent(lookUpContent, linkPath)))
+                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
 
                 while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent, linkPath).trim()
+                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
 
                     if (lookUpContent.contains(linkPath)) linkPathFound = true
 
@@ -486,15 +457,15 @@ class GitOperationManager(private val project: Project) {
                     // lookUpIndex will match the first line which is not a commit line and contains the
                     // parsedLookUpContent
                     lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line, linkPath).startsWith("Commit: ")
+                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
                     }
 
                     if (lookUpIndex != -1) {
                         lookUpContent = subList[lookUpIndex]
                         fileHistoryList.add(
                             FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)], linkPath),
-                                parseContent(lookUpContent, linkPath)
+                                parseContent(subList[max(0, lookUpIndex - 1)]),
+                                parseContent(lookUpContent)
                             )
                         )
                     }
