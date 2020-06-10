@@ -9,7 +9,6 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
@@ -21,8 +20,8 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import java.io.File
+
 
 /**
  * Class that handles the logic of git operations
@@ -62,7 +61,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
         gitLineHandler.addParameters("$commitSHA:$path")
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             val lines: List<String> = result.output
             if (lines.size >= lineNumber) return lines[lineNumber - 1]
@@ -190,13 +188,75 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(linkInfo: LinkInfo): String? {
+    fun getStartCommit(link: Link, checkSurroundings: Boolean = false, maxCommitsSurroundings: Int = 5): String? {
+        val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
-        if (outputLog.exitCode == 0)
-        // return most recent finding
-            if (outputLog.output.size != 0) return outputLog.output[0].split(" ")[0]
+        if (outputLog.exitCode == 0) {
+            // return most recent finding
+            if (outputLog.output.size != 0) {
+                val commitSHA = outputLog.output[0].split(" ")[0]
+                if (fileExistsAtCommit(commitSHA, link.path)) {
+                    return outputLog.output[0].split(" ")[0]
+                }
+
+                // file does not exist at the found commit
+                // find the most recent commit at which this file exists
+                // starting at the initially found `start commit`.
+                // go - maxCommitsSurroundings back and + maxCommitsSurroundings
+                // after the found commit.
+                if (checkSurroundings) {
+                    if (commitSHA != getFirstCommitSHA()) {
+                        val startCommit = getCommitsInRange(
+                            until = commitSHA,
+                            maxCommitsSurroundings = maxCommitsSurroundings,
+                            path = link.path
+                        )
+                        if (startCommit != null) return startCommit
+                    }
+                    if (commitSHA != getHeadCommitSHA()) {
+                        val startCommit = getCommitsInRange(
+                            from = commitSHA,
+                            maxCommitsSurroundings = maxCommitsSurroundings,
+                            path = link.path
+                        )
+                        if (startCommit != null) return startCommit
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun getCommitsInRange(
+        from: String? = null,
+        until: String? = null,
+        maxCommitsSurroundings: Int,
+        path: String
+    ): String? {
+        if (from == null && until == null || from != null && until != null) {
+            throw VcsException("Illegal arguments")
+        }
+        val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (from != null) {
+            gitLineHandlerLog.addParameters("$from..", "--oneline")
+        } else {
+            gitLineHandlerLog.addParameters("$until^", "--oneline")
+        }
+        val resultLog: GitCommandResult = git.runCommand(gitLineHandlerLog)
+        if (resultLog.exitCode == 0) {
+            val commitList = resultLog.output
+            var index = 0
+            for (line in commitList) {
+                if (index > maxCommitsSurroundings) break
+                index++
+                val commit = line.substring(0, 7)
+                if (fileExistsAtCommit(commit, path)) {
+                    return commit
+                }
+            }
+        }
         return null
     }
 
@@ -308,9 +368,6 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        if (link is RelativeLinkToFile) {
-            return processChangesForFile(link.relativePath, outputLog.getOutputOrThrow(), specificCommit)
-        }
         return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 

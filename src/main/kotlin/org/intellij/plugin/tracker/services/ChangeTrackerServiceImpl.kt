@@ -130,8 +130,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
 
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo) ?: throw CommitSHAIsNullDirectoryException()
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
@@ -187,8 +186,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, return
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
                 ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
@@ -243,8 +241,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, throw an exception
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
                 ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
@@ -411,7 +408,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             for (splitPath in splitPaths) {
                 if (splitPath.isNotBlank()) {
                     pathStart += "$splitPath/"
-                    println("PATH START IS: $pathStart")
                     if (countMap.containsKey(pathStart)) countMap[pathStart] = countMap[pathStart]!! + 1
                     else countMap[pathStart] = 1
                 }
