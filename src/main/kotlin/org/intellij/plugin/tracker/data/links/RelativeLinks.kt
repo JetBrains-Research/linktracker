@@ -26,9 +26,17 @@ data class RelativeLinkToDirectory(
     override val referencedFileName: String
         get() = ""
 
+    override val path: String
+        get() = relativePath
+
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? {
+        if (change.afterPathString.endsWith('/')) {
+            return change.afterPathString.removeSuffix("/")
+        }
+        return change.afterPathString
+    }
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
@@ -49,6 +57,9 @@ data class RelativeLinkToFile(
             val file = File(relativePath)
             return file.name
         }
+
+    override val path: String
+        get() = relativePath
 
     override val referencedStartingLine: Int
         get() = -1
