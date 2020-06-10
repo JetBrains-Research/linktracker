@@ -25,15 +25,14 @@ enum class LinesChangeType(val change: String) : ChangeType {
     }
 }
 
-
 data class LinesChange(
-    val fileChange: FileChange,
+    val fileChange: CustomChange,
     val linesChangeType: LinesChangeType,
     override val errorMessage: String? = null,
     val newLines: MutableList<MutableList<Line>>? = null
 ) : Change {
     override val changes: MutableList<ChangeType>
-        get() = mutableListOf(fileChange.fileChangeType, linesChangeType)
+        get() = mutableListOf(fileChange.customChangeType, linesChangeType)
 
     override val requiresUpdate: Boolean
         get() {

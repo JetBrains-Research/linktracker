@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data
 
-import com.intellij.util.ui.update.Update
 import org.intellij.plugin.tracker.data.links.Link
 
 /**

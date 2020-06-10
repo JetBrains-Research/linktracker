@@ -2,31 +2,31 @@ package org.intellij.plugin.tracker.data.changes
 
 import org.intellij.plugin.tracker.data.diff.FileHistory
 
-enum class FileChangeType(val change: String): ChangeType {
-    ADDED("FILE ADDED") {
+enum class CustomChangeType(val change: String) : ChangeType {
+    ADDED("ADDED") {
         override val changeTypeString: String
             get() = change
     },
-    MOVED("FILE MOVED") {
+    MOVED("MOVED") {
         override val changeTypeString: String
             get() = change
     },
-    MODIFIED("FILE MODIFIED") {
+    MODIFIED("MODIFIED") {
         override val changeTypeString: String
             get() = change
     },
-    DELETED("FILE DELETED") {
+    DELETED("DELETED") {
         override val changeTypeString: String
             get() = change
     },
-    INVALID("FILE INVALID") {
+    INVALID("INVALID") {
         override val changeTypeString: String
             get() = change
     }
 }
 
-data class FileChange(
-    val fileChangeType: FileChangeType,
+data class CustomChange(
+    val customChangeType: CustomChangeType,
     val afterPathString: String,
     override val errorMessage: String? = null,
     var fileHistoryList: MutableList<FileHistory> = mutableListOf(),
@@ -36,11 +36,11 @@ data class FileChange(
         get() = mutableListOf(afterPathString)
 
     override val changes: MutableList<ChangeType>
-        get() = mutableListOf(fileChangeType)
+        get() = mutableListOf(customChangeType)
 
     override val requiresUpdate: Boolean
         get() {
-            if (fileChangeType == FileChangeType.MOVED || fileChangeType == FileChangeType.DELETED)
+            if (customChangeType == CustomChangeType.MOVED || customChangeType == CustomChangeType.DELETED)
                 return true
             return false
         }
@@ -54,6 +54,6 @@ data class FileChange(
     }
 
     override fun toString(): String {
-        return "Change type is $fileChangeType and after path is $afterPath with error message $errorMessage"
+        return "Change type is $customChangeType and after path is $afterPath with error message $errorMessage"
     }
 }

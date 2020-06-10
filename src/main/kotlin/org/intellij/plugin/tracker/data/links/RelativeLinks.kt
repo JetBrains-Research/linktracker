@@ -1,18 +1,19 @@
 package org.intellij.plugin.tracker.data.links
 
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.utils.LinkPatterns
 
 data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    override var commitSHA: String? = null
-) : RelativeLink<DirectoryChange>(linkInfo, pattern) {
+    override val pattern: Pattern? = null
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
 
@@ -27,25 +28,25 @@ data class RelativeLinkToDirectory(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: DirectoryChange, commitSHA: String?): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
     }
+
+    override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null
-) : RelativeLink<FileChange>(linkInfo, pattern) {
+) : RelativeLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name
         }
 
@@ -57,7 +58,7 @@ data class RelativeLinkToFile(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
 
-    override fun updateLink(change: FileChange, commitSHA: String?): String? =
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? =
         linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToFile {
@@ -65,7 +66,6 @@ data class RelativeLinkToFile(
         return copy(linkInfo = linkInfoCopy)
     }
 }
-
 
 data class RelativeLinkToLine(
     override val linkInfo: LinkInfo,
@@ -75,7 +75,7 @@ data class RelativeLinkToLine(
         get() = matcher.group(1).toInt()
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}", "")
         }
 
@@ -87,8 +87,8 @@ data class RelativeLinkToLine(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace("#L$lineReferenced", "")
-            return linkInfo.linkPath
+                return relativePath.replace("#L$lineReferenced", "")
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
@@ -98,9 +98,7 @@ data class RelativeLinkToLine(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun updateLink(change: LineChange, commitSHA: String?): String? {
-        TODO("not implemented")
-    }
+    override fun updateLink(change: LineChange, commitSHA: String?): String? = change.afterPath[0]
 }
 
 data class RelativeLinkToLines(
@@ -111,7 +109,7 @@ data class RelativeLinkToLines(
         get() = -1
     override val referencedFileName: String
         get() {
-            val file = File(linkInfo.linkPath)
+            val file = File(relativePath)
             return file.name.replace("#L${matcher.group(1)}-L${matcher.group(2)}", "")
         }
     override val referencedStartingLine: Int
@@ -122,10 +120,10 @@ data class RelativeLinkToLines(
     override val path: String
         get() {
             if (matcher.matches())
-                return linkInfo.linkPath.replace(
+                return relativePath.replace(
                     "#L$referencedStartingLine-L$referencedEndingLine", ""
                 )
-            return linkInfo.linkPath
+            return relativePath
         }
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLinesChanges(this)
@@ -135,13 +133,12 @@ data class RelativeLinkToLines(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun updateLink(change: LinesChange, commitSHA: String?): String? {
-        TODO("not implemented")
-    }
+    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.afterPath[0]
 }
 
-fun checkRelativeLink(link: String): String {
-    return checkSingleDot(checkDoubleDots(link))
+fun checkRelativeLink(linkPath: String, filePath: String): String {
+    val link = filePath.replace(filePath.split("/").last(), "") + linkPath
+    return checkDoubleDots(checkSingleDot(link))
 }
 
 fun checkDoubleDots(link: String): String {
@@ -160,6 +157,13 @@ fun checkDoubleDots(link: String): String {
             val endMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtEnd.pattern.matcher(result)
             if (endMatcher.matches()) {
                 result = endMatcher.group(2)
+            } else {
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    result = startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }
@@ -168,16 +172,23 @@ fun checkDoubleDots(link: String): String {
 
 fun checkSingleDot(link: String): String {
     var result = link
-    while (result.contains("/.")) {
+    while (result.contains("/.") || result.contains("./")) {
         val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
-        if (matcher.matches()) {
+        result = if (matcher.matches()) {
             val firstPart = matcher.group(2)
             val secondPart = matcher.group(3)
-            result = "$firstPart/$secondPart"
+            "$firstPart/$secondPart"
         } else {
             val endMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtEnd.pattern.matcher(result)
             if (endMatcher.matches()) {
-                result = endMatcher.group(2)
+                endMatcher.group(2)
+            } else {
+                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtStart.pattern.matcher(result)
+                if (startMatcher.matches()) {
+                    startMatcher.group(2)
+                } else {
+                    return result
+                }
             }
         }
     }

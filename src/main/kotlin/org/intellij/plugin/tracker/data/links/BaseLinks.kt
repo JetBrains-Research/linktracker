@@ -2,14 +2,13 @@ package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.GitOperationManager
 import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.utils.GitOperationManager
 
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
@@ -17,7 +16,6 @@ enum class WebLinkReferenceType(private val type: String) {
     TAG("TAG"),
     INVALID("INVALID")
 }
-
 
 /**
  * Base class for links
@@ -29,8 +27,7 @@ enum class WebLinkReferenceType(private val type: String) {
  */
 abstract class Link(
     open val linkInfo: LinkInfo,
-    open val pattern: Pattern? = null,
-    open var commitSHA: String? = null
+    open val pattern: Pattern? = null
 ) {
 
     /**
@@ -67,18 +64,20 @@ abstract class Link(
  */
 abstract class RelativeLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null,
-    override var commitSHA: String? = null
+    override val pattern: Pattern? = null
 ) : Link(linkInfo, pattern) {
 
     override val path: String
         get() = linkInfo.linkPath
 
-    override fun markdownFileMoved(afterPath: String): Boolean = linkInfo.getAfterPathToOriginalFormat(afterPath) != afterPath
+    val relativePath: String
+        get() = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+
+    override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(linkInfo
+        .getAfterPathToOriginalFormat(afterPath)!!, linkInfo.proveniencePath) != afterPath
 
     abstract fun updateLink(change: T, commitSHA: String?): String?
 }
-
 
 /**
  * Abstract class for web links
@@ -87,8 +86,7 @@ abstract class RelativeLink<in T : Change>(
  */
 abstract class WebLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern,
-    override var commitSHA: String? = null
+    override val pattern: Pattern
 ) : Link(linkInfo, pattern) {
     var referenceType: WebLinkReferenceType? = null
         get() {
@@ -154,10 +152,9 @@ abstract class WebLink<in T : Change>(
  * Data class which encapsulates information about links which are not supported and the reasoning
  * why they are not supported
  */
-data class NotSupportedLink (
+data class NotSupportedLink(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null,
-    override var commitSHA: String? = null,
     val errorMessage: String? = null
 ) : Link(linkInfo, pattern) {
     override val lineReferenced: Int
@@ -176,7 +173,7 @@ data class NotSupportedLink (
         get() = linkInfo.linkPath
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun copyWithAfterPath(link: Link, afterPath: String): NotSupportedLink {
@@ -186,7 +183,6 @@ data class NotSupportedLink (
 
     override fun markdownFileMoved(afterPath: String): Boolean = false
 }
-
 
 /**
  * Data class containing information about the link, which was retrieved from markdown files

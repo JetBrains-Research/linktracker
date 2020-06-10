@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.data.changes
 
 import org.intellij.plugin.tracker.data.Line
 
-enum class LineChangeType(val change: String): ChangeType {
+enum class LineChangeType(val change: String) : ChangeType {
     DELETED("LINE DELETED") {
         override val changeTypeString: String
             get() = change
@@ -22,13 +22,13 @@ enum class LineChangeType(val change: String): ChangeType {
 }
 
 data class LineChange(
-    val fileChange: FileChange,
+    val fileChange: CustomChange,
     val lineChangeType: LineChangeType,
     override val errorMessage: String? = null,
     val newLine: Line? = null
 ) : Change {
     override val changes: MutableList<ChangeType>
-        get() = mutableListOf(fileChange.fileChangeType, lineChangeType)
+        get() = mutableListOf(fileChange.customChangeType, lineChangeType)
 
     override val requiresUpdate: Boolean
         get() {

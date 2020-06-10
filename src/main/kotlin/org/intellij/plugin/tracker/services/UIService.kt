@@ -8,11 +8,7 @@ import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.view.OtherView
 import org.intellij.plugin.tracker.view.TreeView
-
 
 class UIService(val project: Project) {
 
@@ -27,9 +23,6 @@ class UIService(val project: Project) {
         val treeContent = contentFactory.createContent(treeView, "Links", true)
         treeContent.isCloseable = false
         treeWindow.contentManager.addContent(treeContent)
-        val otherContent = contentFactory.createContent(OtherView(), "Other", true)
-        otherContent.isCloseable = false
-        treeWindow.contentManager.addContent(otherContent)
         treeWindow.contentManager.setSelectedContent(treeContent)
     }
 

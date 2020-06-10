@@ -5,10 +5,23 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.intellij.plugin.tracker.data.Line
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.data.links.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
 import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.junit.jupiter.api.*
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 
 /**
  * This class is a template for testing updating links.
@@ -70,8 +83,8 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -111,8 +124,8 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt#L1"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -177,16 +190,16 @@ class TestRelativeLinks : TestUpdateLinks() {
         val link3 = RelativeLinkToFile(
             linkInfo = linkInfo3
         )
-        val change1 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change1 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
-        val change2 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change2 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/directory/file1.txt"
         )
-        val change3 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change3 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/directory/file2.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -256,17 +269,17 @@ class TestMultipleLinks : TestUpdateLinks() {
         val linkToDir = RelativeLinkToDirectory(
             linkInfo = linkInfoToDir
         )
-        val linkChangeToFile = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val linkChangeToFile = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
         val linkChangeToLine = LineChange(
-            fileChange = FileChange(FileChangeType.MOVED, afterPathString= "main/file.txt"),
+            fileChange = CustomChange(CustomChangeType.MOVED, afterPathString = "main/file.txt"),
             lineChangeType = LineChangeType.MOVED,
             newLine = Line(lineNumber = 1, content = "dummy line")
         )
-        val linkChangeToDir = DirectoryChange(
-            changeType = FileChangeType.MOVED,
+        val linkChangeToDir = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main"
         )
         val list = mutableListOf<Pair<Link, Change>>(

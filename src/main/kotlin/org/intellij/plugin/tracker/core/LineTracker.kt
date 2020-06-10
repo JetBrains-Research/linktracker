@@ -1,15 +1,17 @@
 package org.intellij.plugin.tracker.core
 
 import com.google.common.collect.HashMultiset
-import com.intellij.util.containers.MultiMap
 import org.intellij.plugin.tracker.data.Line
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.links.Link
 import org.simmetrics.metrics.CosineSimilarity
 import org.simmetrics.metrics.Levenshtein
-
 
 class LineTracker {
 
@@ -51,8 +53,7 @@ class LineTracker {
             for (i: Int in 0 until linesToTrack.size) {
                 if (linesToTrack[i] == -1) {
                     continue
-                }
-                else {
+                } else {
                     changeMap[linesToTrack[i]] = originalLineNumbers[i]
                 }
             }
@@ -135,7 +136,7 @@ class LineTracker {
             diffOutputMultipleRevisions: DiffOutputMultipleRevisions,
             givenLineToTrack: Int = -1
         ): LineChange {
-            val fileChange: FileChange = diffOutputMultipleRevisions.fileChange
+            val fileChange: CustomChange = diffOutputMultipleRevisions.fileChange
             val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent.trim()
             var lineToTrack: Int
             if (givenLineToTrack != -1) {

@@ -5,6 +5,7 @@ import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import javax.swing.JComponent
 import org.intellij.plugin.tracker.data.UserInfo
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
@@ -13,13 +14,10 @@ import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
-import javax.swing.JComponent
-
 
 class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigurable {
     private var tokenManagerForm: LinkTrackingTokenManagerForm? = null
     private lateinit var userInfoList: List<Pair<String, String>>
-
 
     override fun createComponent(): JComponent? {
         val linkService: LinkRetrieverService = LinkRetrieverService.getInstance(project)
@@ -77,10 +75,8 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
         for (userInfo: UserInfo in currentState) {
             if (userInfo.token != null) {
                 if (userInfo.token.isNotBlank() || (userInfo.token.isBlank() && savedState.any { info ->
-                        info.username == userInfo.username
-                                && info.platform == userInfo.platform
-                                && info.token != null
-                                && info.token.isNotBlank()
+                        info.username == userInfo.username && info.platform == userInfo.platform &&
+                        info.token != null && info.token.isNotBlank()
                     }))
                     CredentialsManager.storeCredentials(userInfo.platform, userInfo.username, userInfo.token)
             }

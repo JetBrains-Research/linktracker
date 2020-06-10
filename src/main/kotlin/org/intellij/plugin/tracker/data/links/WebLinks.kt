@@ -1,19 +1,20 @@
 package org.intellij.plugin.tracker.data.links
 
+import java.io.File
+import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
-import java.io.File
-import java.util.regex.Pattern
-
 
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern,
-    override var commitSHA: String? = null
-) : WebLink<DirectoryChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern
+) : WebLink<CustomChange>(linkInfo, pattern) {
     override val lineReferenced: Int
         get() = -1
 
@@ -40,7 +41,8 @@ data class WebLinkToDirectory(
         throw NotImplementedError()
     }
 
-    override fun generateNewPath(change: DirectoryChange, newPath: String): String? = newPath.replace(path, change.afterPathString)
+    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+        newPath.replace(path, change.afterPathString)
 
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
@@ -51,7 +53,7 @@ data class WebLinkToDirectory(
 data class WebLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToFile.pattern
-) : WebLink<FileChange>(linkInfo, pattern) {
+) : WebLink<CustomChange>(linkInfo, pattern) {
     override val path: String
         get() {
             if (matcher.matches())
@@ -71,12 +73,16 @@ data class WebLinkToFile(
     override val referencedEndingLine: Int
         get() = -1
 
-    override fun generateNewPath(change: FileChange, newPath: String): String? = newPath.replace(path, change.afterPathString)
+    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+        newPath.replace(path, change.afterPathString)
 
     override fun visit(visitor: ChangeTrackerService): Change {
         if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
             return when (referenceType) {
-                WebLinkReferenceType.COMMIT -> visitor.getLocalFileChanges(link = this, specificCommit = referencingName)
+                WebLinkReferenceType.COMMIT -> visitor.getLocalFileChanges(
+                    link = this,
+                    specificCommit = referencingName
+                )
                 WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
                     visitor.getLocalFileChanges(link = this, branchOrTagName = referencingName)
                 else -> throw WebLinkReferenceTypeIsInvalidException()
@@ -113,7 +119,7 @@ data class WebLinkToLine(
 
     override fun generateNewPath(change: LineChange, newPath: String): String? {
         if (change.newLine == null) return null
-        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath}#L${change.newLine.lineNumber}")
+        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}")
     }
 
     override fun visit(visitor: ChangeTrackerService): Change {
@@ -137,7 +143,6 @@ data class WebLinkToLine(
         return copy(linkInfo = linkInfoCopy)
     }
 }
-
 
 data class WebLinkToLines(
     override val linkInfo: LinkInfo,
@@ -163,7 +168,7 @@ data class WebLinkToLines(
     }
 
     override fun generateNewPath(change: LinesChange, newPath: String): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToLines {
