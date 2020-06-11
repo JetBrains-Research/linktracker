@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.data.links
 
 import java.io.File
-import java.util.regex.Matcher
+import java.util.Stack
 import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -149,59 +149,32 @@ data class RelativeLinkToLines(
 
 fun checkRelativeLink(linkPath: String, filePath: String): String {
     val link = filePath.replace(filePath.split("/").last(), "") + linkPath
-    return checkDoubleDots(checkSingleDot(link))
+    return simplifyLink(link)
 }
 
-fun checkDoubleDots(link: String): String {
-    var result = link
-    while (result.contains("..")) {
-        val matcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDots.pattern.matcher(result)
-        if (matcher.matches()) {
-            val firstPart = matcher.group(2)
-            val secondPart = matcher.group(6)
-            result = if (firstPart == null) {
-                secondPart
-            } else {
-                firstPart + secondPart
-            }
-        } else {
-            val endMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtEnd.pattern.matcher(result)
-            if (endMatcher.matches()) {
-                result = endMatcher.group(2)
-            } else {
-                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithDoubleDotsAtStart.pattern.matcher(result)
-                if (startMatcher.matches()) {
-                    result = startMatcher.group(2)
-                } else {
-                    return result
-                }
-            }
+fun simplifyLink(link: String): String {
+    val st: Stack<String> = Stack<String>()
+    val st1: Stack<String> = Stack<String>()
+    var result = ""
+    var i = 0
+    while (i < link.length) {
+        var dir = ""
+        while (i < link.length && link[i] == '/') i++
+        while (i < link.length && link[i] != '/') {
+            dir += link[i]
+            i++
         }
+        if (dir == "..") {
+            if (!st.empty()) st.pop()
+        } else if (dir == ".") {
+            i++
+            continue
+        } else if (dir.isNotEmpty()) st.push(dir)
+        i++
     }
-    return result
-}
-
-fun checkSingleDot(link: String): String {
-    var result = link
-    while (result.contains("/.") || result.contains("./")) {
-        val matcher: Matcher = LinkPatterns.RelativeLinkWithSingleDot.pattern.matcher(result)
-        result = if (matcher.matches()) {
-            val firstPart = matcher.group(2)
-            val secondPart = matcher.group(3)
-            "$firstPart/$secondPart"
-        } else {
-            val endMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtEnd.pattern.matcher(result)
-            if (endMatcher.matches()) {
-                endMatcher.group(2)
-            } else {
-                val startMatcher: Matcher = LinkPatterns.RelativeLinkWithSingleDotAtStart.pattern.matcher(result)
-                if (startMatcher.matches()) {
-                    startMatcher.group(2)
-                } else {
-                    return result
-                }
-            }
-        }
+    while (!st.empty()) { st1.push(st.pop()) }
+    while (!st1.empty()) {
+        result += if (st1.size != 1) st1.pop().toString() + "/" else st1.pop()
     }
     return result
 }
