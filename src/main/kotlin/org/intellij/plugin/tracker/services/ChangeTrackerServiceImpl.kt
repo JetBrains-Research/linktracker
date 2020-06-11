@@ -275,7 +275,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         val beforeCommitSHA: String = fileHistoryList[x].revision
                         val beforePath: String = fileHistoryList[x].path
 
-                        val afterCommitSHA: String = fileHistoryList[x + 1].revision
+                        val afterCommitSHA: String = fileHistoryList[x + 1].revision.split(" ").first()
                         val afterPath: String = fileHistoryList[x + 1].path
 
                         val output: DiffOutput? = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
