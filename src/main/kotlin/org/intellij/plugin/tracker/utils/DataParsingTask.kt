@@ -12,13 +12,7 @@ import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.LineChangeGatheringException
 import org.intellij.plugin.tracker.data.LinesChangeGatheringException
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
-import org.intellij.plugin.tracker.data.changes.LineChange
-import org.intellij.plugin.tracker.data.changes.LineChangeType
-import org.intellij.plugin.tracker.data.changes.LinesChange
-import org.intellij.plugin.tracker.data.changes.LinesChangeType
+import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
@@ -83,7 +77,11 @@ class DataParsingTask(
                 val change = link.visit(myChangeTrackerService)
                 println("CHANGE IS: $change")
                 println("AFTER PATH IS: ${change.afterPath}")
-                myLinksAndChangesList.add(Pair(link, change))
+                if(change.changes[0] == CustomChangeType.MOVED && link.linkInfo.linkPath == change.afterPath[0]) {
+                    myLinksAndChangesList.add(Pair(link, CustomChange(CustomChangeType.MODIFIED, "", null)))
+                } else {
+                    myLinksAndChangesList.add(Pair(link, change))
+                }
                 // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
                 continue

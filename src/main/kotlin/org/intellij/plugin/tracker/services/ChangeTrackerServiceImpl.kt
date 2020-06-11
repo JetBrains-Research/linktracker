@@ -48,6 +48,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
      * Get change for a local file
      */
     override fun getLocalFileChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
+        println("link in working tree change $link")
         val workingTreeChange: CustomChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
@@ -55,6 +56,12 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
+        }
+
+        if(workingTreeChange != null) {
+            println("working tree change is $workingTreeChange")
+            if(! wTreeChange.contains(workingTreeChange)) wTreeChange.add(workingTreeChange)
+            println("w tree change is $wTreeChange")
         }
 
         val similarityThresholdSettings: SimilarityThresholdSettings =
@@ -532,5 +539,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 project,
                 ChangeTrackerServiceImpl::class.java
             )
+
+        var wTreeChange : MutableList<CustomChange> = mutableListOf()
     }
 }

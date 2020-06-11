@@ -20,6 +20,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl
 import java.io.File
 
 
@@ -270,10 +271,12 @@ class GitOperationManager(private val project: Project) {
      * the link path that we are looking for.
      */
     private fun processWorkingTreeChanges(linkPath: String, changes: String): CustomChange? {
+        println("process working tree changes for link $linkPath")
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
         val change: String? = changeList.find { line -> line.contains(linkPath) }
+        println("change is $change")
         if (change != null) {
             when {
                 change.startsWith("?") -> return CustomChange(CustomChangeType.ADDED, linkPath)
@@ -284,6 +287,7 @@ class GitOperationManager(private val project: Project) {
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
+                    println("line split $lineSplit")
                     return CustomChange(CustomChangeType.MOVED, lineSplit[1])
                 }
                 change.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
@@ -318,6 +322,7 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun checkWorkingTreeChanges(link: Link): CustomChange? {
+        println("checking working ree changes $link")
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
@@ -576,7 +581,17 @@ class GitOperationManager(private val project: Project) {
                     return linkChange
                 }
             }
-            throw ReferencedPathNotFoundException(linkPath)
+            println("found error")
+            val workingTreeChange = ChangeTrackerServiceImpl.wTreeChange
+            println("working tree isssss $workingTreeChange")
+            if(workingTreeChange.size==0) {
+                throw ReferencedPathNotFoundException(linkPath)
+            } else {
+                for(c in workingTreeChange) {
+                    println("in list change is $c")
+                }
+                return workingTreeChange.last()
+            }
         }
 
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {

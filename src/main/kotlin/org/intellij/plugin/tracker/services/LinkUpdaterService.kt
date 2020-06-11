@@ -72,7 +72,14 @@ class LinkUpdaterService(val project: Project) {
     private fun updateLink(link: Link, change: Change, element: PsiElement, newCommit: String?): Boolean {
         // if the change comes from the working tree, do not update the link
         // let the user do it via the UI!
-        if (change.hasWorkingTreeChanges()) return false
+        if (change.hasWorkingTreeChanges()) {
+            println("change update is $change")
+            var afterPath: String = change.afterPath[0]
+
+            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
+            element.replace(newElement)
+            return true
+        }
         if (change.requiresUpdate || change.afterPath.any { path -> link.markdownFileMoved(path) }) {
             var afterPath: String? = null
             if (link is RelativeLink<*>) {
