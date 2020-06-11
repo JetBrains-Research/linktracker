@@ -20,9 +20,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl
 import java.io.File
-
 
 /**
  * Class that handles the logic of git operations
@@ -581,17 +579,12 @@ class GitOperationManager(private val project: Project) {
                     return linkChange
                 }
             }
-            println("found error")
-            val workingTreeChange = ChangeTrackerServiceImpl.wTreeChange
-            println("working tree isssss $workingTreeChange")
-            if(workingTreeChange.size==0) {
-                throw ReferencedPathNotFoundException(linkPath)
-            } else {
-                for(c in workingTreeChange) {
-                    println("in list change is $c")
-                }
-                return workingTreeChange.last()
+            val c = changeList.last()
+            val cs= c.split("\t")
+            if (cs[0].contains("M")) {
+                return CustomChange(CustomChangeType.MOVED, afterPathString = cs[1])
             }
+            throw ReferencedPathNotFoundException(linkPath)
         }
 
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {

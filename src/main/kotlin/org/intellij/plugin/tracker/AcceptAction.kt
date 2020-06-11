@@ -13,7 +13,6 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.view.TreeView
 
@@ -41,7 +40,6 @@ class AcceptAction : AnAction() {
         }
         if (allValid) {
             updateLinks(validChanges, myProject, commitSHA)
-            ChangeTrackerServiceImpl.wTreeChange = mutableListOf()
             LinkTrackerAction.run(myProject)
         } else {
             showRefreshDialog(myProject)

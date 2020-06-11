@@ -77,7 +77,7 @@ class DataParsingTask(
                 val change = link.visit(myChangeTrackerService)
                 println("CHANGE IS: $change")
                 println("AFTER PATH IS: ${change.afterPath}")
-                if(change.changes[0] == CustomChangeType.MOVED && link.linkInfo.linkPath == change.afterPath[0]) {
+                if (change.changes[0] == CustomChangeType.MOVED && link.linkInfo.linkPath == change.afterPath[0]) {
                     myLinksAndChangesList.add(Pair(link, CustomChange(CustomChangeType.MODIFIED, "", null)))
                 } else {
                     myLinksAndChangesList.add(Pair(link, change))
