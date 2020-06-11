@@ -125,8 +125,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val similarityThreshold: Int = similarityThresholdSettings.directorySimilarity
 
-        link as RelativeLinkToDirectory
-        val linkPath: String = link.relativePath
+        val linkPath: String = link.path
 
         val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
 
