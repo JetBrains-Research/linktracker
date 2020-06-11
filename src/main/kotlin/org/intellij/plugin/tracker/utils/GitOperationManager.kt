@@ -9,6 +9,7 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
+import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
@@ -20,8 +21,6 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import java.io.File
-
 
 /**
  * Class that handles the logic of git operations
@@ -44,7 +43,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             return result.output
         }
@@ -133,40 +131,6 @@ class GitOperationManager(private val project: Project) {
         val output: GitCommandResult = git.runCommand(gitLineHandler)
         if (output.exitCode == 0) return true
         return false
-    }
-
-    /**
-     * Gets added, deleted and moved out files of specific directory
-     * Runs git command `git log --name-status --oneline --find-renames=<sim_threshold>`
-     */
-    @Throws(VcsException::class)
-    fun getDirectoryCommits(path: String, similarityThreshold: Int): MutableList<Any> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters(
-            "--name-status",
-            "--oneline",
-            "--find-renames=$similarityThreshold"
-        )
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val addedFiles: MutableList<String> = mutableListOf()
-        val movedFiles: MutableList<Pair<String, Int>> = mutableListOf()
-
-        var order = 0
-        if (output.exitCode == 0) {
-            val outputList = output.output
-            for (elem in outputList) {
-                val paths = elem.split("\\s".toRegex())
-                if (paths[0] == "A" && paths[1].startsWith(path)) addedFiles.add(paths[1])
-                else if (paths[0].startsWith("R")) {
-                    val prev = paths[1]
-                    val curr = paths[2]
-
-                    if (!prev.startsWith(path) && curr.startsWith(path)) addedFiles.add(curr)
-                    else if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles.add(Pair(curr, order++))
-                }
-            }
-        }
-        return mutableListOf(addedFiles, movedFiles)
     }
 
     /**
@@ -383,14 +347,14 @@ class GitOperationManager(private val project: Project) {
     private fun extractChangeType(linkPath: String, line: String): CustomChange {
         when {
             line.startsWith("A") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
                 return CustomChange(CustomChangeType.ADDED, lineSplit[1])
             }
             line.startsWith("M") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
@@ -398,7 +362,7 @@ class GitOperationManager(private val project: Project) {
             }
             line.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 3)
                 if (lineSplit[2] == linkPath) return CustomChange(CustomChangeType.MODIFIED, lineSplit[2])
                 return CustomChange(CustomChangeType.MOVED, lineSplit[2])
@@ -418,18 +382,18 @@ class GitOperationManager(private val project: Project) {
     private fun parseContent(content: String): String {
         return when {
             content.startsWith("R") -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.size == 3)
                 lineSplit[2]
             }
             // line containing a commit along with the commit description
             content.matches("[a-z0-9]{6}.*".toRegex()) -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"
             }
             else -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 lineSplit[1]
             }
