@@ -129,12 +129,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         val linkPath: String = link.relativePath
 
         val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
+
         if (currentContents == null || currentContents) {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
 
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo) ?: throw CommitSHAIsNullDirectoryException()
+        val startCommit: String = gitOperationManager
+            .getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
@@ -190,9 +191,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, return
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
+            ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
@@ -246,9 +246,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         specificCommit: String?
     ): Change {
         // if we cannot get the start commit, throw an exception
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
+            ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
