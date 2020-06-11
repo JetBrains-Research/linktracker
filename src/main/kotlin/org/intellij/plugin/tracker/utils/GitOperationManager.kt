@@ -269,12 +269,10 @@ class GitOperationManager(private val project: Project) {
      * the link path that we are looking for.
      */
     private fun processWorkingTreeChanges(linkPath: String, changes: String): CustomChange? {
-        println("process working tree changes for link $linkPath")
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
         val change: String? = changeList.find { line -> line.contains(linkPath) }
-        println("change is $change")
         if (change != null) {
             when {
                 change.startsWith("?") -> return CustomChange(CustomChangeType.ADDED, linkPath)
@@ -285,7 +283,6 @@ class GitOperationManager(private val project: Project) {
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
-                    println("line split $lineSplit")
                     return CustomChange(CustomChangeType.MOVED, lineSplit[1])
                 }
                 change.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
@@ -320,7 +317,6 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun checkWorkingTreeChanges(link: Link): CustomChange? {
-        println("checking working ree changes $link")
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.STATUS)
         gitLineHandler.addParameters("--porcelain=v1")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
