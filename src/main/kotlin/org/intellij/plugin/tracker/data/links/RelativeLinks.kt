@@ -147,11 +147,19 @@ data class RelativeLinkToLines(
     override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.afterPath[0]
 }
 
+/**
+ * Firstly, finds the absolute path of the given link using the link path and the file path
+ * then simplifies and returns this absolute path
+ */
 fun checkRelativeLink(linkPath: String, filePath: String): String {
     val link = filePath.replace(filePath.split("/").last(), "") + linkPath
     return simplifyLink(link)
 }
 
+/**
+ * Converts the given link path which is containing single or double dots
+ * to a simple (without dots) version.
+ */
 fun simplifyLink(link: String): String {
     val st: Stack<String> = Stack<String>()
     val st1: Stack<String> = Stack<String>()
@@ -159,14 +167,21 @@ fun simplifyLink(link: String): String {
     var i = 0
     while (i < link.length) {
         var dir = ""
+        // skip all the multiple '/' eg. "/////""
         while (i < link.length && link[i] == '/') i++
+
+        // stores directory's name("a", "b" etc.) or commands("."/"..") into dir
         while (i < link.length && link[i] != '/') {
             dir += link[i]
             i++
         }
+
+        // if dir has ".." just pop the topmost element if
+        // the stack is not empty otherwise ignore
         if (dir == "..") {
             if (!st.empty()) st.pop()
         } else if (dir == ".") {
+            // if dir has "." then simply continue with the process
             i++
             continue
         } else if (dir.isNotEmpty()) st.push(dir)
