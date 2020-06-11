@@ -152,7 +152,10 @@ data class RelativeLinkToLines(
  * then simplifies and returns this absolute path
  */
 fun checkRelativeLink(linkPath: String, filePath: String): String {
-    val link = filePath.replace(filePath.split("/").last(), "") + linkPath
+    var link = linkPath
+    if (filePath.contains("/")) {
+        link = filePath.replace(filePath.split("/").last(), "") + linkPath
+    }
     return simplifyLink(link)
 }
 
