@@ -12,7 +12,13 @@ import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.LineChangeGatheringException
 import org.intellij.plugin.tracker.data.LinesChangeGatheringException
 import org.intellij.plugin.tracker.data.ScanResult
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
