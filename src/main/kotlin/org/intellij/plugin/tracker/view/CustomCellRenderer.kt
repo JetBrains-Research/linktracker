@@ -59,7 +59,7 @@ internal class CustomCellRenderer : TreeCellRenderer {
         titleLabel.icon = MarkdownIcons.EditorActions.Link
 
         /**
-         * According to level of links add correct information
+         * According to level of links adds correct information
          * makes the texts colored and adds the icons
          */
         if (titleLabel.text.contains("DELETED") || titleLabel.text.contains("MOVED")) {
@@ -79,13 +79,28 @@ internal class CustomCellRenderer : TreeCellRenderer {
                 }
             }
 
-            if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
-                val text = value.parent.parent.parent.toString()
+            if (value.parent != null && value.parent.parent != null) {
+                val text = value.parent.parent.toString()
                 if (text.contains("Changed Links") || text.contains("Unchanged Links") || text.contains("Invalid Links")) {
                     if (!userObject.toString().contains("<html>")) {
+                        val texts = userObject.toString().split(" ")
+                        val textLabel = userObject.toString().replace(texts[texts.size - 1], "")
+                        titleLabel.text = "<html><font>" + textLabel + "</font> <font color='gray'>" + texts[texts.size - 1] + "</font></html>"
+                    }
+                }
+            }
+
+            if (value.parent != null && value.parent.parent != null && value.parent.parent.parent != null) {
+                val text = value.parent.parent.parent.toString()
+                if (text.contains("Changed Links")) {
+                    if (!userObject.toString().contains("<html>")) {
                         val texts = userObject.toString().split(") ")
-                        titleLabel.text =
-                            "<html><font color='gray'>" + texts[0] + ")</font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                        titleLabel.text = "<html><font>" + texts[0] + ")</font> <font color='gray'> New path: </font> <font color='rgb(162, 33, 147)'>" + texts[1] + "</font></html>"
+                    }
+                    titleLabel.icon = AllIcons.General.TodoDefault
+                } else if (text.contains("Unchanged Links") || text.contains("Invalid Links")) {
+                    if (!userObject.toString().contains("<html>")) {
+                        titleLabel.text = userObject.toString()
                     }
                     titleLabel.icon = AllIcons.General.TodoDefault
                 }
