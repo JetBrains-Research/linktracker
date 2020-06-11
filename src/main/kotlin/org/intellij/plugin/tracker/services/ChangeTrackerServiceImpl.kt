@@ -418,11 +418,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 }
             }
         }
-
         val maxValue: Int = countMap.maxBy { it.value }?.value ?: return null
         val maxPair =
             countMap.filter { entry -> entry.value == maxValue }.maxBy { it.key.length }
-        return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
+        return Pair(maxPair!!.key.removeSuffix("/"), (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
     private fun getDiffOutput(

@@ -31,12 +31,7 @@ data class RelativeLinkToDirectory(
 
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
 
-    override fun updateLink(change: CustomChange, commitSHA: String?): String? {
-        if (change.afterPathString.endsWith('/')) {
-            return change.afterPathString.removeSuffix("/")
-        }
-        return change.afterPathString
-    }
+    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
 
     override fun copyWithAfterPath(link: Link, afterPath: String): RelativeLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
