@@ -9,6 +9,7 @@ import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.utils.LinkElement
 
 enum class WebLinkReferenceType(private val type: String) {
     COMMIT("COMMIT"),
@@ -194,6 +195,7 @@ data class LinkInfo(
     val proveniencePath: String,
     val foundAtLineNumber: Int,
     val textOffset: Int,
+    val linkElement: LinkElement? = null,
     val fileName: String,
     val project: Project,
     val linkPathPrefix: String? = null,
@@ -215,13 +217,5 @@ data class LinkInfo(
         } catch (e: IllegalArgumentException) {
             null
         }
-    }
-
-    private fun getMarkdownDirectoryPath(): String {
-        return proveniencePath.replace(fileName, "")
-    }
-
-    fun getMarkdownDirectoryRelativeLinkPath(): String {
-        return getMarkdownDirectoryPath() + linkPath
     }
 }

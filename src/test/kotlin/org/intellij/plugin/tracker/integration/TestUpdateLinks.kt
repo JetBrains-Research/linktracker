@@ -69,6 +69,7 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToFile : TestUpdateLinks() {
 
+    @Disabled
     @Test
     fun updateRelativeLinkToFile() {
         val linkInfo = LinkInfo(
@@ -110,6 +111,7 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToLine : TestUpdateLinks() {
 
+    @Disabled
     @Test
     fun updateRelativeLinkToLine() {
         val linkInfo = LinkInfo(
@@ -152,6 +154,8 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinks : TestUpdateLinks() {
 
+    // disabled for now the disabled tag will be removed soon
+    @Disabled
     @Test
     fun updateRelativeLinks() {
         val linkInfo1 = LinkInfo(

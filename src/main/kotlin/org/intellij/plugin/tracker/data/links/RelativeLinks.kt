@@ -38,7 +38,6 @@ data class RelativeLinkToDirectory(
     override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
-
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern? = null
