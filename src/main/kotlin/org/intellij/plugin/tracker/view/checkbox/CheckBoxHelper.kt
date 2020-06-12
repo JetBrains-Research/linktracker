@@ -135,23 +135,27 @@ class CheckBoxHelper {
     }
 
     fun notSiblingChecked(path: TreePath, data : CheckBoxNodeData) : Boolean {
-        val siblingsNodes = getSiblings(path)
-        if(siblingsNodes.size == 0) {
-            return true
+        val siblingNodes = getSiblings(path)
+        println("sibling nodes for $path are $siblingNodes")
+        return if(siblingNodes.size == 0) {
+            true
         } else {
             var checkedOther = false
-            for(s in siblingsNodes) {
+            for(s in siblingNodes) {
                 if(s.isChecked) {
                     checkedOther = true
                 }
             }
-            return !checkedOther
+            !checkedOther
         }
     }
 
     fun getSiblings(path: TreePath): MutableList<CheckBoxNodeData> {
+        println("getting siblings for $path")
         val siblings = mutableListOf<CheckBoxNodeData>()
-        val common = path.toString().split(", (").first()
+        val notCommon = path.toString().split(",").last()
+        val common = path.toString().replace(notCommon, "")
+        println("common is $common")
         for(node in TreeView.nodesCheckingState) {
             if (node.key.toString().contains(common) && node.key!=path) {
                 siblings.add(node.value)
@@ -191,4 +195,6 @@ class CheckBoxHelper {
         }
         return result
     }
+
+    private fun getAfterPaths()
 }
