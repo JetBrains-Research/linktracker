@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.intellij.plugin.tracker.integration.git4idea.test;
+package org.intellij.plugin.tracker.services.git4idea.test;
 
 import com.intellij.openapi.ui.DialogWrapper;
 

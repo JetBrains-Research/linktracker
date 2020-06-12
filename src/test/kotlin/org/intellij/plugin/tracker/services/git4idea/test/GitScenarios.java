@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.integration.git4idea.test;
+package org.intellij.plugin.tracker.services.git4idea.test;
 
 import com.intellij.openapi.util.io.FileUtil;
 import git4idea.repo.GitRepository;
@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.util.Collection;
 
 import static com.intellij.openapi.vcs.Executor.*;
-import static org.intellij.plugin.tracker.integration.git4idea.test.GitExecutor.cd;
-import static org.intellij.plugin.tracker.integration.git4idea.test.GitExecutor.git;
+import static org.intellij.plugin.tracker.services.git4idea.test.GitExecutor.cd;
+import static org.intellij.plugin.tracker.services.git4idea.test.GitExecutor.git;
 
 /**
  * Create popular scenarios used in multiple tests, for example:

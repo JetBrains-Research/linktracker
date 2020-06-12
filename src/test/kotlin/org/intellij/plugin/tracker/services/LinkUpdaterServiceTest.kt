@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.integration
+package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -15,13 +15,6 @@ import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
-import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 
 /**
  * This class is a template for testing updating links.
@@ -39,24 +32,13 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
         "main/directory/file2.txt"
     )
 
-    @Override
     override fun getTestDataPath(): String {
-        return "src/test/kotlin/org/intellij/plugin/tracker/integration/testdata"
+        return "src/test/kotlin/org/intellij/plugin/tracker/services/testdata"
     }
 
-    @BeforeAll
     override fun setUp() {
         super.setUp()
         myFixture.configureByFiles(*myFiles)
-    }
-
-    @AfterAll
-    override fun tearDown() {
-        super.tearDown()
-    }
-
-    @BeforeEach
-    fun init() {
         myLinkUpdateService = LinkUpdaterService.getInstance(project)
     }
 }
@@ -66,11 +48,9 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToFile : TestUpdateLinks() {
 
-    @Test
-    fun `update a relative link to a file`() {
+    fun testUpdateRelativeLinkToFile() {
         val linkInfo = LinkInfo(
             linkText = "relative link to file",
             linkPath = "file.txt",
@@ -107,11 +87,9 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToLine : TestUpdateLinks() {
 
-    @Test
-    fun `update a relative link to a line`() {
+    fun testUpdateRelativeLinkToLine() {
         val linkInfo = LinkInfo(
             linkText = "relative link to line",
             linkPath = "file.txt#L1",
@@ -149,11 +127,9 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
  * to a new directory "main", and moving files "file1.txt" and "file2.txt"
  * from the root directory to a new directory "main/directory".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinks : TestUpdateLinks() {
 
-    @Test
-    fun `update multiple relative links`() {
+    fun testUpdateRelativeLinks() {
         val linkInfo1 = LinkInfo(
             linkText = "relative link 1",
             linkPath = "file.txt",
@@ -224,15 +200,12 @@ class TestRelativeLinks : TestUpdateLinks() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestMultipleLinks : TestUpdateLinks() {
 
     // This test case is disabled because one of the tested features
     // (updating links to directories) is not yet ready.
     // Do not remove the test.
-    @Disabled
-    @Test
-    fun `update multiple links of different types`() {
+    fun testUpdateVariousLinks() {
         val linkInfoToFile = LinkInfo(
             linkText = "relative link to file",
             linkPath = "file.txt",

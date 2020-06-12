@@ -1,8 +1,7 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-package org.intellij.plugin.tracker.integration.git4idea.test
+package org.intellij.plugin.tracker.services.git4idea.test
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vcs.AbstractVcsHelper
 import com.intellij.openapi.vcs.Executor
@@ -19,7 +18,6 @@ import com.intellij.util.ThrowableRunnable
 import com.intellij.vcs.log.VcsFullCommitDetails
 import com.intellij.vcs.log.util.VcsLogUtil
 import com.intellij.vcs.test.VcsPlatformTest
-import git4idea.DialogManager
 import git4idea.GitUtil
 import git4idea.GitVcs
 import git4idea.commands.Git
@@ -31,8 +29,8 @@ import git4idea.config.GitSaveChangesPolicy
 import git4idea.log.GitLogProvider
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import org.intellij.plugin.tracker.integration.git4idea.test.GitPlatformTest.ConfigScope.GLOBAL
-import org.intellij.plugin.tracker.integration.git4idea.test.GitPlatformTest.ConfigScope.SYSTEM
+import org.intellij.plugin.tracker.services.git4idea.test.GitPlatformTest.ConfigScope.GLOBAL
+import org.intellij.plugin.tracker.services.git4idea.test.GitPlatformTest.ConfigScope.SYSTEM
 import java.io.File
 
 abstract class GitPlatformTest : VcsPlatformTest() {

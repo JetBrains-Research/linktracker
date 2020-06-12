@@ -1,7 +1,7 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 @file:JvmName("GitExecutor")
 
-package org.intellij.plugin.tracker.integration.git4idea.test
+package org.intellij.plugin.tracker.services.git4idea.test
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
@@ -161,6 +161,10 @@ private fun mv(project: Project, fromPath: String, toPath: String) = git(project
 
 fun GitRepository.mv(from: File, to: File) {
   mv(from.path, to.path)
+}
+
+internal fun GitRepository.delete(file: TestFile) {
+  file.delete()
 }
 
 fun GitRepository.prepareConflict(initialBranch: String = "master",
