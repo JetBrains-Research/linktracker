@@ -21,8 +21,6 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 
 /**
  * Class that handles the logic of git operations
@@ -45,7 +43,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             return result.output
         }
@@ -62,7 +59,6 @@ class GitOperationManager(private val project: Project) {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
         gitLineHandler.addParameters("$commitSHA:$path")
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-
         if (result.exitCode == 0) {
             val lines: List<String> = result.output
             if (lines.size >= lineNumber) return lines[lineNumber - 1]
@@ -138,40 +134,6 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Gets added, deleted and moved out files of specific directory
-     * Runs git command `git log --name-status --oneline --find-renames=<sim_threshold>`
-     */
-    @Throws(VcsException::class)
-    fun getDirectoryCommits(path: String, similarityThreshold: Int): MutableList<Any> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        gitLineHandler.addParameters(
-            "--name-status",
-            "--oneline",
-            "--find-renames=$similarityThreshold"
-        )
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val addedFiles: MutableList<String> = mutableListOf()
-        val movedFiles: MutableList<Pair<String, Int>> = mutableListOf()
-
-        var order = 0
-        if (output.exitCode == 0) {
-            val outputList = output.output
-            for (elem in outputList) {
-                val paths = elem.split("\\s".toRegex())
-                if (paths[0] == "A" && paths[1].startsWith(path)) addedFiles.add(paths[1])
-                else if (paths[0].startsWith("R")) {
-                    val prev = paths[1]
-                    val curr = paths[2]
-
-                    if (!prev.startsWith(path) && curr.startsWith(path)) addedFiles.add(curr)
-                    else if (prev.startsWith(path) && !curr.startsWith(path)) movedFiles.add(Pair(curr, order++))
-                }
-            }
-        }
-        return mutableListOf(addedFiles, movedFiles)
-    }
-
-    /**
      * Get the commit SHA which points to the current HEAD
      *
      * Runs git command `git rev-parse --short HEAD`
@@ -190,13 +152,75 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(linkInfo: LinkInfo): String? {
+    fun getStartCommit(link: Link, checkSurroundings: Boolean = false, maxCommitsSurroundings: Int = 5): String? {
+        val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
-        if (outputLog.exitCode == 0)
-        // return most recent finding
-            if (outputLog.output.size != 0) return outputLog.output[0].split(" ")[0]
+        if (outputLog.exitCode == 0) {
+            // return most recent finding
+            if (outputLog.output.size != 0) {
+                val commitSHA = outputLog.output[0].split(" ")[0]
+                if (fileExistsAtCommit(commitSHA, link.path)) {
+                    return outputLog.output[0].split(" ")[0]
+                }
+
+                // file does not exist at the found commit
+                // find the most recent commit at which this file exists
+                // starting at the initially found `start commit`.
+                // go - maxCommitsSurroundings back and + maxCommitsSurroundings
+                // after the found commit.
+                if (checkSurroundings) {
+                    if (commitSHA != getFirstCommitSHA()) {
+                        val startCommit = getCommitsInRange(
+                            until = commitSHA,
+                            maxCommitsSurroundings = maxCommitsSurroundings,
+                            path = link.path
+                        )
+                        if (startCommit != null) return startCommit
+                    }
+                    if (commitSHA != getHeadCommitSHA()) {
+                        val startCommit = getCommitsInRange(
+                            from = commitSHA,
+                            maxCommitsSurroundings = maxCommitsSurroundings,
+                            path = link.path
+                        )
+                        if (startCommit != null) return startCommit
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun getCommitsInRange(
+        from: String? = null,
+        until: String? = null,
+        maxCommitsSurroundings: Int,
+        path: String
+    ): String? {
+        if (from == null && until == null || from != null && until != null) {
+            throw VcsException("Illegal arguments")
+        }
+        val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (from != null) {
+            gitLineHandlerLog.addParameters("$from..", "--oneline")
+        } else {
+            gitLineHandlerLog.addParameters("$until^", "--oneline")
+        }
+        val resultLog: GitCommandResult = git.runCommand(gitLineHandlerLog)
+        if (resultLog.exitCode == 0) {
+            val commitList = resultLog.output
+            var index = 0
+            for (line in commitList) {
+                if (index > maxCommitsSurroundings) break
+                index++
+                val commit = line.substring(0, 7)
+                if (fileExistsAtCommit(commit, path)) {
+                    return commit
+                }
+            }
+        }
         return null
     }
 
@@ -308,9 +332,6 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        if (link is RelativeLinkToFile) {
-            return processChangesForFile(link.relativePath, outputLog.getOutputOrThrow(), specificCommit)
-        }
         return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 
@@ -326,14 +347,14 @@ class GitOperationManager(private val project: Project) {
     private fun extractChangeType(linkPath: String, line: String): CustomChange {
         when {
             line.startsWith("A") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
                 return CustomChange(CustomChangeType.ADDED, lineSplit[1])
             }
             line.startsWith("M") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 if (lineSplit[1] != linkPath) return CustomChange(CustomChangeType.MOVED, lineSplit[1])
 
@@ -341,7 +362,7 @@ class GitOperationManager(private val project: Project) {
             }
             line.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
             line.startsWith("R") -> {
-                val lineSplit: List<String> = line.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = line.trim().split("\t".toPattern())
                 assert(lineSplit.size == 3)
                 if (lineSplit[2] == linkPath) return CustomChange(CustomChangeType.MODIFIED, lineSplit[2])
                 return CustomChange(CustomChangeType.MOVED, lineSplit[2])
@@ -361,18 +382,18 @@ class GitOperationManager(private val project: Project) {
     private fun parseContent(content: String): String {
         return when {
             content.startsWith("R") -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.size == 3)
                 lineSplit[2]
             }
             // line containing a commit along with the commit description
             content.matches("[a-z0-9]{6}.*".toRegex()) -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"
             }
             else -> {
-                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
+                val lineSplit: List<String> = content.trim().split("\t".toPattern())
                 assert(lineSplit.size == 2)
                 lineSplit[1]
             }
