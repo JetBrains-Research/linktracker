@@ -33,20 +33,26 @@ class AcceptAction : AnAction() {
 
         val linkAndChange = myScanResult.myLinkChanges
 
+        // Remove updated links from UI
         for (acceptedChange in acceptedChanges) {
-            val change = acceptedChange.second
-            if (change is CustomChange) {
-                linkAndChange.remove(acceptedChange)
-                linkAndChange.add(Pair(acceptedChange.first, CustomChange(CustomChangeType.ADDED, change.afterPathString)))
-            } else if (change is LineChange) {
-                linkAndChange.remove(acceptedChange)
-                linkAndChange.add(Pair(acceptedChange.first, LineChange(change.fileChange, LineChangeType.UNCHANGED)))
-            } else if (change is LinesChange) {
-                linkAndChange.remove(acceptedChange)
-                linkAndChange.add(Pair(acceptedChange.first, LinesChange(change.fileChange, LinesChangeType.UNCHANGED)))
+            when (val change = acceptedChange.second) {
+                is CustomChange -> {
+                    linkAndChange.remove(acceptedChange)
+                    linkAndChange.add(Pair(acceptedChange.first, CustomChange(CustomChangeType.ADDED, change.afterPathString)))
+                }
+                is LineChange -> {
+                    linkAndChange.remove(acceptedChange)
+                    linkAndChange.add(Pair(acceptedChange.first, LineChange(change.fileChange, LineChangeType.UNCHANGED)))
+                }
+                is LinesChange -> {
+                    linkAndChange.remove(acceptedChange)
+                    linkAndChange.add(Pair(acceptedChange.first, LinesChange(change.fileChange, LinesChangeType.UNCHANGED)))
+                }
             }
         }
 
+        // Update view again to remove the updated links
+        // after user accepted the changes
         val uiService = UIService.getInstance(myProject)
         val newScanResult = ScanResult(myLinkChanges = linkAndChange, myProject = myProject)
         uiService.updateView(newScanResult)
