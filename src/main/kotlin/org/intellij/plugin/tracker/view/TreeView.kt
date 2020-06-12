@@ -236,7 +236,8 @@ class TreeView : JPanel(BorderLayout()) {
                                 }
                             }
                         }
-                    } else if (selPath != null) checkCheckBoxes(selPath)
+                    }
+                    if (selPath != null) checkCheckBoxes(selPath)
                 }
             })
         }
@@ -261,8 +262,9 @@ class TreeView : JPanel(BorderLayout()) {
                             if (!node.value.isChecked) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (node.key.pathCount == 5) {
+                                    val newPath = selPath.toString().split(",")[3].split(" ").last()
+                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                                 }
                             }
                         }
@@ -275,8 +277,9 @@ class TreeView : JPanel(BorderLayout()) {
                             ) {
                                 node.value.isChecked = true
                                 checkedPaths.add(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (node.key.pathCount == 5) {
+                                    val newPath = node.key.toString().split(",")[3].split(" ").last()
+                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                                 }
                             }
                         }
@@ -285,7 +288,8 @@ class TreeView : JPanel(BorderLayout()) {
                     else -> {
                         data.isChecked = true
                         checkedPaths.add(selPath)
-                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
+                        val newPath = selPath.toString().split(",")[3].split(" ").last()
+                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                     }
                 }
             } else {
@@ -296,8 +300,9 @@ class TreeView : JPanel(BorderLayout()) {
                             if (node.value.isChecked) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (node.key.pathCount == 5) {
+                                    val newPath = node.key.toString().split(",")[3].split(" ").last()
+                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                                 }
                             }
                         }
@@ -310,8 +315,9 @@ class TreeView : JPanel(BorderLayout()) {
                             ) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (node.key.pathCount == 5) {
+                                    val newPath = selPath.toString().split(",")[3].split(" ").last()
+                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                                 }
                             }
                         }
@@ -320,7 +326,8 @@ class TreeView : JPanel(BorderLayout()) {
                     else -> {
                         data.isChecked = false
                         checkedPaths.remove(selPath)
-                        checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
+                        val newPath = selPath.toString().split(",")[3].split(" ").last()
+                        checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
                     }
                 }
             }
