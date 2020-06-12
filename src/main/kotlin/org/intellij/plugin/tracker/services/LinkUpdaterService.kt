@@ -80,7 +80,6 @@ class LinkUpdaterService(val project: Project) {
             // calculated updated link is null -> something wrong must have happened, return false
             if (afterPath == null) return false
 
-            println("is it coming ${element.getText()}")
             val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
             element.replace(newElement)
             return true

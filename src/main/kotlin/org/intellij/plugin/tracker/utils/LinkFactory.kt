@@ -12,6 +12,7 @@ import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.data.links.WebLinkToLines
+import org.intellij.plugin.tracker.data.links.checkRelativeLink
 
 class LinkFactory {
 
@@ -73,10 +74,10 @@ class LinkFactory {
                     return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 else -> {
-                    // Ambiguous link: have to see whether it's a path to a file or directory
-                    // not the best way to check for file/directory: directories can also have . in their names
-                    // TODO: can be optimized
-                    if (linkInfo.linkPath.lastIndexOf(".") == -1) {
+                    // directories can also have . in their names
+                    // therefore checks their relative paths which do not contain .
+                    val relativePath = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+                    if (relativePath.lastIndexOf(".") == -1) {
                         return RelativeLinkToDirectory(linkInfo = linkInfo)
                     }
                     link = RelativeLinkToFile(linkInfo = linkInfo)

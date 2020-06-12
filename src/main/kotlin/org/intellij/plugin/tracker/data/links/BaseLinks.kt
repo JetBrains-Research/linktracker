@@ -72,7 +72,13 @@ abstract class RelativeLink<in T : Change>(
         get() = linkInfo.linkPath
 
     val relativePath: String
-        get() = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+        get() {
+            var path = linkInfo.linkPath
+            if (path.contains("%20")) {
+                path = path.replaceFirst("%20", " ")
+            }
+            return checkRelativeLink(path, linkInfo.proveniencePath)
+        }
 
     override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(linkInfo
         .getAfterPathToOriginalFormat(afterPath)!!, linkInfo.proveniencePath) != afterPath
@@ -195,7 +201,7 @@ data class LinkInfo(
     val proveniencePath: String,
     val foundAtLineNumber: Int,
     val textOffset: Int,
-    val linkElement: LinkElement? = null,
+    var linkElement: LinkElement? = null,
     val fileName: String,
     val project: Project,
     val linkPathPrefix: String? = null,
