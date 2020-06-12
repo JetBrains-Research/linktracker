@@ -32,56 +32,61 @@ import java.nio.file.Paths
 
 abstract class GitSingleRepoTest : GitPlatformTest() {
 
-  protected lateinit var repo: GitRepository
+    protected lateinit var repo: GitRepository
 
-  @Throws(Exception::class)
-  override fun setUp() {
-    super.setUp()
-    repo =
-      createRepository(project, projectPath, makeInitialCommit())
-    cd(projectPath)
-  }
+    @Throws(Exception::class)
+    override fun setUp() {
+        super.setUp()
+        repo =
+            createRepository(project, projectPath, makeInitialCommit())
+        cd(projectPath)
+    }
 
-  protected open fun makeInitialCommit() = true
+    protected open fun makeInitialCommit() = true
 
-  protected fun VcsConfiguration.StandardConfirmation.doSilently() =
-    AbstractVcsTestCase.setStandardConfirmation(project, GitVcs.NAME, this, DO_ACTION_SILENTLY)
+    protected fun VcsConfiguration.StandardConfirmation.doSilently() =
+        AbstractVcsTestCase.setStandardConfirmation(project, GitVcs.NAME, this, DO_ACTION_SILENTLY)
 
-  protected fun VcsConfiguration.StandardConfirmation.doNothing() =
-    AbstractVcsTestCase.setStandardConfirmation(project, GitVcs.NAME, this, DO_NOTHING_SILENTLY)
+    protected fun VcsConfiguration.StandardConfirmation.doNothing() =
+        AbstractVcsTestCase.setStandardConfirmation(project, GitVcs.NAME, this, DO_NOTHING_SILENTLY)
 
-  protected fun prepareUnversionedFile(filePath: String): VirtualFile {
-    val path = Paths.get(projectPath, filePath)
-    Files.createDirectories(path.parent)
-    Files.createFile(path)
+    protected fun prepareUnversionedFile(filePath: String): VirtualFile {
+        val path = Paths.get(projectPath, filePath)
+        Files.createDirectories(path.parent)
+        Files.createFile(path)
 
-    FileUtil.writeToFile(path.toFile(), "initial\ncontent\n")
+        FileUtil.writeToFile(path.toFile(), "initial\ncontent\n")
 
-    val file = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(path.toFile())!!
-    updateChangeListManager()
-    assertUnversioned(file)
-    return file
-  }
+        val file = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(path.toFile())!!
+        updateChangeListManager()
+        assertUnversioned(file)
+        return file
+    }
 
-  protected fun VirtualFile.createDir(dir: String) = VcsTestUtil.findOrCreateDir(project, this, dir)!!
+    protected fun VirtualFile.createDir(dir: String) = VcsTestUtil.findOrCreateDir(project, this, dir)!!
 
-  protected fun VirtualFile.createFile(fileName: String, content: String = Math.random().toString()) =
-    VcsTestUtil.createFile(project, this, fileName, content)!!
+    protected fun VirtualFile.createFile(fileName: String, content: String = Math.random().toString()) =
+        VcsTestUtil.createFile(project, this, fileName, content)!!
 
-  protected fun renameFile(file: VirtualFile, newName: String) {
-    VcsTestUtil.renameFileInCommand(project, file, newName)
-    updateChangeListManager()
-  }
+    protected fun renameFile(file: VirtualFile, newName: String) {
+        VcsTestUtil.renameFileInCommand(project, file, newName)
+        updateChangeListManager()
+    }
 
-  protected fun build(f: RepoBuilder.() -> Unit) = build(repo, f)
+    protected fun build(f: RepoBuilder.() -> Unit) = build(repo, f)
 
-  protected fun assertUnversioned(file: VirtualFile) {
-    assertTrue("File should be unversioned! All changes: " + GitUtil.getLogString(projectPath, changeListManager.allChanges),
-               changeListManager.isUnversioned(file))
-  }
+    protected fun assertUnversioned(file: VirtualFile) {
+        assertTrue(
+            "File should be unversioned! All changes: " + GitUtil.getLogString(
+                projectPath,
+                changeListManager.allChanges
+            ),
+            changeListManager.isUnversioned(file)
+        )
+    }
 
-  @JvmOverloads
-  protected fun git(command: String, ignoreExitCode: Boolean = false) = repo.git(command, ignoreExitCode)
+    @JvmOverloads
+    protected fun git(command: String, ignoreExitCode: Boolean = false) = repo.git(command, ignoreExitCode)
 
-  internal fun file(path: String) = repo.file(path)
+    internal fun file(path: String) = repo.file(path)
 }

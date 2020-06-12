@@ -40,56 +40,75 @@ import kotlin.test.assertNull
  */
 class TestDialogManager : DialogManager() {
 
-  private val DEFAULT_MESSAGE_HANDLER : (String) -> Int = { throw IllegalStateException("Message is not expected: $it") }
+    private val DEFAULT_MESSAGE_HANDLER: (String) -> Int =
+        { throw IllegalStateException("Message is not expected: $it") }
 
-  private val myHandlers = hashMapOf<Class<out DialogWrapper>, (DialogWrapper) -> Int>()
-  private var myOnMessage: (String) -> Int = DEFAULT_MESSAGE_HANDLER
+    private val myHandlers = hashMapOf<Class<out DialogWrapper>, (DialogWrapper) -> Int>()
+    private var myOnMessage: (String) -> Int = DEFAULT_MESSAGE_HANDLER
 
-  override fun showDialog(dialog: DialogWrapper) {
-    var exitCode = DialogWrapper.OK_EXIT_CODE
-    try {
-      val handler = myHandlers[dialog.javaClass]
-      if (handler != null) {
-        exitCode = handler(dialog)
-      }
-      else {
-        throw IllegalStateException("The dialog is not expected here: " + dialog.javaClass)
-      }
+    override fun showDialog(dialog: DialogWrapper) {
+        var exitCode = DialogWrapper.OK_EXIT_CODE
+        try {
+            val handler = myHandlers[dialog.javaClass]
+            if (handler != null) {
+                exitCode = handler(dialog)
+            } else {
+                throw IllegalStateException("The dialog is not expected here: " + dialog.javaClass)
+            }
+        } finally {
+            dialog.close(exitCode, exitCode == DialogWrapper.OK_EXIT_CODE)
+        }
     }
-    finally {
-      dialog.close(exitCode, exitCode == DialogWrapper.OK_EXIT_CODE)
+
+    override fun showMessageDialog(
+        project: Project,
+        message: String,
+        title: String,
+        options: Array<String>,
+        defaultButtonIndex: Int,
+        icon: Icon?
+    ): Int {
+        return myOnMessage.invoke(message)
     }
-  }
 
-  override fun showMessageDialog(project: Project, message: String, title: String, options: Array<String>,
-                                 defaultButtonIndex: Int, icon: Icon?): Int {
-    return myOnMessage.invoke(message)
-  }
+    override fun showMessageDialog(
+        project: Project,
+        message: String,
+        title: String,
+        options: Array<String>,
+        defaultButtonIndex: Int,
+        focusedButtonIndex: Int,
+        icon: Icon?
+    ): Int {
+        return myOnMessage.invoke(message)
+    }
 
-  override fun showMessageDialog(project: Project, message: String, title: String, options: Array<String>,
-                                 defaultButtonIndex: Int, focusedButtonIndex: Int, icon: Icon?): Int {
-    return myOnMessage.invoke(message)
-  }
+    override fun showMessageDialog(
+        description: String,
+        title: String,
+        options: Array<String>,
+        defaultButtonIndex: Int,
+        focusedButtonIndex: Int,
+        icon: Icon?,
+        dontAskOption: DialogWrapper.DoNotAskOption?
+    ): Int {
+        return myOnMessage.invoke(description)
+    }
 
-  override fun showMessageDialog(description: String, title: String, options: Array<String>, defaultButtonIndex: Int,
-                                 focusedButtonIndex: Int, icon: Icon?, dontAskOption: DialogWrapper.DoNotAskOption?): Int {
-    return myOnMessage.invoke(description)
-  }
+    fun <T : DialogWrapper> registerDialogHandler(dialogClass: Class<T>, handler: TestDialogHandler<T>) {
+        onDialog(dialogClass) { handler.handleDialog(it) }
+    }
 
-  fun <T : DialogWrapper> registerDialogHandler(dialogClass: Class<T>, handler: TestDialogHandler<T>) {
-    onDialog(dialogClass) { handler.handleDialog(it) }
-  }
+    fun <T : DialogWrapper> onDialog(dialogClass: Class<T>, handler: (T) -> Int) {
+        assertNull(myHandlers.put(dialogClass, handler as (DialogWrapper) -> Int))
+    }
 
-  fun <T : DialogWrapper> onDialog(dialogClass: Class<T>, handler: (T) -> Int) {
-    assertNull(myHandlers.put(dialogClass, handler as (DialogWrapper) -> Int))
-  }
+    fun onMessage(handler: (String) -> Int) {
+        myOnMessage = handler
+    }
 
-  fun onMessage(handler: (String) -> Int) {
-    myOnMessage = handler
-  }
-
-  fun cleanup() {
-    myHandlers.clear()
-    myOnMessage = DEFAULT_MESSAGE_HANDLER
-  }
+    fun cleanup() {
+        myHandlers.clear()
+        myOnMessage = DEFAULT_MESSAGE_HANDLER
+    }
 }

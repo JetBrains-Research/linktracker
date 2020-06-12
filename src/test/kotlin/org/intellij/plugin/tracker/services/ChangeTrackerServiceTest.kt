@@ -2,14 +2,19 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
+import java.io.File
+import org.junit.jupiter.api.Assertions
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
-import org.intellij.plugin.tracker.services.git4idea.test.*
-import org.junit.jupiter.api.Assertions
-import java.io.File
+import org.intellij.plugin.tracker.services.git4idea.test.GitSingleRepoTest
+import org.intellij.plugin.tracker.services.git4idea.test.TestFile
+import org.intellij.plugin.tracker.services.git4idea.test.delete
+import org.intellij.plugin.tracker.services.git4idea.test.mv
+import org.intellij.plugin.tracker.services.git4idea.test.add
+import org.intellij.plugin.tracker.services.git4idea.test.commit
 
 /**
  * This class is a template for testing parsing changes from the Git integration.

@@ -13,7 +13,6 @@ import org.intellij.plugin.tracker.data.links.WebLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.data.links.WebLinkToLines
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Test
 
 class LinkFactoryTest : TestCase() {
 
@@ -134,7 +133,10 @@ class LinkFactoryTest : TestCase() {
         )
 
         val resultLink: Link = LinkFactory.createLink(linkInfo, null)
-        Assertions.assertEquals(NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"), resultLink)
+        Assertions.assertEquals(
+            NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
+            resultLink
+        )
     }
 
     fun testCreateInvalidWebLink1() {
@@ -149,7 +151,10 @@ class LinkFactoryTest : TestCase() {
         )
 
         val resultLink: Link = LinkFactory.createLink(linkInfo, null)
-        Assertions.assertEquals(NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"), resultLink)
+        Assertions.assertEquals(
+            NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
+            resultLink
+        )
     }
 
     fun testCreateInvalidWebLink2() {
@@ -164,7 +169,10 @@ class LinkFactoryTest : TestCase() {
         )
 
         val resultLink: Link = LinkFactory.createLink(linkInfo, null)
-        Assertions.assertEquals(NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"), resultLink)
+        Assertions.assertEquals(
+            NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
+            resultLink
+        )
     }
 
     fun testCreateWebLinkToFileWWWPrefix() {
