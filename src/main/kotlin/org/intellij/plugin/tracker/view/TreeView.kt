@@ -286,10 +286,12 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                     // case for the fourth level nodes
                     else -> {
-                        data.isChecked = true
-                        checkedPaths.add(selPath)
-                        val newPath = selPath.toString().split(",")[3].split(" ").last()
-                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
+                        if(CheckBoxHelper().notSiblingChecked(selPath, data)) {
+                            data.isChecked = true
+                            checkedPaths.add(selPath)
+                            val newPath = selPath.toString().split(",")[3].split(" ").last()
+                            checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
+                        }
                     }
                 }
             } else {

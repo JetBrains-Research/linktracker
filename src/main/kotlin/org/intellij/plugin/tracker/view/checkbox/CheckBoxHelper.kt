@@ -134,6 +134,32 @@ class CheckBoxHelper {
         }
     }
 
+    fun notSiblingChecked(path: TreePath, data : CheckBoxNodeData) : Boolean {
+        val siblingsNodes = getSiblings(path)
+        if(siblingsNodes.size == 0) {
+            return true
+        } else {
+            var checkedOther = false
+            for(s in siblingsNodes) {
+                if(s.isChecked) {
+                    checkedOther = true
+                }
+            }
+            return !checkedOther
+        }
+    }
+
+    fun getSiblings(path: TreePath): MutableList<CheckBoxNodeData> {
+        val siblings = mutableListOf<CheckBoxNodeData>()
+        val common = path.toString().split(", (").first()
+        for(node in TreeView.nodesCheckingState) {
+            if (node.key.toString().contains(common) && node.key!=path) {
+                siblings.add(node.value)
+            }
+        }
+        return siblings
+    }
+
     /**
      * Gets all files and respective nodes with their data
      */
