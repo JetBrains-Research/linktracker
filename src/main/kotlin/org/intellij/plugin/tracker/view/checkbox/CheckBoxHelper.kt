@@ -182,6 +182,7 @@ class CheckBoxHelper {
     }
 
     fun getSiblings(path: TreePath): MutableList<CheckBoxNodeData> {
+        println("getting siblings for $path")
         val siblings = mutableListOf<CheckBoxNodeData>()
         val last = path.lastPathComponent.toString()
         val common = path.toString().replace(last, "").replace("]", "")
@@ -224,4 +225,5 @@ class CheckBoxHelper {
         }
         return result
     }
+
 }
