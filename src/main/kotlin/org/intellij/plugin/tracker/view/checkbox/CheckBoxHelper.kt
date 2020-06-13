@@ -80,7 +80,11 @@ class CheckBoxHelper {
                 if (key.pathCount == 3 && value == link.key && value.isChecked) {
                     selected = true
                 } else if (key.pathCount == 5 && link.value.contains(value) && !value.isChecked) {
-                    allSelected = false
+                    allSelected = if(getSiblings(key).size > 0) {
+                        oneSiblingChecked(key)
+                    } else {
+                        false
+                    }
                 } else if (key.pathCount == 5 && link.value.contains(value) && value.isChecked) {
                     noSelected = false
                 }
@@ -100,7 +104,13 @@ class CheckBoxHelper {
             if (key.pathCount == 2 && value.isChecked) {
                 parentSelected = true
             } else if (key.pathCount != 2 && !value.isChecked) {
-                allOtherSelected = false
+                if(getSiblings(key).size > 0) {
+                    if(!oneSiblingChecked(key)) {
+                        allOtherSelected = false
+                    }
+                } else {
+                    allOtherSelected = false
+                }
             } else if (key.pathCount != 2 && value.isChecked) {
                 nonSelected = false
             }
@@ -117,9 +127,15 @@ class CheckBoxHelper {
     /**
      * Adds the change to accepted changes
      */
-    fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: String) {
+    fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
+        println("add $path")
         for (pair in changes) {
-            if (pair.first.linkInfo.linkPath == path) {
+            val afterPath = pair.second.afterPath[0]
+            val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+            println("path $path")
+            println("p $p")
+            if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                println("add this $p")
                 TreeView.acceptedChangeList.add(pair)
             }
         }
@@ -128,30 +144,47 @@ class CheckBoxHelper {
     /**
      * Removes the changes from accepted changes
      */
-    fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: String) {
+    fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
+        println("remove $path")
         for (pair in changes) {
-            if (pair.first.path == path) TreeView.acceptedChangeList.remove(pair)
-        }
+            val afterPath = pair.second.afterPath[0]
+            val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+            if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                println("remove this $p")
+                TreeView.acceptedChangeList.remove(pair)
+            }        }
     }
 
-    fun notSiblingChecked(path: TreePath, data : CheckBoxNodeData) : Boolean {
-        val siblingsNodes = getSiblings(path)
-        if(siblingsNodes.size == 0) {
-            return true
+
+    private fun oneSiblingChecked(path: TreePath) : Boolean {
+        val siblingNodes = getSiblings(path)
+        for(s in siblingNodes) {
+            if(s.isChecked) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fun notSiblingChecked(path: TreePath) : Boolean {
+        val siblingNodes = getSiblings(path)
+        return if(siblingNodes.size == 0) {
+            true
         } else {
             var checkedOther = false
-            for(s in siblingsNodes) {
+            for(s in siblingNodes) {
                 if(s.isChecked) {
                     checkedOther = true
                 }
             }
-            return !checkedOther
+            !checkedOther
         }
     }
 
     fun getSiblings(path: TreePath): MutableList<CheckBoxNodeData> {
         val siblings = mutableListOf<CheckBoxNodeData>()
-        val common = path.toString().split(", (").first()
+        val last = path.lastPathComponent.toString()
+        val common = path.toString().replace(last, "").replace("]", "")
         for(node in TreeView.nodesCheckingState) {
             if (node.key.toString().contains(common) && node.key!=path) {
                 siblings.add(node.value)
