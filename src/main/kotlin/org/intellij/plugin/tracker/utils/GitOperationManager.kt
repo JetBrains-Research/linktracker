@@ -21,6 +21,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
 
 /**
  * Class that handles the logic of git operations
@@ -39,6 +40,12 @@ class GitOperationManager(private val project: Project) {
         }
     }
 
+    /**
+     * Get the contents of a directory at a specific commit
+     *
+     * Runs git command `git ls-tree --name-only -r <commitSHA> -- <dirPath>`
+     * Returns null if the contents cannot be fetched
+     */
     fun getDirectoryContentsAtCommit(directoryPath: String, commitSHA: String): MutableList<String>? {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
@@ -67,7 +74,7 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     *
+     * Gets the contents of multiple, consecutive lines from a file, at a specified commit
      */
     @Throws(VcsException::class)
     fun getContentsOfLinesInFileAtCommit(
@@ -237,8 +244,9 @@ class GitOperationManager(private val project: Project) {
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
-        val change: String? = changeList.find { line -> line.contains(linkPath) }
+        var change: String? = changeList.find { line -> line.split(" ".toRegex()).any { res -> res == linkPath }}
         if (change != null) {
+            change = change.trim()
             when {
                 change.startsWith("?") -> return CustomChange(CustomChangeType.ADDED, linkPath)
                 change.startsWith("!") -> return CustomChange(CustomChangeType.ADDED, linkPath)
@@ -388,7 +396,7 @@ class GitOperationManager(private val project: Project) {
             }
             // line containing a commit along with the commit description
             content.matches("[a-z0-9]{6}.*".toRegex()) -> {
-                val lineSplit: List<String> = content.trim().split("\t".toPattern())
+                val lineSplit: List<String> = content.trim().split("\\s+".toPattern())
                 assert(lineSplit.isNotEmpty())
                 "Commit: ${lineSplit[0]}"
             }
@@ -564,12 +572,32 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Method that retrieves a list of changes between the project version at commit commitSHA
-     * and the current working tree (includes also uncommitted files)
+     * Gets the diff between the version of the file at the last commit
+     * and the working version of the file
+     *
+     * Runs git command `git -U<context_lines_no> diff <path>`
      */
-    fun getDiffWithWorkingTree(commitSHA: String): MutableCollection<com.intellij.openapi.vcs.changes.Change>? =
-        GitChangeUtils.getDiffWithWorkingTree(gitRepository, commitSHA, true)
+    @Throws(VcsException::class)
+    fun getDiffWithWorkingVersionOfFile(
+        beforePath: String,
+        afterPath: String,
+        contextLinesNumber: Int = 3
+    ): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
+        gitLineHandler.addParameters(
+            "-U$contextLinesNumber",
+            "HEAD:$beforePath",
+            afterPath
+        )
+        val output = git.runCommand(gitLineHandler)
+        return output.getOutputOrThrow()
+    }
 
+    /**
+     * Runs a git diff command between the version of the file at path `beforePath` at `commit1`
+     * and the version of the file at path `afterPath` at `commit2`.
+     */
+    @Throws(VcsException::class)
     fun getDiffBetweenCommits(
         commit1: String,
         commit2: String,
