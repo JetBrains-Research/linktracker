@@ -1,7 +1,5 @@
 package org.intellij.plugin.tracker.data.links
 
-import java.io.File
-import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -10,6 +8,8 @@ import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
+import java.io.File
+import java.util.regex.Pattern
 
 
 /**
@@ -204,7 +204,10 @@ data class WebLinkToLine(
      */
     override fun generateNewPath(change: LineChange, newPath: String): String? {
         if (change.newLine == null) return null
-        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}")
+        return newPath.replace(
+            "$path#L$lineReferenced",
+            "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}"
+        )
     }
 
     /**
@@ -282,7 +285,19 @@ data class WebLinkToLines(
      * Call the right method in the implementation of ChangeTrackerService
      */
     override fun visit(visitor: ChangeTrackerService): Change {
-        TODO("not implemented")
+        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
+            return when (referenceType) {
+                WebLinkReferenceType.COMMIT -> visitor.getLocalLinesChanges(
+                    link = this,
+                    specificCommit = referencingName
+                )
+                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
+                    visitor.getLocalLinesChanges(link = this, branchOrTagName = referencingName)
+                else -> throw WebLinkReferenceTypeIsInvalidException()
+            }
+        }
+
+        throw NotImplementedError("")
     }
 
     /**
