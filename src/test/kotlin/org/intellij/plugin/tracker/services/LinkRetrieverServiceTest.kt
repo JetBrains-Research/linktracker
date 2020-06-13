@@ -2,7 +2,9 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 
 /**
@@ -42,7 +44,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "file.txt",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
@@ -59,7 +61,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "main",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 3,
-            textOffset = 127,
+            linkElement = LinkElementImpl(mock()),
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
@@ -76,7 +78,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "file.txt#L1",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 2,
-            textOffset = 76,
+            linkElement = LinkElementImpl(mock()),
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
@@ -92,7 +94,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java",
             proveniencePath = "/src/testParseWebLink.md",
             foundAtLineNumber = 2,
-            textOffset = 213,
+            linkElement = LinkElementImpl(mock()),
             fileName = "testParseWebLink.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
@@ -108,7 +110,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55",
             proveniencePath = "/src/testParseWebLink.md",
             foundAtLineNumber = 1,
-            textOffset = 28,
+            linkElement = LinkElementImpl(mock()),
             fileName = "testParseWebLink.md",
             project = ProjectManager.getInstance().openProjects[0]
         )

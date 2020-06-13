@@ -97,7 +97,6 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
             linkPath = "file.txt",
             proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 24,
             fileName = fileName,
             project = project,
             linkElement = linkElement
@@ -140,7 +139,6 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
             linkPath = "file.txt#L1",
             proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 63,
             fileName = fileName,
             project = project,
             linkElement = linkElement
@@ -184,7 +182,6 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkPath = "file.txt",
             proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 18,
             fileName = fileName,
             project = project,
             linkElement = linkElement1
@@ -196,7 +193,6 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkPath = "file1.txt",
             proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 46,
             fileName = fileName,
             project = project,
             linkElement = linkElement2
@@ -208,7 +204,6 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkPath = "file2.txt",
             proveniencePath = fileName,
             foundAtLineNumber = 3,
-            textOffset = 75,
             fileName = fileName,
             project = project,
             linkElement = linkElement3
@@ -270,7 +265,6 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkPath = "file.txt",
             proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 24,
             fileName = fileName,
             project = project,
             linkElement = linkElement1
@@ -282,7 +276,6 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkPath = "file.txt#L1",
             proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 63,
             fileName = fileName,
             project = project,
             linkElement = linkElement2
@@ -294,7 +287,6 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkPath = ".",
             proveniencePath = fileName,
             foundAtLineNumber = 3,
-            textOffset = 110,
             fileName = fileName,
             project = project,
             linkElement = linkElement3

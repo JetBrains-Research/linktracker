@@ -46,29 +46,25 @@ class LinkRetrieverService(private val project: Project?) {
                     val linkText: String
                     val linkPath: String
                     val lineNumber: Int
-                    val textOffset: Int
                     val linkElement: LinkElement
 
                     if (element.javaClass == LeafPsiElement::class.java && (elemType === MarkdownElementType
                             .platformType(GFM_AUTOLINK) && element.parent.node.elementType !== LINK_DESTINATION)) {
                         linkText = element.node.text
-                        textOffset = element.node.startOffset
-                        lineNumber = document.getLineNumber(textOffset) + 1
+                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
                         linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, linkElement, fileName, currentProject))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, linkElement, fileName, currentProject))
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
                         linkPath = element.node.text
-                        textOffset = element.node.startOffset
-                        lineNumber = document.getLineNumber(textOffset) + 1
+                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
                         linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, textOffset, linkElement, fileName, currentProject))
+                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, linkElement, fileName, currentProject))
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
-                        textOffset = element.node.startOffset
-                        lineNumber = document.getLineNumber(textOffset) + 1
+                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
                         linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, linkElement, fileName, currentProject, "<", ">"))
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, linkElement, fileName, currentProject, "<", ">"))
                     }
                     super.visitElement(element)
                 }

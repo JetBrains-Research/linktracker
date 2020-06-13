@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
+import com.nhaarman.mockitokotlin2.mock
 import java.io.File
 import org.junit.jupiter.api.Assertions
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -15,6 +16,7 @@ import org.intellij.plugin.tracker.services.git4idea.test.delete
 import org.intellij.plugin.tracker.services.git4idea.test.mv
 import org.intellij.plugin.tracker.services.git4idea.test.add
 import org.intellij.plugin.tracker.services.git4idea.test.commit
+import org.intellij.plugin.tracker.utils.LinkElementImpl
 
 /**
  * This class is a template for testing parsing changes from the Git integration.
@@ -38,7 +40,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
                 linkText = "link",
                 project = project,
                 proveniencePath = "file.md",
-                textOffset = 7
+                linkElement = LinkElementImpl(mock())
             )
         )
     }
