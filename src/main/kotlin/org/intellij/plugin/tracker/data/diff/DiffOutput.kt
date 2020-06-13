@@ -21,6 +21,11 @@ data class DiffOutput(
 
     companion object {
 
+        /**
+         * This method processes the output of a git diff command by going through each line of this output,
+         * determining the `added` lines, `deleted` lines, as well as the context lines for each of these lines
+         * It will return a DiffOutput object, containing all the information described above.
+         */
         private fun processDiffOutputLines(lines: List<String?>, contextLinesNumber: Int): Pair<MutableList<Line>, MutableList<Line>> {
             val addedLines: MutableList<Line> = mutableListOf()
             val deletedLines: MutableList<Line> = mutableListOf()
@@ -72,6 +77,12 @@ data class DiffOutput(
             return Pair(addedLines, deletedLines)
         }
 
+        /**
+         * This auxiliary method will populate each line in `lines` with the corresponding context lines of this line
+         *
+         * It will take `contextLinesNumber` number of context lines before (above) and `contextLinesNumber`
+         * number of context lines after (below) the target line.
+         */
         private fun populateContextLines(
             lines: MutableList<Line>,
             contextLinesList: MutableList<Line>,
@@ -96,6 +107,14 @@ data class DiffOutput(
             }
         }
 
+        /**
+         * Calls the git diff command -- depending on whether the after commit sha if blank or not,
+         * it will call the method of getting diff between commits if it is not blank and
+         * the method of getting diff with working version of file if the after commit sha is blank.
+         *
+         * It then does some processing of the output of git diff before calling auxiliary methods
+         * of extracting info on the lines of the output
+         */
         fun getDiffOutput(
             gitOperationManager: GitOperationManager,
             before: String,

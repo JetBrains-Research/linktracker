@@ -200,6 +200,11 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
     }
 
+    /**
+     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
+     * between the file at a commit and a path (before) and the file at another commit and path (after)
+     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
+     */
     private fun getDiffOutputs(fileHistoryList: List<FileHistory>, diffOutputList: MutableList<DiffOutput>) {
         for (x: Int in 0 until fileHistoryList.size - 1) {
             val beforeCommitSHA: String = fileHistoryList[x].revision
