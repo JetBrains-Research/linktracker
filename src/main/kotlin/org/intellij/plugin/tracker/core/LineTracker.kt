@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.core
 
 import com.google.common.collect.HashMultiset
+import info.debatty.java.stringsimilarity.Cosine
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.LineChange
@@ -255,7 +256,7 @@ class LineTracker {
             var line: Line? = addedLines.find { line -> line.lineNumber == lineToTrack }
             val lineChangeType: LineChangeType = when {
                 lineIsDeleted -> LineChangeType.DELETED
-                modifications == 0 -> LineChangeType.UNCHANGED
+                modifications == 0 || lineToTrack == link.lineReferenced -> LineChangeType.UNCHANGED
                 else -> LineChangeType.MOVED
             }
 
@@ -287,6 +288,8 @@ class LineTracker {
                 var concatenateString: String = addedLines[i].content
 
                 for (j: Int in i + 1 until addedLines.size) {
+                    // if the next added line is blank, break out
+                    if (addedLines[j].content.isBlank()) break
                     // concatenate the next added line
                     concatenateString += addedLines[j].content
 
@@ -316,7 +319,7 @@ class LineTracker {
             // if the best score goes over a pre-defined threshold, return the index in addedLines
             // at which the line split begins, accompanied with the number of lines over which the line
             // is split
-            if (bestMatch >= thresholdValue) return Pair(bestLine, bestConcatenatedLines)
+            if (bestMatch >= thresholdValue && bestConcatenatedLines > 1) return Pair(bestLine, bestConcatenatedLines)
             // no line split found, return null and 0 respectively
             return Pair(null, 0)
         }
@@ -324,7 +327,7 @@ class LineTracker {
         private fun mapLine(
             deletedLine: Line,
             possibleList: List<Pair<Line, Float>>,
-            thresholdValue: Float = 0.6f
+            thresholdValue: Float = 0.65f
         ): Line? {
             // initialize helper variables
             var mappingFound = false
@@ -341,20 +344,23 @@ class LineTracker {
 
                 // initialize a hash multiset containing the context lines for the deleted line
                 // and a hash multiset for the context lines of the currently inspected added line
-                val multiSet1: HashMultiset<String> = HashMultiset.create()
+                var contextLinesFirst = ""
+                var contextLinesSecond  = ""
+
                 if (deletedLine.contextLines != null)
-                    for (el: Line in deletedLine.contextLines!!) multiSet1.add(el.content)
-                val multiSet2: HashMultiset<String> = HashMultiset.create()
+                    for (el: Line in deletedLine.contextLines!!) contextLinesFirst += el.content
                 if (possibleList[i].first.contextLines != null)
-                    for (el: Line in possibleList[i].first.contextLines!!.iterator()) multiSet2.add(el.content)
+                    for (el: Line in possibleList[i].first.contextLines!!.iterator()) contextLinesSecond += el.content.trim()
 
                 // calculate the cosine similarity between the context lines of the deleted line
                 // and the context lines of the currently inspected added line
-                val scoreContext: Float = CosineSimilarity<String>().compare(multiSet1, multiSet2)
+                val scoreContext: Float = 1 - Cosine().distance(contextLinesFirst, contextLinesSecond).toFloat()
+
+                //1 - CosineSimilarity<String>().compare(multiSet1, multiSet2)
                 val score: Double = 0.6 * scoreContent + 0.4 * scoreContext
 
                 // if the overall score is best so far, save the details
-                if (score >= bestMatch) {
+                if (score > bestMatch) {
                     mappingFound = true
                     bestLine = possibleList[i].first
                     bestMatch = score.toFloat()

@@ -48,6 +48,11 @@ class FileHasBeenDeletedException(
     override val fileChange: CustomChange
 ) : LineChangeGatheringException(message, fileChange)
 
+class FileHasBeenDeletedLinesException(
+    override val message: String? = "File has been deleted. Lines can not be tracked.",
+    override val fileChange: CustomChange
+) : LinesChangeGatheringException(message, fileChange)
+
 class InvalidFileChangeException(
     override val message: String? = "There was an error gathering the changes for the file",
     override val fileChange: CustomChange
