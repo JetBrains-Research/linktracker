@@ -1,7 +1,5 @@
 package org.intellij.plugin.tracker.data.links
 
-import java.io.File
-import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -10,6 +8,8 @@ import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
+import java.io.File
+import java.util.regex.Pattern
 
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
@@ -119,7 +119,10 @@ data class WebLinkToLine(
 
     override fun generateNewPath(change: LineChange, newPath: String): String? {
         if (change.newLine == null) return null
-        return newPath.replace("$path#L$lineReferenced", "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}")
+        return newPath.replace(
+            "$path#L$lineReferenced",
+            "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}"
+        )
     }
 
     override fun visit(visitor: ChangeTrackerService): Change {
@@ -148,23 +151,42 @@ data class WebLinkToLines(
     override val linkInfo: LinkInfo,
     override val pattern: Pattern = LinkPatterns.WebLinkToLines.pattern
 ) : WebLink<LinesChange>(linkInfo, pattern) {
+
     override val path: String
         get() {
             if (matcher.matches())
                 return matcher.group(11)
             return linkInfo.linkPath
         }
+
     override val lineReferenced: Int
         get() = -1
+
     override val referencedFileName: String
-        get() = File(path).name.replace("#L$referencedStartingLine-L$referencedEndingLine", "")
+        get() {
+            return File(path).name.replace("#L$referencedStartingLine-L$referencedEndingLine", "")
+        }
+
     override val referencedStartingLine: Int
         get() = matcher.group(12).toInt()
+
     override val referencedEndingLine: Int
         get() = matcher.group(13).toInt()
 
     override fun visit(visitor: ChangeTrackerService): Change {
-        TODO("not implemented")
+        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
+            return when (referenceType) {
+                WebLinkReferenceType.COMMIT -> visitor.getLocalLinesChanges(
+                    link = this,
+                    specificCommit = referencingName
+                )
+                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
+                    visitor.getLocalLinesChanges(link = this, branchOrTagName = referencingName)
+                else -> throw WebLinkReferenceTypeIsInvalidException()
+            }
+        }
+
+        throw NotImplementedError("")
     }
 
     override fun generateNewPath(change: LinesChange, newPath: String): String? {
