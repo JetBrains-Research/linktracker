@@ -28,7 +28,6 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager

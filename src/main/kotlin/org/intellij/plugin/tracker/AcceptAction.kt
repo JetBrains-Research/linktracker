@@ -34,8 +34,7 @@ class AcceptAction : AnAction() {
         for (pair in myChanges) {
             if (allValid && myScanResult.isValid(pair.first)) {
                 validChanges.add(pair)
-            }
-            else {
+            } else {
                 allValid = false
             }
         }

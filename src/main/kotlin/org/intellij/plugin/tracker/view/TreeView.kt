@@ -243,134 +243,6 @@ class TreeView : JPanel(BorderLayout()) {
         }
     }
 
-//    /**
-//     * Checks the situation of checkboxes and makes required updates
-//     */
-//    private fun checkCheckBoxes(selPath: TreePath) {
-//        /**
-//         * if the clicked node is one of our link's node
-//         * call the relevant methods and make it checked/unchecked
-//         * and add it to the [checkedPaths] and/or [acceptedChangeList]
-//         */
-//        if (nodesCheckingState.keys.contains(selPath)) {
-//            val data = nodesCheckingState[selPath]
-//            if (!data!!.isChecked) {
-//                when (selPath.pathCount) {
-//                    // case for the first level parent node
-//                    2 -> {
-//                        for (node in nodesCheckingState) {
-//                            if (!node.value.isChecked) {
-////                                if(node.key.pathCount == 5 && checkBoxHelper.getSiblings(selPath).size > 0) {
-////                                    if(checkBoxHelper.notSiblingChecked(selPath)) {
-////                                        node.value.isChecked = true
-////                                        checkedPaths.add(node.key)
-////                                        val newPath = node.key.lastPathComponent.toString()
-////                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-////                                    }
-////                                } else {
-//                                    node.value.isChecked = true
-//                                    checkedPaths.add(node.key)
-//                                    if (node.key.pathCount == 5) {
-//                                        val newPath = node.key.lastPathComponent.toString()
-//                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-//                                    }
-////                                }
-//                            }
-//                        }
-//                    }
-//                    // case for second level nodes
-//                    3 -> {
-//                        for (node in nodesCheckingState) {
-//                            if (!node.value.isChecked && node.key.toString()
-//                                    .contains(selPath.toString().replace("]", ""))
-//                            ) {
-////                                if(node.key.pathCount == 5 && checkBoxHelper.getSiblings(selPath).size > 0) {
-////                                    if(checkBoxHelper.notSiblingChecked(selPath)) {
-////                                        node.value.isChecked = true
-////                                        checkedPaths.add(node.key)
-////                                        val newPath = node.key.lastPathComponent.toString()
-////                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-////                                    }
-////                                } else {
-//                                    node.value.isChecked = true
-//                                    checkedPaths.add(node.key)
-//                                    if (node.key.pathCount == 5) {
-//                                        val newPath = node.key.lastPathComponent.toString()
-//                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-//                                    }
-////                                }
-//                            }
-//                        }
-//                    }
-//                    // case for the fourth level nodes
-//                    else -> {
-////                        if(checkBoxHelper.getSiblings(selPath).size>0) {
-////                            if(checkBoxHelper.notSiblingChecked(selPath)) {
-////                                data.isChecked = true
-////                                checkedPaths.add(selPath)
-////                                val newPath = selPath.lastPathComponent.toString()
-////                                checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-////                            }
-////                        } else {
-////                            println("adding $selPath to accepted change list $acceptedChangeList ")
-//                            data.isChecked = true
-//                            checkedPaths.add(selPath)
-//                            val newPath = selPath.lastPathComponent.toString()
-//                            checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-////                            println("added $acceptedChangeList")
-////                        }
-//                    }
-//                }
-//            } else {
-//                when (selPath.pathCount) {
-//                    // case of the first level parent node
-//                    2 -> {
-//                        for (node in nodesCheckingState) {
-//                            if (node.value.isChecked) {
-//                                node.value.isChecked = false
-//                                checkedPaths.remove(node.key)
-//                                if (node.key.pathCount == 5) {
-//                                    val newPath = node.key.lastPathComponent.toString()
-//                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-//                                }
-//                            }
-//                        }
-//                    }
-//                    // case for second level nodes
-//                    3 -> {
-//                        for (node in nodesCheckingState) {
-//                            if (node.value.isChecked && node.key.toString()
-//                                    .contains(selPath.toString().replace("]", ""))
-//                            ) {
-//                                node.value.isChecked = false
-//                                checkedPaths.remove(node.key)
-//                                if (node.key.pathCount == 5) {
-//                                    val newPath = selPath.lastPathComponent.toString()
-//                                    checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-//                                }
-//                            }
-//                        }
-//                    }
-//                    // case for the fourth level nodes
-//                    else -> {
-//                        data.isChecked = false
-//                        checkedPaths.remove(selPath)
-//                        val newPath = selPath.lastPathComponent.toString()
-//                        checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, newPath)
-//                    }
-//                }
-//            }
-//            // call @checkChildren method to make parents/children of the respective node selected/unselected
-//            checkBoxHelper.checkChildren()
-//            println("nodes checking state $nodesCheckingState")
-//            println("checked paths $checkedPaths")
-//            println("accepted are: ")
-//            for(c in acceptedChangeList) {
-//                println(c.first.linkInfo.linkPath)
-//            }
-//        }
-//    }
-
     /**
      * Checks the situation of checkboxes and makes required updates
      */
@@ -393,8 +265,8 @@ class TreeView : JPanel(BorderLayout()) {
 //                                if (node.key.pathCount == 5) {
 //                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
 //                                }
-                                if(checkBoxHelper.getSiblings(node.key).size>0 && node.key.pathCount == 5) {
-                                    if(checkBoxHelper.notSiblingChecked(node.key)) {
+                                if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
+                                    if (checkBoxHelper.notSiblingChecked(node.key)) {
                                         node.value.isChecked = true
                                         checkedPaths.add(node.key)
                                         checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
@@ -420,8 +292,8 @@ class TreeView : JPanel(BorderLayout()) {
 //                                if (node.key.pathCount == 5) {
 //                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
 //                                }
-                                if(checkBoxHelper.getSiblings(node.key).size>0 && node.key.pathCount == 5) {
-                                    if(checkBoxHelper.notSiblingChecked(node.key)) {
+                                if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
+                                    if (checkBoxHelper.notSiblingChecked(node.key)) {
                                         node.value.isChecked = true
                                         checkedPaths.add(node.key)
                                         checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
@@ -438,8 +310,8 @@ class TreeView : JPanel(BorderLayout()) {
                     }
                     // case for the fourth level nodes
                     else -> {
-                        if(checkBoxHelper.getSiblings(selPath).size>0) {
-                            if(checkBoxHelper.notSiblingChecked(selPath)) {
+                        if (checkBoxHelper.getSiblings(selPath).size > 0) {
+                            if (checkBoxHelper.notSiblingChecked(selPath)) {
                                 data.isChecked = true
                                 checkedPaths.add(selPath)
                                 checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
@@ -494,8 +366,6 @@ class TreeView : JPanel(BorderLayout()) {
             println("accepted $acceptedChangeList")
         }
     }
-
-
 
     /**
      * Constructor of class
