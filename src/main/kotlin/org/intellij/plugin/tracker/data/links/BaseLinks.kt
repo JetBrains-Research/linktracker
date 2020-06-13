@@ -104,7 +104,13 @@ abstract class RelativeLink<in T : Change>(
         get() = linkInfo.linkPath
 
     val relativePath: String
-        get() = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+        get() {
+            var path = linkInfo.linkPath
+            if (path.contains("%20")) {
+                path = path.replaceFirst("%20", " ")
+            }
+            return checkRelativeLink(path, linkInfo.proveniencePath)
+        }
 
     /**
      * Checks whether the markdown file in which this link is located has been moved

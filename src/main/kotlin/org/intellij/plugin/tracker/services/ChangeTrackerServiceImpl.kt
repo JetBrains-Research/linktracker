@@ -28,6 +28,7 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -124,13 +125,16 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val similarityThreshold: Int = similarityThresholdSettings.directorySimilarity
 
-        val linkPath: String = link.linkInfo.linkPath
+        val linkPath: String = link.path
+
         val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
+
         if (currentContents == null || currentContents) {
             return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
 
-        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
+        val startCommit: String = gitOperationManager
+            .getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
@@ -187,7 +191,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     ): Change {
         // if we cannot get the start commit, return
         val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
-                ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+            ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
@@ -242,7 +246,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     ): Change {
         // if we cannot get the start commit, throw an exception
         val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
-                ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+            ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
@@ -413,11 +417,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 }
             }
         }
-
         val maxValue: Int = countMap.maxBy { it.value }?.value ?: return null
         val maxPair =
             countMap.filter { entry -> entry.value == maxValue }.maxBy { it.key.length }
-        return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
+        return Pair(maxPair!!.key.removeSuffix("/"), (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
     private fun getDiffOutput(
