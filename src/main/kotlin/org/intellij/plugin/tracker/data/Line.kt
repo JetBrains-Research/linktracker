@@ -20,4 +20,6 @@ data class Line(
      * A list of context lines of this line
      */
     var contextLines: MutableList<Line>? = null
-)
+) {
+    override fun toString(): String = "($lineNumber, $content)"
+}
