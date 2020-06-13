@@ -23,7 +23,7 @@ import org.intellij.plugin.tracker.utils.LinkElementImpl
  * In order to create tests with a new project instance per test
  * it is necessary to create a different instance of this class for each test case.
  */
-class ChangeTrackerServiceTest : GitSingleRepoTest() {
+class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
     private lateinit var changeTracker: ChangeTrackerServiceImpl
     private lateinit var defaultLink: Link

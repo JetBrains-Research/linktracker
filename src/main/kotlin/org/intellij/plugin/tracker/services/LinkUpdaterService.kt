@@ -65,26 +65,21 @@ class LinkUpdaterService(val project: Project) {
     private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
         // if the change comes from the working tree, do not update the link
         // let the user do it via the UI!
-        if (change.hasWorkingTreeChanges()) return false
-        if (change.requiresUpdate || change.afterPath.any { path -> link.markdownFileMoved(path) }) {
-            var afterPath: String? = null
-            if (link is RelativeLink<*>) {
-                val castLink: RelativeLink<Change> = link as RelativeLink<Change>
-                afterPath = castLink.updateLink(change, newCommit)
-            } else if (link is WebLink<*>) {
-                val castLink: WebLink<Change> = link as WebLink<Change>
-                afterPath = castLink.updateLink(change, newCommit)
-            }
-
-            // calculated updated link is null -> something wrong must have happened, return false
-            if (afterPath == null) return false
-
-            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
-            element.replace(newElement)
-            return true
+        var afterPath: String? = null
+        if (link is RelativeLink<*>) {
+            val castLink: RelativeLink<Change> = link as RelativeLink<Change>
+            afterPath = castLink.updateLink(change, newCommit)
+        } else if (link is WebLink<*>) {
+            val castLink: WebLink<Change> = link as WebLink<Change>
+            afterPath = castLink.updateLink(change, newCommit)
         }
-        // only change changes of type MOVED
-        return false
+
+        // calculated updated link is null -> something wrong must have happened, return false
+        if (afterPath == null) return false
+
+        val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
+        element.replace(newElement)
+        return true
     }
 
     /**
