@@ -44,8 +44,7 @@ class LinkUpdaterService(val project: Project) {
         for (triple in listWithElements) {
             try {
                 when {
-                    triple.third == null -> failed.add(triple.first)
-                    updateLink(triple.first, triple.second, triple.third!!, newCommit) -> updated.add(triple.first)
+                    updateLink(triple.first, triple.second, triple.third, newCommit) -> updated.add(triple.first)
                     else -> failed.add(triple.first)
                 }
             } catch (e: NotImplementedError) {
@@ -94,7 +93,7 @@ class LinkUpdaterService(val project: Project) {
      * @return a List of Triple<Link, FileChange, PsiElement>
      */
     private fun getLinkElements(list: MutableCollection<Pair<Link, Change>>):
-            MutableCollection<Triple<Link, Change, LinkElement?>> {
+            MutableCollection<Triple<Link, Change, LinkElement>> {
         return list.map { pair -> Triple(pair.first, pair.second, pair.first.linkInfo.linkElement) }.toMutableList()
     }
 }
