@@ -28,7 +28,6 @@ class TreePopup(
             for ((counter, information) in myInfo.withIndex()) {
                 if (information[0].toString() == myName && information[1].toString() == path && information[2].toString() == line) {
                     val pair = changes[counter]
-                    println(pair.first.linkInfo.linkPath + " and " + pair.second)
                     updateManager.updateLinks(mutableListOf(pair), myProject, myCommitSHA)
                     updateManager.removeUpdatedLinks(myScanResult.myLinkChanges, mutableListOf(pair), myProject)
                 }
