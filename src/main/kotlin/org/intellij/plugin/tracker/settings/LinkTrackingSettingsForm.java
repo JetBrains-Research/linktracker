@@ -7,6 +7,11 @@ import com.intellij.uiDesigner.core.Spacer;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * This class is associated with the form that displays the main settings page of the plugin
+ *
+ * It allows setting certain similarity thresholds for various elements being referenced by links.
+ */
 public class LinkTrackingSettingsForm {
     private JPanel mainPanel;
     private JSlider fileSimilaritySlider;
@@ -17,21 +22,35 @@ public class LinkTrackingSettingsForm {
     private JLabel lineSimilarityLabel;
     private JSlider lineSimilaritySlider;
 
+    /**
+     * Initializes the UI, returning the main panel object. But first, it initializes the slider values.
+     */
     public JComponent getComponent() {
         initializeSliderValues(SimilarityThresholdSettings.Companion.getCurrentSimilarityThresholdSettings());
         return mainPanel;
     }
 
+    /**
+     * Initializes the sliders' values to the values that have been previously saved
+     *
+     * If no values saved are found, then use the default values.
+     */
     private void initializeSliderValues(SimilarityThresholdSettings similarityThresholdSettings) {
         fileSimilaritySlider.setValue(similarityThresholdSettings.getFileSimilarity());
         directorySimilaritySlider.setValue(similarityThresholdSettings.getDirectorySimilarity());
         lineSimilaritySlider.setValue(similarityThresholdSettings.getLineSimilarity());
     }
 
+    /**
+     * Resets the slider values to the similarity threshold values that have been previously saved
+     */
     public void reset() {
         initializeSliderValues(SimilarityThresholdSettings.Companion.getCurrentSimilarityThresholdSettings());
     }
 
+    /**
+     * Get a SimilarityThresholdSettings object based on the values currently present in the settings page.
+     */
     public SimilarityThresholdSettings getSimilarityThresholdSettings() {
         return new SimilarityThresholdSettings(
                 fileSimilaritySlider.getValue(),

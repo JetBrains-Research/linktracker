@@ -14,21 +14,30 @@ sourceCompatibility = 11
 
 repositories {
   mavenCentral()
+  jcenter()
+  maven { url "https://www.jetbrains.com/intellij-repository/releases" }
+  maven { url "https://www.jetbrains.com/intellij-repository/snapshots" }
+  maven { url "https://jetbrains.bintray.com/intellij-third-party-dependencies" }
+  maven { url "https://www.myget.org/F/rd-snapshots/maven/" }
+  maven { url "$projectDir/libs" }
 }
 
 dependencies {
+  testImplementation 'com.jetbrains.intellij.platform:vcs-test-framework:201.7846.76'
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
   implementation 'org.kohsuke:github-api:1.111'
+  implementation 'info.debatty:java-string-similarity:1.0.1'
+
   implementation 'com.github.mpkorstanje:simmetrics-core:4.1.1'
   testImplementation "org.mockito:mockito-inline:2.13.0"
   testImplementation "org.mockito:mockito-core:3.0.0"
   testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
   testImplementation("io.mockk:mockk:1.10.0")
   testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
-  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+  testImplementation "junit:junit:4.11"
+  testRuntimeOnly "junit:junit:4.11"
+  testCompile("org.assertj:assertj-core:3.11.1")
 }
-
-
 
 sourceSets {
   main.java.srcDirs += 'src/main/kotlin'
@@ -52,6 +61,7 @@ runIde {
   jvmArgs '--add-exports', 'java.base/jdk.internal.vm=ALL-UNNAMED'
 }
 
+// Exclude test for functionality not yet ready
 test {
-  useJUnitPlatform()
+  exclude "**/TestMultipleLinks.class"
 }

@@ -1,0 +1,5 @@
+# Ktlint exclusion settings
+[*.{kt,kts}]
+
+# Disable import ordering rule incompatible with IntelliJ automatic import formatting
+disabled_rules=import-ordering

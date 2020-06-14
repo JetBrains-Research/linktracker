@@ -12,15 +12,26 @@ import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.data.links.WebLinkToLines
+import org.intellij.plugin.tracker.data.links.checkRelativeLink
 
+/**
+ * This method contains a static factory method that classifies a link path into a corresponding type,
+ * returning the link object that corresponds to the found type.
+ */
 class LinkFactory {
 
     companion object {
 
         /**
-         * Factory method which creates the link according to its link path type.
+         * Factory method which creates a link object according to its link path type.
+         *
+         * The method uses matchers having pre-determined patterns for each type of link, trying to match
+         * the link path to any of these matchers.
+         *
+         * In case of links to line(s), it also checks that the referenced line(s) are valid
+         * (e.g. they are not zero / negative, the starting line is not greater than the ending line etc.)
          */
-        fun createLink(linkInfo: LinkInfo, commitSHA: String? = null): Link {
+        fun createLink(linkInfo: LinkInfo): Link {
             // Web links matchers
             val webLinkToLinesMatcher: Matcher = LinkPatterns.WebLinkToLines.pattern.matcher(linkInfo.linkPath)
             val webLinkToLineMatcher: Matcher = LinkPatterns.WebLinkToLine.pattern.matcher(linkInfo.linkPath)
@@ -73,10 +84,10 @@ class LinkFactory {
                     return NotSupportedLink(linkInfo = linkInfo, errorMessage = "Referenced line cannot be negative/zero")
                 }
                 else -> {
-                    // Ambiguous link: have to see whether it's a path to a file or directory
-                    // not the best way to check for file/directory: directories can also have . in their names
-                    // TODO: can be optimized
-                    if (linkInfo.linkPath.lastIndexOf(".") == -1) {
+                    // directories can also have . in their names
+                    // therefore checks their relative paths which do not contain .
+                    val relativePath = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+                    if (relativePath.lastIndexOf(".") == -1) {
                         return RelativeLinkToDirectory(linkInfo = linkInfo)
                     }
                     link = RelativeLinkToFile(linkInfo = linkInfo)

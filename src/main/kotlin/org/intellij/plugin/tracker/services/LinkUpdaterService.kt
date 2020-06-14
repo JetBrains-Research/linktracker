@@ -97,7 +97,6 @@ class LinkUpdaterService(val project: Project) {
             element.replace(newElement)
             return true
         }
-        // only change changes of type MOVED
         return false
     }
 
