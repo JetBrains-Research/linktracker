@@ -4,7 +4,18 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.core.LineTracker
-import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
+import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
+import org.intellij.plugin.tracker.data.LocalDirectoryNeverExistedException
+import org.intellij.plugin.tracker.data.InvalidFileChangeException
+import org.intellij.plugin.tracker.data.InvalidFileChangeTypeException
+import org.intellij.plugin.tracker.data.RemoteDirectoryNeverExistedException
+import org.intellij.plugin.tracker.data.UnableToFetchLocalDirectoryChangesException
+import org.intellij.plugin.tracker.data.UnableToFetchRemoteDirectoryChangesException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -16,7 +27,12 @@ import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.kohsuke.github.*
+import org.kohsuke.github.GHCommit
+import org.kohsuke.github.GHCommitQueryBuilder
+import org.kohsuke.github.GHRepository
+import org.kohsuke.github.GitHub
+import org.kohsuke.github.GitHubBuilder
+import org.kohsuke.github.PagedIterable
 import java.io.File
 import java.io.IOException
 

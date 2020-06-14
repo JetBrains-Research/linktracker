@@ -11,7 +11,6 @@ import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Pattern
 
-
 /**
  * Data class that corresponds to a web link to directory
  */
@@ -78,7 +77,6 @@ data class WebLinkToDirectory(
         return copy(linkInfo = linkInfoCopy)
     }
 }
-
 
 /**
  * Data class that corresponds to a web link to file
@@ -155,7 +153,6 @@ data class WebLinkToFile(
         return copy(linkInfo = linkInfoCopy)
     }
 }
-
 
 /**
  * Data class that corresponds to a relative link to line
@@ -237,7 +234,6 @@ data class WebLinkToLine(
         return copy(linkInfo = linkInfoCopy)
     }
 }
-
 
 /**
  * Data class that corresponds to a relative link to lines

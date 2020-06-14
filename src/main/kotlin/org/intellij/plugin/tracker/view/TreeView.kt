@@ -260,11 +260,6 @@ class TreeView : JPanel(BorderLayout()) {
                     2 -> {
                         for (node in nodesCheckingState) {
                             if (!node.value.isChecked) {
-//                                node.value.isChecked = true
-//                                checkedPaths.add(node.key)
-//                                if (node.key.pathCount == 5) {
-//                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
-//                                }
                                 if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
                                     if (checkBoxHelper.notSiblingChecked(node.key)) {
                                         node.value.isChecked = true
@@ -287,11 +282,6 @@ class TreeView : JPanel(BorderLayout()) {
                             if (!node.value.isChecked && node.key.toString()
                                     .contains(selPath.toString().replace("]", ""))
                             ) {
-//                                node.value.isChecked = true
-//                                checkedPaths.add(node.key)
-//                                if (node.key.pathCount == 5) {
-//                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
-//                                }
                                 if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
                                     if (checkBoxHelper.notSiblingChecked(node.key)) {
                                         node.value.isChecked = true

@@ -738,8 +738,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.afterPathString, "mydirectory/file.txt")
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
     }
-
-
+    
     fun `test multiple lines fully moved with structure changes with uncommitted file and file deleted`() {
         val link = createDummyLinkToLines("file.md", "file.md", "file.txt#L1-L5")
 

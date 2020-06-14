@@ -10,7 +10,6 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 
-
 /**
  * An enum class for web link reference types
  */
@@ -186,7 +185,6 @@ abstract class WebLink<in T : Change>(
     val referencingName: String
         get() = matcher.group(9) ?: matcher.group(11)
 
-
     /**
      * Checks whether this web link is a permalink
      */
@@ -259,7 +257,6 @@ data class NotSupportedLink(
 
     override val path: String
         get() = linkInfo.linkPath
-
 
     override fun copyWithAfterPath(link: Link, afterPath: String): NotSupportedLink {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)

@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.core
 
-import com.google.common.collect.HashMultiset
 import info.debatty.java.stringsimilarity.Cosine
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -11,7 +10,6 @@ import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.links.Link
-import org.simmetrics.metrics.CosineSimilarity
 import org.simmetrics.metrics.Levenshtein
 
 class LineTracker {
@@ -345,7 +343,7 @@ class LineTracker {
                 // initialize a hash multiset containing the context lines for the deleted line
                 // and a hash multiset for the context lines of the currently inspected added line
                 var contextLinesFirst = ""
-                var contextLinesSecond  = ""
+                var contextLinesSecond = ""
 
                 if (deletedLine.contextLines != null)
                     for (el: Line in deletedLine.contextLines!!) contextLinesFirst += el.content
@@ -356,7 +354,7 @@ class LineTracker {
                 // and the context lines of the currently inspected added line
                 val scoreContext: Float = 1 - Cosine().distance(contextLinesFirst, contextLinesSecond).toFloat()
 
-                //1 - CosineSimilarity<String>().compare(multiSet1, multiSet2)
+                // 1 - CosineSimilarity<String>().compare(multiSet1, multiSet2)
                 val score: Double = 0.6 * scoreContent + 0.4 * scoreContext
 
                 // if the overall score is best so far, save the details
