@@ -20,12 +20,25 @@ import org.kohsuke.github.*
 import java.io.File
 import java.io.IOException
 
+/**
+ * Implementation of ChangeTrackerService interface, adapted to work in IntelliJ IDEA environment
+ */
 class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
+    /**
+     * This property handles the execution of all git commands needed by this class
+     */
     private val gitOperationManager = GitOperationManager(project = project)
 
     /**
-     * Get change for a local file
+     * Get the change for a link to a file that corresponds to the currently open project in the IDE
+     *
+     * First, it checks whether the file referenced is un-tracked - if so, return
+     * Otherwise, it tries to fetch all the changes that have affected the file throughout git history
+     *
+     * If a new path is found, then try to see whether there is any working tree changes that would affect
+     * this new path. If there are changes, then use this new change as the final change.
+     * Otherwise, return the previous change.
      */
     override fun getLocalFileChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
         val workingTreeChange: CustomChange? = gitOperationManager.checkWorkingTreeChanges(link)
@@ -97,7 +110,20 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     }
 
     /**
-     * Get change for a local directory
+     * Get change that has affected a directory that is referenced by a link
+     *
+     * This method first tries to see whether the folder exists at the commit that is pointing to HEAD.
+     * If so, return a change that this directory is not changed.
+     *
+     * Otherwise, try to get the start commit of the line containing this link in the project. If it cannot be found,
+     * raise an appropriate exception.
+     * Then, the method tries to fetch the directory contents at this start commit. After that, using these contents (files),
+     * it will track each file individually throughout git history.
+     * The method then checks whether the size of the directory contents at start commit is equal to the size of
+     * the files found deleted + the files found to be moved. If so, it means that the directory has either been deleted/moved.
+     *
+     * In that case, if we can find a common sub-path in the moved files, and if the number of occurrences of this common sub-path
+     * exceeds a given threshold value, we can say that the directory has been moved. Otherwise, it is deleted.
      */
     override fun getLocalDirectoryChanges(link: Link): Change {
         val similarityThresholdSettings: SimilarityThresholdSettings =
@@ -197,27 +223,6 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             return LineTracker.trackLine(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
             throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
-        }
-    }
-
-    /**
-     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
-     * between the file at a commit and a path (before) and the file at another commit and path (after)
-     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
-     */
-    private fun getDiffOutputs(fileHistoryList: List<FileHistory>, diffOutputList: MutableList<DiffOutput>) {
-        for (x: Int in 0 until fileHistoryList.size - 1) {
-            val beforeCommitSHA: String = fileHistoryList[x].revision
-            val beforePath: String = fileHistoryList[x].path
-
-            val afterCommitSHA: String = fileHistoryList[x + 1].revision
-            val afterPath: String = fileHistoryList[x + 1].path
-
-            val output: DiffOutput? =
-                DiffOutput.getDiffOutput(gitOperationManager, beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
-            if (output != null) {
-                diffOutputList.add(output)
-            }
         }
     }
 
@@ -379,19 +384,59 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         return Pair(maxPair!!.key.removeSuffix("/"), (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
+    /**
+     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
+     * between the file at a commit and a path (before) and the file at another commit and path (after)
+     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
+     */
+    private fun getDiffOutputs(fileHistoryList: List<FileHistory>, diffOutputList: MutableList<DiffOutput>) {
+        for (x: Int in 0 until fileHistoryList.size - 1) {
+            val beforeCommitSHA: String = fileHistoryList[x].revision
+            val beforePath: String = fileHistoryList[x].path
+
+            val afterCommitSHA: String = fileHistoryList[x + 1].revision
+            val afterPath: String = fileHistoryList[x + 1].path
+
+            val output: DiffOutput? =
+                DiffOutput.getDiffOutput(gitOperationManager, beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
+            if (output != null) {
+                diffOutputList.add(output)
+            }
+        }
+    }
+
+    /**
+     * Get the changes for (web) links to a file that does not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
+     */
     override fun getRemoteFileChanges(link: Link): Change {
         TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
+    /**
+     * Get the changes for (web) links to a single line that does not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
+     */
     override fun getRemoteLineChanges(link: Link): Change {
         TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
+    /**
+     * Get the changes for (web) links to multiple lines that do not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
+     */
     override fun getRemoteLinesChanges(link: Link): Change {
         TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {
+
+        /**
+         * Used by IDEA to get a reference to the single instance of this class.
+         */
         fun getInstance(project: Project): ChangeTrackerServiceImpl =
             ServiceManager.getService(
                 project,

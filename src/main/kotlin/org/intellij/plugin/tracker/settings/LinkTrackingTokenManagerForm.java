@@ -14,17 +14,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+/**
+ * This class is associated with the form that displays the token management settings page.
+ *
+ * It allows editing and saving tokens for given usernames and platforms.
+ */
 public class LinkTrackingTokenManagerForm {
     private JPanel mainPanel;
     private JTable mainTable;
     private JTextPane linksToCodeThatTextPane;
     private DefaultTableModel model = new DefaultTableModel();
 
+    /**
+     * Constants representing the column names
+     */
     private final String USERNAME_COLUMN = "Username";
     private final String TOKEN_COLUMN = "Token";
     private final String PLATFORM_COLUMN = "Platform";
 
-
+    /**
+     * Initializes the UI, by returning the main panel object.
+     */
     public JComponent getComponent() {
         return mainPanel;
     }
@@ -40,6 +50,10 @@ public class LinkTrackingTokenManagerForm {
         return list;
     }
 
+    /**
+     * Get a list of user info based on the credentials that are present in the token management
+     * settings page
+     */
     public List<UserInfo> getCurrentState() {
         List<UserInfo> list = new ArrayList<>();
         for (int i = 0; i < mainTable.getRowCount(); i++) {
@@ -52,6 +66,9 @@ public class LinkTrackingTokenManagerForm {
         return list;
     }
 
+    /**
+     * Updates a table with the previously saved state
+     */
     public void updateTable() {
         List<UserInfo> list = getSavedState();
         for (int i = 0; i < mainTable.getRowCount(); i++) {
@@ -67,6 +84,9 @@ public class LinkTrackingTokenManagerForm {
         }
     }
 
+    /**
+     * Initializes the table based on the values that were fetched from the project previously
+     */
     public void initializeTable(List<Pair<String, String>> list) {
         model.addColumn(USERNAME_COLUMN);
         model.addColumn(TOKEN_COLUMN);
