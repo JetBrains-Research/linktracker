@@ -4,18 +4,7 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.core.LineTracker
-import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
-import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
-import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
-import org.intellij.plugin.tracker.data.FileChangeGatheringException
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
-import org.intellij.plugin.tracker.data.InvalidFileChangeException
-import org.intellij.plugin.tracker.data.InvalidFileChangeTypeException
-import org.intellij.plugin.tracker.data.LocalDirectoryNeverExistedException
-import org.intellij.plugin.tracker.data.RemoteDirectoryNeverExistedException
-import org.intellij.plugin.tracker.data.UnableToFetchLocalDirectoryChangesException
-import org.intellij.plugin.tracker.data.UnableToFetchRemoteDirectoryChangesException
+import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -27,12 +16,7 @@ import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.kohsuke.github.GHCommit
-import org.kohsuke.github.GHCommitQueryBuilder
-import org.kohsuke.github.GHRepository
-import org.kohsuke.github.GitHub
-import org.kohsuke.github.GitHubBuilder
-import org.kohsuke.github.PagedIterable
+import org.kohsuke.github.*
 import java.io.File
 import java.io.IOException
 
@@ -115,7 +99,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
     /**
      * Get change for a local directory
      */
-    override fun getLocalDirectoryChanges(link: Link): Change {
+    override fun getLocalDirectoryChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
         val similarityThresholdSettings: SimilarityThresholdSettings =
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val similarityThreshold: Int = similarityThresholdSettings.directorySimilarity
@@ -129,7 +113,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         }
 
         val startCommit: String = gitOperationManager
-            .getStartCommit(link, checkSurroundings = true) ?: throw CommitSHAIsNullDirectoryException()
+            .getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName) ?: throw CommitSHAIsNullDirectoryException()
 
         val directoryContents: MutableList<String>? =
             gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
@@ -184,9 +168,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         branchOrTagName: String?,
         specificCommit: String?
     ): Change {
-        // if we cannot get the start commit, return
-        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
-            ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        val startCommit: String = specificCommit
+            ?: (// if we cannot get the start commit, throw an exception
+                    gitOperationManager.getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName)
+                        ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, "")))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
@@ -245,9 +230,10 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         branchOrTagName: String?,
         specificCommit: String?
     ): Change {
-        // if we cannot get the start commit, throw an exception
-        val startCommit: String = gitOperationManager.getStartCommit(link, checkSurroundings = true)
-            ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        val startCommit: String = specificCommit
+            ?: (// if we cannot get the start commit, throw an exception
+                    gitOperationManager.getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName)
+                        ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, "")))
 
         try {
             val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange

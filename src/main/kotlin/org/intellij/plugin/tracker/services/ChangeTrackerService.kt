@@ -11,7 +11,11 @@ interface ChangeTrackerService {
         specificCommit: String? = null
     ): Change
 
-    fun getLocalDirectoryChanges(link: Link): Change
+    fun getLocalDirectoryChanges(
+        link: Link,
+        branchOrTagName: String? = null,
+        specificCommit: String? = null
+    ): Change
 
     fun getLocalLineChanges(
         link: Link,
