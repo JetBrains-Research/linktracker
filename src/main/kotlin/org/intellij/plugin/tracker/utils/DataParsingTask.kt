@@ -79,10 +79,7 @@ class DataParsingTask(
             }
 
             try {
-                println("LINK IS: $link")
                 val change = link.visit(myChangeTrackerService)
-                println("CHANGE IS: $change")
-                println("AFTER PATH IS: ${change.afterPath}")
                 myLinksAndChangesList.add(Pair(link, change))
                 // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
