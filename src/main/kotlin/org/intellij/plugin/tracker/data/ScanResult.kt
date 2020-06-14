@@ -14,7 +14,7 @@ class ScanResult(
     /**
      * The list of link changes.
      */
-    var myLinkChanges: MutableList<Pair<Link, Change>>,
+    val myLinkChanges: MutableList<Pair<Link, Change>>,
 
     /**
      * The project referred to by the class' instance.
