@@ -350,8 +350,8 @@ class TreeView : JPanel(BorderLayout()) {
                 }
             }
             // call @checkChildren method to make parents/children of the respective node selected/unselected
-            checkBoxHelper.checkParentChildren()
             checkBoxHelper.checkSubChildren()
+            checkBoxHelper.checkParentChildren()
             println("nodes checking state $nodesCheckingState")
             println("checked paths $checkedPaths")
             println("accepted $acceptedChangeList")
