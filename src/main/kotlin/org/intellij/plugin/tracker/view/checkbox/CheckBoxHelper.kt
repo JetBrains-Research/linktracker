@@ -5,6 +5,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.TreeView
 
@@ -139,10 +140,14 @@ class CheckBoxHelper {
      */
     fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            val afterPath = pair.second.afterPath[0]
-            val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
-            if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
-                TreeView.acceptedChangeList.add(pair)
+            for (afterPath in pair.second.afterPath) {
+                val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+                if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                    if (pair.second is LinesChange) {
+                        (pair.second as LinesChange).selectedAfterPath = afterPath
+                    }
+                    TreeView.acceptedChangeList.add(pair)
+                }
             }
         }
     }
@@ -152,10 +157,14 @@ class CheckBoxHelper {
      */
     fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            val afterPath = pair.second.afterPath[0]
-            val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
-            if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
-                TreeView.acceptedChangeList.remove(pair)
+            for (afterPath in pair.second.afterPath) {
+                val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+                if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                    if (pair.second is LinesChange) {
+                        (pair.second as LinesChange).selectedAfterPath = null
+                    }
+                    TreeView.acceptedChangeList.remove(pair)
+                }
             }
         }
     }
