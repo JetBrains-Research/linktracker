@@ -8,18 +8,14 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
-import kotlin.math.max
-import kotlin.math.min
-import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
-import org.intellij.plugin.tracker.data.OriginalLineContentsNotFoundException
-import org.intellij.plugin.tracker.data.OriginalLinesContentsNotFoundException
-import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
-import org.intellij.plugin.tracker.data.ReferencedPathNotFoundException
+import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import java.io.File
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Class that handles the logic of git operations
@@ -144,11 +140,16 @@ class GitOperationManager(private val project: Project) {
      * Runs git command `git rev-parse --short HEAD`
      */
     @Throws(VcsException::class)
-    fun getHeadCommitSHA(): String {
+    fun getHeadCommitSHA(branchOrTagName: String? = null): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("HEAD")
         val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
+        if (output.exitCode == 0) {
+            return output.output[0]
+        }
+        throw VcsException("Cannot get HEAD commit SHA")
     }
 
     /**
@@ -157,9 +158,16 @@ class GitOperationManager(private val project: Project) {
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
      */
-    fun getStartCommit(link: Link, checkSurroundings: Boolean = false, maxCommitsSurroundings: Int = 5): String? {
+    fun getStartCommit(
+        link: Link,
+        checkSurroundings: Boolean = false,
+        maxCommitsSurroundings: Int = 5,
+        branchOrTagName: String?
+    ): String? {
         val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
         if (outputLog.exitCode == 0) {
@@ -176,19 +184,21 @@ class GitOperationManager(private val project: Project) {
                 // go - maxCommitsSurroundings back and + maxCommitsSurroundings
                 // after the found commit.
                 if (checkSurroundings) {
-                    if (commitSHA != getFirstCommitSHA()) {
+                    if (commitSHA != getFirstCommitSHA(branchOrTagName = branchOrTagName)) {
                         val startCommit = getCommitsInRange(
                             until = commitSHA,
                             maxCommitsSurroundings = maxCommitsSurroundings,
-                            path = link.path
+                            path = link.path,
+                            branchOrTagName = branchOrTagName
                         )
                         if (startCommit != null) return startCommit
                     }
-                    if (commitSHA != getHeadCommitSHA()) {
+                    if (commitSHA != getHeadCommitSHA(branchOrTagName = branchOrTagName)) {
                         val startCommit = getCommitsInRange(
                             from = commitSHA,
                             maxCommitsSurroundings = maxCommitsSurroundings,
-                            path = link.path
+                            path = link.path,
+                            branchOrTagName = branchOrTagName
                         )
                         if (startCommit != null) return startCommit
                     }
@@ -202,12 +212,15 @@ class GitOperationManager(private val project: Project) {
         from: String? = null,
         until: String? = null,
         maxCommitsSurroundings: Int,
-        path: String
+        path: String,
+        branchOrTagName: String?
     ): String? {
         if (from == null && until == null || from != null && until != null) {
             throw VcsException("Illegal arguments")
         }
         val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (branchOrTagName != null)
+            gitLineHandlerLog.addParameters(branchOrTagName)
         if (from != null) {
             gitLineHandlerLog.addParameters("$from..", "--oneline")
         } else {
@@ -269,8 +282,10 @@ class GitOperationManager(private val project: Project) {
      * Runs git command `git rev-list --max-parents=0 HEAD`
      */
     @Throws(VcsException::class)
-    fun getFirstCommitSHA(): String {
+    fun getFirstCommitSHA(branchOrTagName: String? = null): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("--max-parents=0")
         gitLineHandler.addParameters("HEAD")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
@@ -338,7 +353,19 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
+        var output = outputLog.getOutputOrThrow()
+        if (output.isEmpty() && specificCommit != null) {
+            val gitLineHandler2 = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+            gitLineHandler2.addParameters(
+                "--name-status",
+                "--oneline",
+                "--find-renames=$similarityThreshold",
+                "--reverse",
+                "*${link.referencedFileName}"
+            )
+            output = git.runCommand(gitLineHandler2).getOutputOrThrow()
+        }
+        return processChangesForFile(link.path, output, specificCommit)
     }
 
     /**

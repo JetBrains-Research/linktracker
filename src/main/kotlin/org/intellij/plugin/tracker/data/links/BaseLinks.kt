@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import org.intellij.markdown.MarkdownElementTypes
 import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
@@ -10,6 +11,8 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkElement
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 
 /**
  * An enum class for web link reference types
@@ -318,14 +321,31 @@ data class LinkInfo(
     /**
      * Any link path prefix of the type '>' that accompanies the link path
      */
-    val linkPathSuffix: String? = null
+    val linkPathSuffix: String? = null,
+
+    /**
+     *
+     */
+    val inlineLink: Boolean = true
 ) {
 
     /**
      * Gets the format in which the link appears in the markdown files
      */
     fun getMarkDownSyntaxString(): String {
-        return "[$linkText]($linkPath)"
+        return when  {
+            linkElement.getNode()?.elementType == LINK_DESTINATION && inlineLink -> "[$linkText]($linkPath)"
+            linkElement.getNode()?.elementType == LINK_DESTINATION && !inlineLink -> "[$linkText]: $linkPath"
+            linkElement.getNode()?.elementType == AUTOLINK -> {
+                var retString: String = linkPath
+                if (linkPathPrefix != null)
+                    retString = linkPathPrefix + retString
+                if (linkPathSuffix != null)
+                    retString += linkPathSuffix
+                retString
+            }
+            else -> linkPath
+        }
     }
 
     /**

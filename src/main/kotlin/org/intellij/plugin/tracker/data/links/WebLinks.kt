@@ -54,10 +54,15 @@ data class WebLinkToDirectory(
      */
     override fun visit(visitor: ChangeTrackerService): Change {
         if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return visitor.getLocalDirectoryChanges(this)
-        }
-        if (platformName.contains("github")) {
-            return visitor.getRemoteDirectoryChanges(this)
+            return when (referenceType) {
+                WebLinkReferenceType.COMMIT -> visitor.getLocalDirectoryChanges(
+                    link = this,
+                    specificCommit = referencingName
+                )
+                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
+                    visitor.getLocalDirectoryChanges(link = this, branchOrTagName = referencingName)
+                else -> throw WebLinkReferenceTypeIsInvalidException()
+            }
         }
 
         throw NotImplementedError()
