@@ -48,7 +48,6 @@ class AcceptAction : AnAction() {
         if (allValid) {
             updateLinks(validChanges, myProject, commitSHA)
             removeUpdatedLinks(myScanResult.myLinkChanges, validChanges, myProject)
-            // LinkTrackerAction.run(myProject)
         } else {
             showRefreshDialog(myProject)
         }

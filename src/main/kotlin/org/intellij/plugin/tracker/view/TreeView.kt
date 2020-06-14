@@ -317,9 +317,6 @@ class TreeView : JPanel(BorderLayout()) {
             }
             // call @checkChildren method to make parents/children of the respective node selected/unselected
             checkBoxHelper.checkChildren()
-            for (a in acceptedChangeList) {
-                println(a.first.linkInfo.linkPath)
-            }
         }
     }
 
