@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data.diff
 
-import com.intellij.util.diff.Diff
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkPatterns
