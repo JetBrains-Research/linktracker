@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.intellij.plugin.tracker.utils.LinkElement
+
 
 /**
  * An enum class for web link reference types
@@ -186,6 +186,7 @@ abstract class WebLink<in T : Change>(
     val referencingName: String
         get() = matcher.group(9) ?: matcher.group(11)
 
+
     /**
      * Checks whether this web link is a permalink
      */
@@ -259,6 +260,7 @@ data class NotSupportedLink(
     override val path: String
         get() = linkInfo.linkPath
 
+
     override fun copyWithAfterPath(link: Link, afterPath: String): NotSupportedLink {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
@@ -296,9 +298,9 @@ data class LinkInfo(
     val foundAtLineNumber: Int,
 
     /**
-     * The link element which owns the PSI element of the link
+     * The text offset at which this link is found in the markdown file
      */
-    var linkElement: LinkElement,
+    val textOffset: Int,
 
     /**
      * The name of the file in which the link is located
@@ -341,5 +343,21 @@ data class LinkInfo(
         } catch (e: IllegalArgumentException) {
             null
         }
+    }
+
+    /**
+     * Gets the path of the markdown file in which the link is located
+     * without the name of the markdown file part.
+     */
+    private fun getMarkdownDirectoryPath(): String {
+        return proveniencePath.replace(fileName, "")
+    }
+
+    /**
+     * Get the path composed of the path of the markdown file in which the link is located
+     * (relative to the project root directory) plus the link path part of the link
+     */
+    fun getMarkdownDirectoryRelativeLinkPath(): String {
+        return getMarkdownDirectoryPath() + linkPath
     }
 }

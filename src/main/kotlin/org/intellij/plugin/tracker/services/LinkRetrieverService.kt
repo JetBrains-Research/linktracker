@@ -12,8 +12,6 @@ import com.intellij.psi.search.FileTypeIndex
 import com.intellij.psi.search.GlobalSearchScope
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes.GFM_AUTOLINK
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.utils.LinkElement
-import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.intellij.plugins.markdown.lang.MarkdownElementType
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
@@ -29,7 +27,7 @@ class LinkRetrieverService(private val project: Project?) {
     fun getLinks(linkInfoList: MutableList<LinkInfo>) {
         val currentProject = project
         val virtualFiles =
-            FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
+                FileTypeIndex.getFiles(MarkdownFileType.INSTANCE, GlobalSearchScope.projectScope(currentProject!!))
 
         val psiDocumentManager = PsiDocumentManager.getInstance(project!!)
 
@@ -45,26 +43,29 @@ class LinkRetrieverService(private val project: Project?) {
 
                     val linkText: String
                     val linkPath: String
+                    val textOffset: Int
                     val lineNumber: Int
-                    val linkElement: LinkElement
 
-                    if (element.javaClass == LeafPsiElement::class.java && (elemType === MarkdownElementType
-                            .platformType(GFM_AUTOLINK) && element.parent.node.elementType !== LINK_DESTINATION)) {
+                    if (element.javaClass == LeafPsiElement::class.java && (elemType === MarkdownElementType.platformType(
+                                    GFM_AUTOLINK
+                            ) &&
+                                    element.parent.node.elementType !== LINK_DESTINATION)
+                    ) {
                         linkText = element.node.text
-                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
-                        linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, linkElement, fileName, currentProject))
+                        textOffset = element.node.startOffset
+                        lineNumber = document.getLineNumber(textOffset) + 1
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject))
                     } else if (element.javaClass == MarkdownLinkDestinationImpl::class.java && elemType === LINK_DESTINATION) {
                         linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
                         linkPath = element.node.text
-                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
-                        linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, linkElement, fileName, currentProject))
+                        textOffset = element.node.startOffset
+                        lineNumber = document.getLineNumber(textOffset) + 1
+                        linkInfoList.add(LinkInfo(linkText, linkPath, proveniencePath, lineNumber, textOffset, fileName, currentProject))
                     } else if (element.javaClass == ASTWrapperPsiElement::class.java && elemType === AUTOLINK) {
                         linkText = element.node.text.replace("<", "").replace(">", "")
-                        lineNumber = document.getLineNumber(element.node.startOffset) + 1
-                        linkElement = LinkElementImpl(element)
-                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, linkElement, fileName, currentProject, "<", ">"))
+                        textOffset = element.node.startOffset
+                        lineNumber = document.getLineNumber(textOffset) + 1
+                        linkInfoList.add(LinkInfo(linkText, linkText, proveniencePath, lineNumber, textOffset, fileName, currentProject, "<", ">"))
                     }
                     super.visitElement(element)
                 }
@@ -77,6 +78,6 @@ class LinkRetrieverService(private val project: Project?) {
      */
     companion object {
         fun getInstance(project: Project): LinkRetrieverService =
-            ServiceManager.getService(project, LinkRetrieverService::class.java)
+                ServiceManager.getService(project, LinkRetrieverService::class.java)
     }
 }

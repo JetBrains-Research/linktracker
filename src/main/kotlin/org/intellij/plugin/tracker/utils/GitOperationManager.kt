@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.utils
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import git4idea.changes.GitChangeUtils
 import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitCommandResult
@@ -20,6 +21,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
 
 /**
  * Class that handles the logic of executing all git commands needed throughout the project
@@ -293,7 +295,7 @@ class GitOperationManager(private val project: Project) {
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
-        var change: String? = changeList.find { line -> line.split(" ".toRegex()).any { res -> res == linkPath } }
+        var change: String? = changeList.find { line -> line.split(" ".toRegex()).any { res -> res == linkPath }}
         if (change != null) {
             change = change.trim()
             when {
