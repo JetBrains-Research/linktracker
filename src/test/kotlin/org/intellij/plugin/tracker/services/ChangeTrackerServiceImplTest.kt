@@ -2,12 +2,14 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
+import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.git4idea.test.*
+import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 import java.io.File
 import kotlin.test.assertFailsWith
@@ -34,7 +36,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
                 linkText = "link",
                 project = project,
                 proveniencePath = "file.md",
-                textOffset = 7
+                linkElement = LinkElementImpl(mock())
             )
         )
     }
@@ -795,7 +797,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
                 linkText = "link",
                 project = project,
                 proveniencePath = proveniencePath,
-                textOffset = 7
+                linkElement = LinkElementImpl(mock())
             )
         )
     }
@@ -813,7 +815,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
                 linkText = "link",
                 project = project,
                 proveniencePath = proveniencePath,
-                textOffset = 7
+                linkElement = LinkElementImpl(mock())
             )
         )
     }
