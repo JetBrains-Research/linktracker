@@ -295,7 +295,7 @@ class GitOperationManager(private val project: Project) {
         val changeList: List<String> = changes.split("\n")
         changeList.forEach { line -> line.trim() }
 
-        var change: String? = changeList.find { line -> line.split(" ".toRegex()).any { res -> res == linkPath }}
+        var change: String? = changeList.find { line -> line.split(" ".toRegex()).any { res -> res == linkPath } }
         if (change != null) {
             change = change.trim()
             when {

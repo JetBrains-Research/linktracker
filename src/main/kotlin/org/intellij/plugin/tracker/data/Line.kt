@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data
 
-
 /**
  * A class that defines the characteristics of a line
  */

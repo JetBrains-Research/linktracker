@@ -2,18 +2,12 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.search.FilenameIndex
-import com.intellij.psi.search.GlobalSearchScope
-import com.intellij.psi.util.elementType
 import org.intellij.plugin.tracker.data.UpdateResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.WebLink
-import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
-import org.intellij.plugins.markdown.lang.MarkdownTokenTypes.GFM_AUTOLINK
+import org.intellij.plugin.tracker.utils.LinkElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
 
@@ -52,8 +46,7 @@ class LinkUpdaterService(val project: Project) {
         for (triple in listWithElements) {
             try {
                 when {
-                    triple.third == null -> failed.add(triple.first)
-                    updateLink(triple.first, triple.second, triple.third!!, newCommit) -> updated.add(triple.first)
+                    updateLink(triple.first, triple.second, triple.third, newCommit) -> updated.add(triple.first)
                     else -> failed.add(triple.first)
                 }
             } catch (e: NotImplementedError) {
@@ -108,39 +101,7 @@ class LinkUpdaterService(val project: Project) {
      * @return a List of Triple<Link, FileChange, PsiElement>
      */
     private fun getLinkElements(list: MutableCollection<Pair<Link, Change>>):
-            MutableCollection<Triple<Link, Change, PsiElement?>> {
-        return list.map { pair -> Triple(pair.first, pair.second, getLinkElement(pair.first)) }.toMutableList()
-    }
-
-    /**
-     * Gets the Psi element corresponding to the given Link object.
-     *
-     * @param link the Link object to search for.
-     * @return an instance of PsiElement, or null if none found.
-     */
-    private fun getLinkElement(link: Link): PsiElement? {
-        val fileRelativePath = link.linkInfo.proveniencePath
-        val relativePath =
-            if (fileRelativePath.startsWith("/")) fileRelativePath else "/$fileRelativePath"
-        val matchingFiles = FilenameIndex.getFilesByName(
-            project,
-            link.linkInfo.fileName,
-            GlobalSearchScope.projectScope(project)
-        )
-
-        val filteredFiles = matchingFiles.filter { file -> file.virtualFile.path.endsWith(relativePath) }
-        // Assume only one valid result
-        assert(filteredFiles.size == 1)
-        val psiFile: PsiFile = filteredFiles[0]
-
-        val parent: PsiElement? = psiFile.findElementAt(link.linkInfo.textOffset)?.parent
-        val child: PsiElement? = psiFile.findElementAt(link.linkInfo.textOffset)
-        return when (link) {
-            is WebLink<*> -> when {
-                parent.elementType == LINK_DESTINATION && child.elementType == GFM_AUTOLINK -> child
-                else -> parent
-            }
-            else -> child
-        }
+            MutableCollection<Triple<Link, Change, LinkElement>> {
+        return list.map { pair -> Triple(pair.first, pair.second, pair.first.linkInfo.linkElement) }.toMutableList()
     }
 }

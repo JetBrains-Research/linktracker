@@ -392,7 +392,7 @@ class LineTracker {
                 // initialize a hash multiset containing the context lines for the deleted line
                 // and a hash multiset for the context lines of the currently inspected added line
                 var contextLinesFirst = ""
-                var contextLinesSecond  = ""
+                var contextLinesSecond = ""
 
                 if (deletedLine.contextLines != null)
                     for (el: Line in deletedLine.contextLines!!) contextLinesFirst += el.content
@@ -403,7 +403,7 @@ class LineTracker {
                 // and the context lines of the currently inspected added line
                 val scoreContext: Float = 1 - Cosine().distance(contextLinesFirst, contextLinesSecond).toFloat()
 
-                //1 - CosineSimilarity<String>().compare(multiSet1, multiSet2)
+                // 1 - CosineSimilarity<String>().compare(multiSet1, multiSet2)
                 val score: Double = 0.6 * scoreContent + 0.4 * scoreContext
 
                 // if the overall score is best so far, save the details
