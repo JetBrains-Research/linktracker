@@ -83,8 +83,8 @@ class DataParsingTask(
                 val change = link.visit(myChangeTrackerService)
                 println("CHANGE IS: $change")
                 println("AFTER PATH IS: ${change.afterPath}")
-                // temporary solution to ignoring not implemented stuff
                 myLinksAndChangesList.add(Pair(link, change))
+                // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {

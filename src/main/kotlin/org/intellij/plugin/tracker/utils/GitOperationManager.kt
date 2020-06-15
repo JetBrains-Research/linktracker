@@ -612,8 +612,7 @@ class GitOperationManager(private val project: Project) {
             for (path in paths) {
                 try {
                     if (path.linkInfo.fileName == link.linkInfo.fileName &&
-                        path.linkInfo.proveniencePath == link.linkInfo.proveniencePath &&
-                        path.linkInfo.foundAtLineNumber == link.linkInfo.foundAtLineNumber) {
+                        path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
                         return CustomChange(CustomChangeType.MOVED, path.path)
                     }
                 } catch (e: Exception) {

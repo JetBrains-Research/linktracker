@@ -94,8 +94,7 @@ class LinkUpdaterService(val project: Project) {
         var removeList: MutableList<RelativeLink<*>> = mutableListOf()
         for (path in historyService.stateObject.pathsList) {
             if (path.path == afterPath && link.linkInfo.fileName == path.linkInfo.fileName &&
-                link.linkInfo.proveniencePath == path.linkInfo.proveniencePath &&
-                link.linkInfo.foundAtLineNumber == path.linkInfo.foundAtLineNumber) {
+                link.linkInfo.proveniencePath == path.linkInfo.proveniencePath) {
                 removeList.add(path)
             }
         }
