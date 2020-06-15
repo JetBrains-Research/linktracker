@@ -1,5 +1,7 @@
 package org.intellij.plugin.tracker.services
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -70,34 +72,36 @@ class LinkUpdaterService(val project: Project) {
      */
     @Suppress("UNCHECKED_CAST")
     private fun updateLink(link: Link, change: Change, element: PsiElement, newCommit: String?): Boolean {
-        // if the change comes from the working tree, do not update the link
-        // let the user do it via the UI!
-        if (change.hasWorkingTreeChanges()) {
-            println("change update is $change")
-            var afterPath: String = change.afterPath[0]
 
-            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
-            element.replace(newElement)
-            return true
+        val historyService: HistoryService = HistoryService.getInstance(project)
+
+        if (change.hasWorkingTreeChanges() && link is RelativeLink<*>) historyService.savePath(link)
+
+        var afterPath: String? = null
+        if (link is RelativeLink<*>) {
+            val castLink: RelativeLink<Change> = link as RelativeLink<Change>
+            afterPath = castLink.updateLink(change, newCommit)
+        } else if (link is WebLink<*>) {
+            val castLink: WebLink<Change> = link as WebLink<Change>
+            afterPath = castLink.updateLink(change, newCommit)
         }
-        if (change.requiresUpdate || change.afterPath.any { path -> link.markdownFileMoved(path) }) {
-            var afterPath: String? = null
-            if (link is RelativeLink<*>) {
-                val castLink: RelativeLink<Change> = link as RelativeLink<Change>
-                afterPath = castLink.updateLink(change, newCommit)
-            } else if (link is WebLink<*>) {
-                val castLink: WebLink<Change> = link as WebLink<Change>
-                afterPath = castLink.updateLink(change, newCommit)
+
+        // calculated updated link is null -> something wrong must have happened, return false
+        if (afterPath == null) return false
+
+        var removeList: MutableList<RelativeLink<*>> = mutableListOf()
+        for (path in historyService.stateObject.pathsList) {
+            if (path.path == afterPath && link.linkInfo.fileName == path.linkInfo.fileName
+                && link.linkInfo.proveniencePath == path.linkInfo.proveniencePath
+                && link.linkInfo.foundAtLineNumber == path.linkInfo.foundAtLineNumber) {
+                removeList.add(path)
             }
-
-            // calculated updated link is null -> something wrong must have happened, return false
-            if (afterPath == null) return false
-
-            val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
-            element.replace(newElement)
-            return true
         }
-        return false
+        for (path in removeList) historyService.stateObject.pathsList.remove(path)
+
+        val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
+        element.replace(newElement)
+        return true
     }
 
     /**

@@ -83,12 +83,7 @@ class DataParsingTask(
                 val change = link.visit(myChangeTrackerService)
                 println("CHANGE IS: $change")
                 println("AFTER PATH IS: ${change.afterPath}")
-                if (change.toString().contains("MOVED") && link.linkInfo.linkPath == change.afterPath[0]) {
-                    myLinksAndChangesList.add(Pair(link, CustomChange(CustomChangeType.MODIFIED, "", null)))
-                } else {
-                    myLinksAndChangesList.add(Pair(link, change))
-                }
-                // temporary solution to ignoring not implemented stuff
+                myLinksAndChangesList.add(Pair(link, change))
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {

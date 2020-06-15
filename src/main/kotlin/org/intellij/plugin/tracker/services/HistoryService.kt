@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.RunResult
+import org.intellij.plugin.tracker.data.links.RelativeLink
 
 /**
  * @author Tommaso Brandirali
@@ -30,6 +31,8 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
         // The listed results are ordered from most recent to last recent.
         // New results are pushed to the front of the list.
         var resultsList: ArrayList<RunResult> = ArrayList(),
+
+        var pathsList: MutableList<RelativeLink<*>> = mutableListOf(),
 
         var commitSHA: String? = null
     )
@@ -77,5 +80,9 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
      */
     fun saveResults(results: RunResult) {
         state.resultsList.add(0, results)
+    }
+
+    fun savePath(link: RelativeLink<*>) {
+        stateObject.pathsList.add(link)
     }
 }

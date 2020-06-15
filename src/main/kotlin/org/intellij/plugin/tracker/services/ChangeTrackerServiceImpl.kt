@@ -12,6 +12,7 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -23,7 +24,7 @@ import java.io.IOException
 /**
  * Implementation of ChangeTrackerService interface, adapted to work in IntelliJ IDEA environment
  */
-class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
+class ChangeTrackerServiceImpl(val project: Project) : ChangeTrackerService {
 
     /**
      * This property handles the execution of all git commands needed by this class
@@ -48,6 +49,13 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
+        }
+
+        if (workingTreeChange != null && link.path == workingTreeChange.afterPathString && (workingTreeChange.
+            customChangeType == CustomChangeType.MOVED || workingTreeChange.customChangeType == CustomChangeType.DELETED)) {
+            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
+            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
+            return CustomChange(CustomChangeType.ADDED, workingTreeChange.afterPathString)
         }
 
         val similarityThresholdSettings: SimilarityThresholdSettings =

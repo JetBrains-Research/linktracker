@@ -20,6 +20,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.HistoryService
 
 /**
  * Class that handles the logic of executing all git commands needed throughout the project
@@ -389,7 +390,7 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
+        return processChangesForFile(link, link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 
     /**
@@ -486,6 +487,7 @@ class GitOperationManager(private val project: Project) {
      * If the output of the git command that is processed is the empty string, then that file never existed in git history.
      */
     private fun processChangesForFile(
+        link: Link,
         linkPath: String,
         changes: String,
         specificCommit: String?
@@ -603,10 +605,19 @@ class GitOperationManager(private val project: Project) {
                     return linkChange
                 }
             }
-            val c = changeList.last()
-            val cs = c.split("\t")
-            if (cs[0].contains("M")) {
-                return CustomChange(CustomChangeType.MOVED, afterPathString = cs[1])
+
+            val historyService = HistoryService.getInstance(project)
+            val paths = historyService.stateObject.pathsList
+            for (path in paths) {
+                try {
+                    if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                        path.linkInfo.proveniencePath == link.linkInfo.proveniencePath &&
+                        path.linkInfo.foundAtLineNumber == link.linkInfo.foundAtLineNumber) {
+                        return CustomChange(CustomChangeType.MOVED, path.path)
+                    }
+                } catch (e: Exception) {
+                    println("working tree exception")
+                }
             }
             throw ReferencedPathNotFoundException(linkPath)
         }
