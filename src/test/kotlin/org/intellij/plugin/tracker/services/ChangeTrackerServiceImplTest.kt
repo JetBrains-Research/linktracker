@@ -6,9 +6,24 @@ import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
 import org.intellij.plugin.tracker.data.Line
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.data.links.*
-import org.intellij.plugin.tracker.services.git4idea.test.*
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
+import org.intellij.plugin.tracker.services.git4idea.test.GitSingleRepoTest
+import org.intellij.plugin.tracker.services.git4idea.test.TestFile
+import org.intellij.plugin.tracker.services.git4idea.test.add
+import org.intellij.plugin.tracker.services.git4idea.test.addCommit
+import org.intellij.plugin.tracker.services.git4idea.test.commit
+import org.intellij.plugin.tracker.services.git4idea.test.delete
+import org.intellij.plugin.tracker.services.git4idea.test.mv
 import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 import java.io.File
@@ -19,7 +34,7 @@ import kotlin.test.assertFailsWith
  * In order to create tests with a new project instance per test
  * it is necessary to create a different instance of this class for each test case.
  */
-class ChangeTrackerServiceTest : GitSingleRepoTest() {
+class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
     private lateinit var changeTracker: ChangeTrackerServiceImpl
     private lateinit var defaultLink: Link
@@ -740,7 +755,6 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.afterPathString, "mydirectory/file.txt")
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
     }
-
 
     fun `test multiple lines fully moved with structure changes with uncommitted file and file deleted`() {
         val link = createDummyLinkToLines("file.md", "file.md", "file.txt#L1-L5")
