@@ -65,6 +65,7 @@ data class RelativeLinkToDirectory(
     override fun markdownFileMoved(afterPath: String): Boolean = false
 }
 
+
 /**
  * Data class that corresponds to a relative link to file
  */

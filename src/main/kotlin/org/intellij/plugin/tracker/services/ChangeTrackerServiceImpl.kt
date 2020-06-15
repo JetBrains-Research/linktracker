@@ -12,7 +12,6 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
@@ -51,6 +50,10 @@ class ChangeTrackerServiceImpl(val project: Project) : ChangeTrackerService {
             return workingTreeChange
         }
 
+        /**
+         * If a working tree change is  updated, its link path and after path will be same.
+         * Following functionality is written to move it from Changed Links to Unchanged Links.
+         */
         if (workingTreeChange != null && link.path == workingTreeChange.afterPathString && (workingTreeChange.
             customChangeType == CustomChangeType.MOVED || workingTreeChange.customChangeType == CustomChangeType.DELETED)) {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)

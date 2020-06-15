@@ -606,6 +606,7 @@ class GitOperationManager(private val project: Project) {
                 }
             }
 
+            // If this is a working tree change, finds the corresponding change of this link
             val historyService = HistoryService.getInstance(project)
             val paths = historyService.stateObject.pathsList
             for (path in paths) {

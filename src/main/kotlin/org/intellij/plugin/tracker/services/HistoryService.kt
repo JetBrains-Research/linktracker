@@ -32,6 +32,8 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
         // New results are pushed to the front of the list.
         var resultsList: ArrayList<RunResult> = ArrayList(),
 
+        // List of before working tree change paths
+        // of links which has working tree change
         var pathsList: MutableList<RelativeLink<*>> = mutableListOf(),
 
         var commitSHA: String? = null
@@ -82,6 +84,12 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
         state.resultsList.add(0, results)
     }
 
+    /**
+     * Saves given relative link to list of paths.
+     * To keep track of working tree changes.
+     *
+     * @param link the link of before path
+     */
     fun savePath(link: RelativeLink<*>) {
         stateObject.pathsList.add(link)
     }

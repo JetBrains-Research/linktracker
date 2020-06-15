@@ -1,7 +1,5 @@
 package org.intellij.plugin.tracker.services
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
@@ -75,7 +73,10 @@ class LinkUpdaterService(val project: Project) {
 
         val historyService: HistoryService = HistoryService.getInstance(project)
 
-        if (change.hasWorkingTreeChanges() && link is RelativeLink<*>) historyService.savePath(link)
+        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> &&
+            !historyService.stateObject.pathsList.contains(link)) {
+            historyService.savePath(link)
+        }
 
         var afterPath: String? = null
         if (link is RelativeLink<*>) {
@@ -89,11 +90,12 @@ class LinkUpdaterService(val project: Project) {
         // calculated updated link is null -> something wrong must have happened, return false
         if (afterPath == null) return false
 
+        // removes the links from history service if it is being updated to its version in git history
         var removeList: MutableList<RelativeLink<*>> = mutableListOf()
         for (path in historyService.stateObject.pathsList) {
-            if (path.path == afterPath && link.linkInfo.fileName == path.linkInfo.fileName
-                && link.linkInfo.proveniencePath == path.linkInfo.proveniencePath
-                && link.linkInfo.foundAtLineNumber == path.linkInfo.foundAtLineNumber) {
+            if (path.path == afterPath && link.linkInfo.fileName == path.linkInfo.fileName &&
+                link.linkInfo.proveniencePath == path.linkInfo.proveniencePath &&
+                link.linkInfo.foundAtLineNumber == path.linkInfo.foundAtLineNumber) {
                 removeList.add(path)
             }
         }
