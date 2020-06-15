@@ -610,13 +610,9 @@ class GitOperationManager(private val project: Project) {
             val historyService = HistoryService.getInstance(project)
             val paths = historyService.stateObject.pathsList
             for (path in paths) {
-                try {
-                    if (path.linkInfo.fileName == link.linkInfo.fileName &&
-                        path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
-                        return CustomChange(CustomChangeType.MOVED, path.path)
-                    }
-                } catch (e: Exception) {
-                    println("working tree exception")
+                if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                    path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
+                    return CustomChange(CustomChangeType.MOVED, path.path)
                 }
             }
             throw ReferencedPathNotFoundException(linkPath)
