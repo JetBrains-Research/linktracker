@@ -64,7 +64,7 @@ class LinkUpdaterService(val project: Project) {
      * @param change the LinkChange object according to which to update the link
      */
     @Suppress("UNCHECKED_CAST")
-    private fun updateLink(link: Link, change: Change, element: PsiElement, newCommit: String?): Boolean {
+    private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
 
         if (change.hasWorkingTreeChanges() && link is RelativeLink<*> && !workingTreePaths.contains(link)) {
             workingTreePaths.add(link)

@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.utils
 
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import git4idea.commands.Git

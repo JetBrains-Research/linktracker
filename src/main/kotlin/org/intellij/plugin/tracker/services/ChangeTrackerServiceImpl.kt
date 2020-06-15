@@ -70,8 +70,8 @@ class ChangeTrackerServiceImpl(val project: Project) : ChangeTrackerService {
          * If a working tree change is  updated, its link path and after path will be same.
          * Following functionality is written to move it from Changed Links to Unchanged Links.
          */
-        if (workingTreeChange != null && link.path == workingTreeChange.afterPathString && (workingTreeChange.
-            customChangeType == CustomChangeType.MOVED || workingTreeChange.customChangeType == CustomChangeType.DELETED)) {
+        if (workingTreeChange != null && link.path == workingTreeChange.afterPathString && (workingTreeChange
+                .customChangeType == CustomChangeType.MOVED || workingTreeChange.customChangeType == CustomChangeType.DELETED)) {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return CustomChange(CustomChangeType.ADDED, workingTreeChange.afterPathString)
