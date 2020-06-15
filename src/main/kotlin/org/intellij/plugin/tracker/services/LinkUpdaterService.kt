@@ -26,7 +26,9 @@ class LinkUpdaterService(val project: Project) {
      * Used by IDEA to get a reference to the single instance of this class.
      */
     companion object {
-        fun getInstance(project: Project) =
+        var workingTreePaths = mutableListOf<RelativeLink<*>>()
+
+        fun getInstance(project: Project): LinkUpdaterService =
             ServiceManager.getService(project, LinkUpdaterService::class.java)
     }
 
@@ -71,11 +73,8 @@ class LinkUpdaterService(val project: Project) {
     @Suppress("UNCHECKED_CAST")
     private fun updateLink(link: Link, change: Change, element: PsiElement, newCommit: String?): Boolean {
 
-        val historyService: HistoryService = HistoryService.getInstance(project)
-
-        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> &&
-            !historyService.stateObject.pathsList.contains(link)) {
-            historyService.savePath(link)
+        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> && !workingTreePaths.contains(link)) {
+            workingTreePaths.add(link)
         }
 
         var afterPath: String? = null
@@ -90,15 +89,13 @@ class LinkUpdaterService(val project: Project) {
         // calculated updated link is null -> something wrong must have happened, return false
         if (afterPath == null) return false
 
-        // removes the links from history service if it is being updated to its version in git history
-        var removeList: MutableList<RelativeLink<*>> = mutableListOf()
-        for (path in historyService.stateObject.pathsList) {
-            if (path.path == afterPath && link.linkInfo.fileName == path.linkInfo.fileName &&
-                link.linkInfo.proveniencePath == path.linkInfo.proveniencePath) {
-                removeList.add(path)
+        // removes the links from tree path list if it is being updated to its version in git history
+        for (treeLink in workingTreePaths) {
+            if (treeLink.path == afterPath && link.linkInfo.fileName == treeLink.linkInfo.fileName &&
+                link.linkInfo.proveniencePath == treeLink.linkInfo.proveniencePath) {
+                workingTreePaths.remove(link)
             }
         }
-        for (path in removeList) historyService.stateObject.pathsList.remove(path)
 
         val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
         element.replace(newElement)

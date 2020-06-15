@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.utils
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import git4idea.commands.Git
@@ -20,7 +21,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
 
 /**
  * Class that handles the logic of executing all git commands needed throughout the project
@@ -607,8 +608,7 @@ class GitOperationManager(private val project: Project) {
             }
 
             // If this is a working tree change, finds the corresponding change of this link
-            val historyService = HistoryService.getInstance(project)
-            val paths = historyService.stateObject.pathsList
+            val paths = LinkUpdaterService.workingTreePaths
             for (path in paths) {
                 if (path.linkInfo.fileName == link.linkInfo.fileName &&
                     path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
@@ -625,18 +625,14 @@ class GitOperationManager(private val project: Project) {
         }
 
         // If this is a working tree change, finds the corresponding change of this link
-        val historyService = HistoryService.getInstance(project)
-        val paths = historyService.stateObject.pathsList
+        val paths = LinkUpdaterService.workingTreePaths
         for (path in paths) {
-            try {
-                if (path.linkInfo.fileName == link.linkInfo.fileName &&
-                    path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
-                    return CustomChange(CustomChangeType.MOVED, path.path)
-                }
-            } catch (e: Exception) {
-                continue
+            if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
+                return CustomChange(CustomChangeType.MOVED, path.path)
             }
         }
+
         throw ReferencedFileNotFoundException()
     }
 
