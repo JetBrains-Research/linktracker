@@ -2,9 +2,7 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 
 /**
@@ -44,13 +42,12 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "file.txt",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 1,
-            linkElement = LinkElementImpl(mock()),
+            textOffset = 33,
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
 
         val linkInfo = myRetrievedInfo.first { it.linkText == "single - relative link to file" }
-        expectedInfo.linkElement = linkInfo.linkElement
         Assertions.assertEquals(expectedInfo, linkInfo)
     }
 
@@ -61,13 +58,12 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "main",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 3,
-            linkElement = LinkElementImpl(mock()),
+            textOffset = 127,
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
 
         val resultedInfo = getInfoByText(linkText = "single - relative link to directory")
-        expectedInfo.linkElement = resultedInfo.linkElement
         Assertions.assertEquals(expectedInfo, resultedInfo)
     }
 
@@ -78,13 +74,12 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "file.txt#L1",
             proveniencePath = "/src/testParseRelativeLinks.md",
             foundAtLineNumber = 2,
-            linkElement = LinkElementImpl(mock()),
+            textOffset = 76,
             fileName = "testParseRelativeLinks.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
 
         val resultedInfo = getInfoByText(linkText = "single - relative link to line")
-        expectedInfo.linkElement = resultedInfo.linkElement
         Assertions.assertEquals(expectedInfo, resultedInfo)
     }
 
@@ -94,13 +89,12 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java",
             proveniencePath = "/src/testParseWebLink.md",
             foundAtLineNumber = 2,
-            linkElement = LinkElementImpl(mock()),
+            textOffset = 213,
             fileName = "testParseWebLink.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
 
         val resultedInfo = getInfoByText(linkText = "single - web link to file")
-        expectedInfo.linkElement = resultedInfo.linkElement
         Assertions.assertEquals(expectedInfo, resultedInfo)
     }
 
@@ -110,13 +104,12 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L55",
             proveniencePath = "/src/testParseWebLink.md",
             foundAtLineNumber = 1,
-            linkElement = LinkElementImpl(mock()),
+            textOffset = 28,
             fileName = "testParseWebLink.md",
             project = ProjectManager.getInstance().openProjects[0]
         )
 
         val resultedInfo = getInfoByText(linkText = "single - web link to line")
-        expectedInfo.linkElement = resultedInfo.linkElement
         Assertions.assertEquals(expectedInfo, resultedInfo)
     }
 

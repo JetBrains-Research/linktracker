@@ -10,6 +10,7 @@ import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.services.ChangeTrackerService
 import org.intellij.plugin.tracker.utils.LinkPatterns
 
+
 /**
  * Data class that corresponds to a relative link to directory
  */
@@ -29,6 +30,7 @@ data class RelativeLinkToDirectory(
      */
     override val referencedStartingLine: Int
         get() = -1
+
 
     /**
      * No lines referenced
@@ -62,6 +64,7 @@ data class RelativeLinkToDirectory(
 
     override fun markdownFileMoved(afterPath: String): Boolean = false
 }
+
 
 /**
  * Data class that corresponds to a relative link to file
@@ -124,6 +127,7 @@ data class RelativeLinkToFile(
     }
 }
 
+
 /**
  * Data class that corresponds to a relative link to line
  */
@@ -174,6 +178,7 @@ data class RelativeLinkToLine(
      */
     override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
 
+
     /**
      * Deep copy this link and return the copied link with a new after path
      */
@@ -187,6 +192,7 @@ data class RelativeLinkToLine(
      */
     override fun updateLink(change: LineChange, commitSHA: String?): String? = change.afterPath[0]
 }
+
 
 /**
  * Data class that corresponds to a relative link to multiple lines
