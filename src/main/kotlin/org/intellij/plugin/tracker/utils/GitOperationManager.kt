@@ -623,6 +623,20 @@ class GitOperationManager(private val project: Project) {
             fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
             return fileChange
         }
+
+        // If this is a working tree change, finds the corresponding change of this link
+        val historyService = HistoryService.getInstance(project)
+        val paths = historyService.stateObject.pathsList
+        for (path in paths) {
+            try {
+                if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                    path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
+                    return CustomChange(CustomChangeType.MOVED, path.path)
+                }
+            } catch (e: Exception) {
+                continue
+            }
+        }
         throw ReferencedFileNotFoundException()
     }
 
