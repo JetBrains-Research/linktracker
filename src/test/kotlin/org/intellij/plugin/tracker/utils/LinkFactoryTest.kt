@@ -22,12 +22,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "file.txt",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToFile(linkInfo), resultLink)
     }
 
@@ -37,12 +37,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "file.txt#L22",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToLine(linkInfo), resultLink)
     }
 
@@ -52,12 +52,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "file.txt#L22-L25",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToLines(linkInfo), resultLink)
     }
 
@@ -67,12 +67,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToFile(linkInfo), resultLink)
     }
 
@@ -82,12 +82,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L22",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToLine(linkInfo), resultLink)
     }
 
@@ -97,12 +97,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/blob/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/MarkdownAction.java#L22-L25",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToLines(linkInfo), resultLink)
     }
 
@@ -112,12 +112,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToDirectory(linkInfo), resultLink)
     }
 
@@ -127,12 +127,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/Mark.java#L25-L22",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -145,12 +145,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1/demo-plugin-jetbrains-project",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -163,12 +163,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "https://github.com/tudorpopovici1.com",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -181,12 +181,12 @@ class LinkFactoryTest : TestCase() {
             linkPath = "www.github.com/tudorpopovici1/demo-plugin-jetbrains-project/tree/cf925c192b45c9310a2dcc874573f393024f3be2/src/main/java/actions/Mark",
             proveniencePath = "dummypath.md",
             foundAtLineNumber = 1,
-            textOffset = 33,
+            linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToDirectory(linkInfo), resultLink)
     }
 }
