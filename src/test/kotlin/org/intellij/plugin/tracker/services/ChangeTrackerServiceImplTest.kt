@@ -36,7 +36,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
                 linkText = "link",
                 project = project,
                 proveniencePath = "file.md",
-                linkElement = LinkElementImpl(mock())
+                textOffset = 7
             )
         )
     }

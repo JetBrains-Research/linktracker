@@ -63,10 +63,19 @@ class TreeView : JPanel(BorderLayout()) {
         // Parse data from result
         ourScanResult = currentScanResult
         val changes = currentScanResult.myLinkChanges
-
-        if (myCommitSHA == null) {
-            calculateCommitSHA()
+        val project = currentScanResult.myProject
+        myCommitSHA = try {
+            ProgressManager.getInstance()
+                .runProcessWithProgressSynchronously<String?, VcsException>(
+                    { GitOperationManager(project).getHeadCommitSHA() },
+                    "Getting head commit SHA..",
+                    true,
+                    project
+                )
+        } catch (e: VcsException) {
+            null
         }
+        calculateCommitSHA()
 
         val root = myTree.model.root as DefaultMutableTreeNode
         root.removeAllChildren()
@@ -317,6 +326,9 @@ class TreeView : JPanel(BorderLayout()) {
             }
             // call @checkChildren method to make parents/children of the respective node selected/unselected
             checkBoxHelper.checkChildren()
+            println("nodes checking state $nodesCheckingState")
+            println("checked paths $checkedPaths")
+            println("accepted $acceptedChangeList")
         }
     }
 
