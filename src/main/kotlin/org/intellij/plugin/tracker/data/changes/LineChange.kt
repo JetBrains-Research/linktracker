@@ -2,7 +2,6 @@ package org.intellij.plugin.tracker.data.changes
 
 import org.intellij.plugin.tracker.data.Line
 
-
 /**
  * Enum class for change types of a single line
  */

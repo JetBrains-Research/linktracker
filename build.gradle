@@ -60,8 +60,3 @@ compileTestKotlin {
 runIde {
   jvmArgs '--add-exports', 'java.base/jdk.internal.vm=ALL-UNNAMED'
 }
-
-// Exclude test for functionality not yet ready
-test {
-  exclude "**/TestMultipleLinks.class"
-}
