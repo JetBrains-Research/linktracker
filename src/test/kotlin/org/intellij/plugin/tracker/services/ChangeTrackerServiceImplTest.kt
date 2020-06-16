@@ -124,6 +124,69 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
+    fun `test parse changes committed added directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.ADDED)
+        Assertions.assertEquals(change.requiresUpdate, false)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes committed moved directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Create new directory and move linked file to new directory
+        val dir = Executor.mkdir("mydirectory")
+        repo.mv(linkedDirectory.file, dir)
+        repo.commit("Move linked directory to new directory")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "mydirectory/dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes uncommitted deleted directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Delete linked file
+        repo.delete(linkedDirectory)
+        repo.add()
+        repo.commit("Delete linked directory")
+
+        refresh()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.DELETED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
     fun `test single line moved with uncommitted file changes`() {
         val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1")
 
@@ -802,6 +865,24 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         )
     }
 
+    private fun createDummyLinkToDirectory(
+        proveniencePath: String = "file.md",
+        fileName: String = "file.md",
+        linkPath: String
+    ): Link {
+        return RelativeLinkToDirectory(
+            LinkInfo(
+                fileName = fileName,
+                foundAtLineNumber = 1,
+                linkPath = linkPath,
+                linkText = "link",
+                project = project,
+                proveniencePath = proveniencePath,
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+    }
+
     private fun createDummyLinkToLines(
         proveniencePath: String = "file.md",
         fileName: String = "file.md",
@@ -833,6 +914,18 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         repo.add()
         repo.commit("Create linked file")
         return linkedFile
+    }
+
+    private fun createLinkedDirectory(fileName: String? = null, content: String? = null): TestFile {
+        val linkedFile = createLinkedFile("dirFile.txt")
+
+        // Create directory and commit files
+        val dir = Executor.mkdir("dir")
+        val mvFile = File(dir.path, "dirFile.txt")
+        repo.mv(linkedFile.file, mvFile)
+        repo.add()
+        repo.commit("Create linked file in new directory")
+        return TestFile(repo, dir)
     }
 
     private fun createLinkingFile(fileName: String? = null, content: String? = null): TestFile {
