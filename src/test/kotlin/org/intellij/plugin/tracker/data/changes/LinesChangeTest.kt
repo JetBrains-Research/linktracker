@@ -1,10 +1,7 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.changes
 
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
-import org.intellij.plugin.tracker.data.changes.LinesChange
-import org.intellij.plugin.tracker.data.changes.LinesChangeType
+import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.junit.jupiter.api.Assertions
 
@@ -61,7 +58,8 @@ class LinesChangeTest : TestCase() {
         val otherLinesChange = LinesChange(
             fileChange = fileChange,
             linesChangeType = LinesChangeType.FULL,
-            newLines = mutableListOf(mutableListOf(Line(5, "line text"), Line(3, "other text")))
+            newLines = mutableListOf(mutableListOf(Line(5, "line text"),
+                Line(3, "other text")))
         )
         Assertions.assertEquals(linesChange.afterPath, mutableListOf("dummypath.md#L5", "dummypath.md#L3"))
         Assertions.assertEquals(otherChange.afterPath, mutableListOf<String>())

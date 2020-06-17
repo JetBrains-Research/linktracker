@@ -1,8 +1,6 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.changes
 
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.junit.jupiter.api.Assertions
 
@@ -50,7 +48,7 @@ class CustomChangeTest : TestCase() {
         Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
         Assertions.assertEquals(change.errorMessage, "dummy message")
         Assertions.assertEquals(change.afterPathString, "dummypath.md")
-        Assertions.assertEquals(change.fileHistoryList, mutableListOf(FileHistory("commit sha", "dummy path",true)))
+        Assertions.assertEquals(change.fileHistoryList, mutableListOf(FileHistory("commit sha", "dummy path", true)))
         Assertions.assertEquals(change.deletionsAndAdditions, 10)
     }
 

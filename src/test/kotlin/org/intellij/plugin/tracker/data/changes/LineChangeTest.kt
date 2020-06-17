@@ -1,10 +1,7 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.changes
 
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
-import org.intellij.plugin.tracker.data.changes.LineChange
-import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.junit.jupiter.api.Assertions
 
@@ -64,7 +61,9 @@ class LineChangeTest : TestCase() {
         Assertions.assertEquals(lineChange.fileChange, fileChange)
         Assertions.assertEquals(lineChange.lineChangeType, LineChangeType.DELETED)
         Assertions.assertEquals(lineChange.errorMessage, "dummy message")
-        Assertions.assertEquals(lineChange.newLine, Line(5, "line text"))
+        Assertions.assertEquals(lineChange.newLine,
+            Line(5, "line text")
+        )
     }
 
     fun testGetters() {
