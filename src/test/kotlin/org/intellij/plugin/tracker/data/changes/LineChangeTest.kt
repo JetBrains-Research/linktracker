@@ -69,4 +69,18 @@ class LineChangeTest : TestCase() {
     fun testGetters() {
         Assertions.assertEquals(lineChange.changes, mutableListOf(CustomChangeType.DELETED, LineChangeType.DELETED))
     }
+
+    fun testChangeTypeString() {
+        val movedChange = lineChange.copy(lineChangeType = LineChangeType.MOVED)
+        Assertions.assertEquals(movedChange.lineChangeType.changeTypeString, "LINE MOVED")
+
+        val deletedChange = lineChange.copy(lineChangeType = LineChangeType.DELETED)
+        Assertions.assertEquals(deletedChange.lineChangeType.changeTypeString, "LINE DELETED")
+
+        val unchangedChange = lineChange.copy(lineChangeType = LineChangeType.UNCHANGED)
+        Assertions.assertEquals(unchangedChange.lineChangeType.changeTypeString, "LINE UNCHANGED")
+
+        val invalidChange = lineChange.copy(lineChangeType = LineChangeType.INVALID)
+        Assertions.assertEquals(invalidChange.lineChangeType.changeTypeString, "LINE INVALID")
+    }
 }

@@ -56,4 +56,21 @@ class CustomChangeTest : TestCase() {
         Assertions.assertEquals(change.afterPath, mutableListOf("dummypath.md"))
         Assertions.assertEquals(change.changes, mutableListOf(CustomChangeType.MOVED))
     }
+
+    fun testChangeTypeString() {
+        val deletedChange = change.copy(customChangeType = CustomChangeType.DELETED)
+        Assertions.assertEquals(deletedChange.customChangeType.changeTypeString, "DELETED")
+
+        val invalidChange = change.copy(customChangeType = CustomChangeType.INVALID)
+        Assertions.assertEquals(invalidChange.customChangeType.changeTypeString, "INVALID")
+
+        val movedChange = change.copy(customChangeType = CustomChangeType.MOVED)
+        Assertions.assertEquals(movedChange.customChangeType.changeTypeString, "MOVED")
+
+        val modifiedChange = change.copy(customChangeType = CustomChangeType.MODIFIED)
+        Assertions.assertEquals(modifiedChange.customChangeType.changeTypeString, "MODIFIED")
+
+        val addedChange = change.copy(customChangeType = CustomChangeType.ADDED)
+        Assertions.assertEquals(addedChange.customChangeType.changeTypeString, "ADDED")
+    }
 }
