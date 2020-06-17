@@ -3,9 +3,7 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
 import com.nhaarman.mockitokotlin2.mock
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.*
 import org.intellij.plugin.tracker.services.git4idea.test.*
@@ -58,6 +56,26 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
+    fun `test parse changes uncommitted added file`() {
+
+        // Create files
+        val linkedFile: TestFile = file("file.txt")
+        linkedFile.create("Some content")
+
+        val linkingFile: TestFile = file("file.md")
+        linkingFile.create("[link](file.txt)")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "file.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.ADDED)
+        Assertions.assertEquals(change.requiresUpdate, false)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
     fun `test parse changes committed moved file`() {
 
         // Create and commit files
@@ -103,6 +121,56 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
     }
 
+    fun `test parse changes committed and then uncommitted moved`() {
+
+        // Create and commit files
+        val linkedFile = createLinkedFile()
+        createLinkingFile()
+
+        // Create new directory and move linked file to new directory
+        val dir = Executor.mkdir("mydirectory")
+        val mvFile = File(dir.path, "file.txt")
+        repo.mv(linkedFile.file, mvFile)
+        repo.add()
+        repo.commit("move file to new dir")
+
+        // Create new directory and move linked file to new directory
+        val dir2 = Executor.mkdir("newdirectory")
+        val mvFile2 = File(dir2.path, "file.txt")
+        repo.mv(mvFile, mvFile2)
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "newdirectory/file.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
+    fun `test parse changes uncommitted renamed`() {
+
+        // Create and commit files
+        val linkedFile = createLinkedFile()
+        createLinkingFile()
+
+        // Rename the file
+        val renameFile = File("renamed.txt")
+        repo.mv(linkedFile.file, renameFile)
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "renamed.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
     fun `test parse changes uncommitted deleted`() {
 
         // Create and commit files
@@ -139,6 +207,30 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.afterPathString, "dir")
         Assertions.assertEquals(change.customChangeType, CustomChangeType.ADDED)
         Assertions.assertEquals(change.requiresUpdate, false)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes uncommitted renamed directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Create new directory and move linked file to new directory
+        val dir = File("mydirectory")
+        repo.mv(linkedDirectory.file, dir)
+        repo.add()
+        repo.commit("rename the directory")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "mydirectory")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
@@ -447,6 +539,16 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         updateChangeListManager()
 
         assertFailsWith<FileHasBeenDeletedException> {
+            changeTracker.getLocalLineChanges(link) as LineChange
+        }
+    }
+
+    fun `test single line null commit sha`() {
+        val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1")
+
+        createLinkingFile(content = "[link](file.txt#L1)")
+
+        assertFailsWith<CommitSHAIsNullLineException> {
             changeTracker.getLocalLineChanges(link) as LineChange
         }
     }
@@ -847,6 +949,16 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         }
     }
 
+    fun `test multiple lines null commit sha`() {
+        val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1-L3")
+
+        createLinkingFile(content = "[link](file.txt#L1-L3)")
+
+        assertFailsWith<CommitSHAIsNullLinesException> {
+            changeTracker.getLocalLinesChanges(link) as LinesChange
+        }
+    }
+
     private fun createDummyLinkToLine(
         proveniencePath: String = "file.md",
         fileName: String = "file.md",
@@ -865,12 +977,12 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         )
     }
 
-    private fun createDummyLinkToDirectory(
+    private fun createDummyLinkToLines(
         proveniencePath: String = "file.md",
         fileName: String = "file.md",
         linkPath: String
     ): Link {
-        return RelativeLinkToDirectory(
+        return RelativeLinkToLines(
             LinkInfo(
                 fileName = fileName,
                 foundAtLineNumber = 1,
@@ -883,12 +995,12 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         )
     }
 
-    private fun createDummyLinkToLines(
+    private fun createDummyLinkToDirectory(
         proveniencePath: String = "file.md",
         fileName: String = "file.md",
         linkPath: String
     ): Link {
-        return RelativeLinkToLines(
+        return RelativeLinkToDirectory(
             LinkInfo(
                 fileName = fileName,
                 foundAtLineNumber = 1,
