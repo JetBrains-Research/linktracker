@@ -1,19 +1,17 @@
 package org.intellij.plugin.tracker.data.links
 
 import com.nhaarman.mockitokotlin2.mock
-import junit.framework.TestCase
-import org.assertj.core.api.Assertions.assertThatExceptionOfType
+import org.intellij.plugin.tracker.services.git4idea.test.GitSingleRepoTest
 import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.utils.LinkPatterns
 import org.junit.jupiter.api.Assertions
-import java.lang.UnsupportedOperationException
 
 /**
  * This class tests the not supported links and link info.
  */
-class BaseLinksTest : TestCase() {
+class BaseLinksTest : GitSingleRepoTest() {
 
     private lateinit var linkInfo: LinkInfo
-    private lateinit var link: NotSupportedLink
 
     override fun setUp() {
         super.setUp()
@@ -24,27 +22,19 @@ class BaseLinksTest : TestCase() {
             foundAtLineNumber = 1,
             linkElement = LinkElementImpl(mock()),
             fileName = "dummypath.md",
-            project = mock()
+            project = project
         )
-
-        link = NotSupportedLink(linkInfo)
-    }
-
-    fun testNotSupportedLink() {
-        Assertions.assertEquals(link.lineReferenced, -1)
-        Assertions.assertEquals(link.referencedFileName, "")
-        Assertions.assertEquals(link.referencedStartingLine, -1)
-        Assertions.assertEquals(link.referencedEndingLine, -1)
-        Assertions.assertEquals(link.path, "invalid link")
-        Assertions.assertEquals(link.copyWithAfterPath(link, link.linkInfo.linkPath), link)
-        assertThatExceptionOfType(UnsupportedOperationException::class.java).isThrownBy {
-            link.markdownFileMoved("")
-        }
     }
 
     fun testLinkInfo() {
         Assertions.assertEquals(linkInfo.getAfterPathToOriginalFormat("/./././"), null)
         Assertions.assertEquals(linkInfo.proveniencePath, "")
         Assertions.assertEquals(linkInfo.foundAtLineNumber, 1)
+    }
+
+    fun testReferenceType() {
+        val webLinkToFile = WebLinkToFile(linkInfo.copy(linkPath = "https://gitlab.ewi.tudelft.nl/project_owner/" +
+                "project/-/blob/branch/README.md"), LinkPatterns.WebLinkToFile.pattern)
+        Assertions.assertEquals(webLinkToFile.referenceType, WebLinkReferenceType.INVALID)
     }
 }
