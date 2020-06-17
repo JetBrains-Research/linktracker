@@ -61,11 +61,16 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
         val threshold: Int = similarityThresholdSettings.fileSimilarity
 
-        val change: CustomChange =
+        val change: CustomChange = if (branchOrTagName != null) {
             gitOperationManager.getAllChangesForFile(
                 link, threshold,
                 branchOrTagName = branchOrTagName, specificCommit = specificCommit
             )
+        } else {
+            gitOperationManager.getAllChangesForFile(
+                link, threshold, specificCommit = specificCommit
+            )
+        }
 
         try {
             // so far we have only checked `git log` with the commit that is pointing to HEAD.
@@ -214,6 +219,9 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         val afterCommitSHA: String = fileHistoryList[x + 1].revision
                         val afterPath: String = fileHistoryList[x + 1].path
 
+                        println("[ ChangeTrackerServiceImpl ][ getLocalLineChanges() ] - beforeCommitSHA = $beforeCommitSHA")
+                        println("[ ChangeTrackerServiceImpl ][ getLocalLineChanges() ] - afterCommitSHA = $afterCommitSHA")
+
                         val output: DiffOutput? = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
                         if (output != null) {
                             diffOutputList.add(output)
@@ -231,6 +239,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 )
             return LineTracker.trackLine(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
+            e.printStackTrace()
             throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
         }
     }

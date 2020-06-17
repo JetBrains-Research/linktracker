@@ -88,17 +88,20 @@ class DataParsingTask(
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {
+                e.printStackTrace()
                 myLinksAndChangesList.add(Pair(link, CustomChange(
                     CustomChangeType.INVALID,
                     afterPathString = "",
                     errorMessage = e.message)
                 ))
             } catch (e: DirectoryChangeGatheringException) {
+                e.printStackTrace()
                 myLinksAndChangesList.add(Pair(link, CustomChange(
                     CustomChangeType.INVALID,
                     afterPathString = "",
                     errorMessage = e.message)))
             } catch (e: LineChangeGatheringException) {
+                e.printStackTrace()
                 val lineChange = LineChange(
                     fileChange = e.fileChange,
                     lineChangeType = LineChangeType.INVALID,
@@ -106,6 +109,7 @@ class DataParsingTask(
                 )
                 myLinksAndChangesList.add(Pair(link, lineChange))
             } catch (e: LinesChangeGatheringException) {
+                e.printStackTrace()
                 val linesChange = LinesChange(
                     fileChange = e.fileChange,
                     linesChangeType = LinesChangeType.INVALID,
@@ -114,7 +118,7 @@ class DataParsingTask(
                 myLinksAndChangesList.add(Pair(link, linesChange))
                 // catch any errors that might result from using vcs commands (git).
             } catch (e: VcsException) {
-                println("here: ${e.message}")
+                e.printStackTrace()
             }
         }
         try {
@@ -122,6 +126,7 @@ class DataParsingTask(
         } catch (e: VcsException) {
             println("here: ${e.message}")
         }
+        println(myScanResult.myLinkChanges)
     }
 
     /**

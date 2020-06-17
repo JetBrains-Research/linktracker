@@ -64,4 +64,8 @@
         />
     </extensions>
 
+    <projectListeners>
+        <listener class="org.intellij.plugin.tracker.utils.PsiTreeChangeListenerImpl" topic="com.intellij.psi.PsiTreeChangeAdapter"/>
+    </projectListeners>
+
 </idea-plugin>

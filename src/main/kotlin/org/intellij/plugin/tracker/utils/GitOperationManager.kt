@@ -9,10 +9,8 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
-import kotlin.math.max
-import kotlin.math.min
 import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
+import org.intellij.plugin.tracker.data.GitOperationCache
 import org.intellij.plugin.tracker.data.OriginalLineContentsNotFoundException
 import org.intellij.plugin.tracker.data.OriginalLinesContentsNotFoundException
 import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
@@ -21,6 +19,10 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
+import java.io.File
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Class that handles the logic of git operations
@@ -29,6 +31,7 @@ class GitOperationManager(private val project: Project) {
 
     private val git: Git = Git.getInstance()
     private val gitRepository: GitRepository
+    private var myGitCache = GitOperationCache
 
     init {
         val repositories: MutableList<GitRepository> = GitRepositoryManager.getInstance(project).repositories
@@ -47,6 +50,32 @@ class GitOperationManager(private val project: Project) {
             return result.output
         }
         return null
+    }
+
+    /**
+     * If no log outputs are cached for the specified branch or tag name, perform a git log command
+     * with default parameters for the given input, and return the result, else return the cached results.
+     *
+     * When recomputing, uses the current plugin-wide file similarity settings.
+     * The cache should be invalidated when such settings change.
+     */
+    private fun getLogOutputs(branchOrTagName: String): String {
+        if (myGitCache.myLogOutputs[branchOrTagName] == null) {
+            val similarityThresholdSettings: SimilarityThresholdSettings =
+                SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+            val similarityThreshold: Int = similarityThresholdSettings.fileSimilarity
+            val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+            gitLineHandler.addParameters(
+                branchOrTagName,
+                "--name-status",
+                "--oneline",
+                "--find-renames=$similarityThreshold"
+            )
+
+            myGitCache.myLogOutputs[branchOrTagName] = git.runCommand(gitLineHandler).getOutputOrThrow()
+        }
+
+        return myGitCache.myLogOutputs[branchOrTagName]!!
     }
 
     /**
@@ -140,10 +169,13 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun getHeadCommitSHA(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
-        gitLineHandler.addParameters("HEAD")
-        val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
+        if (myGitCache.myHeadCommitSHA == null) {
+            val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+            gitLineHandler.addParameters("--short", "HEAD")
+            val output = git.runCommand(gitLineHandler)
+            myGitCache.myHeadCommitSHA = output.getOutputOrThrow()
+        }
+        return myGitCache.myHeadCommitSHA!!
     }
 
     /**
@@ -202,25 +234,46 @@ class GitOperationManager(private val project: Project) {
         if (from == null && until == null || from != null && until != null) {
             throw VcsException("Illegal arguments")
         }
-        val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        if (from != null) {
-            gitLineHandlerLog.addParameters("$from..", "--oneline")
-        } else {
-            gitLineHandlerLog.addParameters("$until^", "--oneline")
-        }
-        val resultLog: GitCommandResult = git.runCommand(gitLineHandlerLog)
-        if (resultLog.exitCode == 0) {
-            val commitList = resultLog.output
-            var index = 0
-            for (line in commitList) {
-                if (index > maxCommitsSurroundings) break
-                index++
-                val commit = line.substring(0, 7)
-                if (fileExistsAtCommit(commit, path)) {
-                    return commit
-                }
+
+//        val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+//        if (from != null) {
+//            gitLineHandlerLog.addParameters("$from..", "--oneline")
+//        } else {
+//            gitLineHandlerLog.addParameters("$until^", "--oneline")
+//        }
+//        val resultLog: GitCommandResult = git.runCommand(gitLineHandlerLog)
+//        if (resultLog.exitCode == 0) {
+//            val commitList = resultLog.output
+//            var index = 0
+//            for (line in commitList) {
+//                if (index > maxCommitsSurroundings) break
+//                index++
+//                val commit = line.substring(0, 7)
+//                if (fileExistsAtCommit(commit, path)) {
+//                    return commit
+//                }
+//            }
+//        }
+//        return null
+
+        var fromCommit = from ?: getFirstCommitSHA()
+        val untilCommit = until ?: getHeadCommitSHA()
+
+        val currentBranch = GitRepositoryManager.getInstance(project).repositories[0].currentBranch!!.name
+        var outputLog = getLogOutputs(currentBranch)
+        outputLog = GitLogUtils.filterCommitsOnly(outputLog)
+        outputLog = GitLogUtils.filterFromUntil(outputLog, fromCommit, untilCommit)
+
+        var index = 0
+        for (line in outputLog.split("\n")) {
+            if (index > maxCommitsSurroundings) break
+            index++
+            val commit = line.substring(0, 6)
+            if (fileExistsAtCommit(commit, path)) {
+                return commit
             }
         }
+
         return null
     }
 
@@ -234,10 +287,10 @@ class GitOperationManager(private val project: Project) {
      * the link path that we are looking for.
      */
     private fun processWorkingTreeChanges(linkPath: String, changes: String): CustomChange? {
-        val changeList: List<String> = changes.split("\n")
-        changeList.forEach { line -> line.trim() }
+        val changeList: List<String> = changes.split("\n").map { it.trim() }
+//        changeList.forEach { it.trim() }
 
-        val change: String? = changeList.find { line -> line.contains(linkPath) }
+        val change: String? = changeList.find { it.contains(linkPath) }
         if (change != null) {
             when {
                 change.startsWith("?") -> return CustomChange(CustomChangeType.ADDED, linkPath)
@@ -264,12 +317,18 @@ class GitOperationManager(private val project: Project) {
      */
     @Throws(VcsException::class)
     fun getFirstCommitSHA(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
-        gitLineHandler.addParameters("--max-parents=0")
-        gitLineHandler.addParameters("HEAD")
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        if (output.exitCode == 0) return output.outputAsJoinedString
-        throw VcsException("Could not find first commit SHA of the currently checked-out branch")
+        if (myGitCache.myFirstCommitSHA == null) {
+            val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+            gitLineHandler.addParameters("--max-parents=0")
+            gitLineHandler.addParameters("HEAD")
+            val output: GitCommandResult = git.runCommand(gitLineHandler)
+            if (output.exitCode == 0) {
+                myGitCache.myFirstCommitSHA = output.outputAsJoinedString.substring(0, 6)
+            } else {
+                throw VcsException("Could not find first commit SHA of the currently checked-out branch")
+            }
+        }
+        return myGitCache.myFirstCommitSHA!!
     }
 
     /**
@@ -307,32 +366,42 @@ class GitOperationManager(private val project: Project) {
     fun getAllChangesForFile(
         link: Link,
         similarityThreshold: Int,
-        branchOrTagName: String? = null,
+        branchOrTagName: String = GitRepositoryManager.getInstance(project).repositories[0].currentBranch!!.name,
         specificCommit: String? = null
     ): CustomChange {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
-        // add a specific branch or tag on which to execute the `git log` command
-        // this branch/tag name exists (it has been previously checked in the LinkProcessingRouter
-        if (branchOrTagName != null) gitLineHandler.addParameters(branchOrTagName)
-        // if a specific commit is given, use that commit as a starting point for the log and compare it
-        // to the HEAD commit
-        // check also that the commit SHA is different than the first commit SHA that corresponds to the currently
-        // checked-out branch; if they are the same, use a simple `git log` command without specifying commit range
-        if (specificCommit != null && !getFirstCommitSHA().startsWith(specificCommit)) {
-            gitLineHandler.addParameters("$specificCommit^..HEAD")
-        }
-        // misuse of the method: can not specify both branch/tag name and commit
-        if (branchOrTagName != null && specificCommit != null) throw VcsException("Can not specify both branch/tag name and commit")
-        gitLineHandler.addParameters(
-            "--name-status",
-            "--oneline",
-            "--find-renames=$similarityThreshold",
-            "--reverse",
-            "*${link.referencedFileName}"
-        )
+//        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+//        // add a specific branch or tag on which to execute the `git log` command
+//        // this branch/tag name exists (it has been previously checked in the LinkProcessingRouter
+//        if (branchOrTagName != null) gitLineHandler.addParameters(branchOrTagName)
+//        // if a specific commit is given, use that commit as a starting point for the log and compare it
+//        // to the HEAD commit
+//        // check also that the commit SHA is different than the first commit SHA that corresponds to the currently
+//        // checked-out branch; if they are the same, use a simple `git log` command without specifying commit range
+//        if (specificCommit != null && !getFirstCommitSHA().startsWith(specificCommit)) {
+//            gitLineHandler.addParameters("$specificCommit^..HEAD")
+//        }
+//        // misuse of the method: can not specify both branch/tag name and commit
+//        if (branchOrTagName != null && specificCommit != null) throw VcsException("Can not specify both branch/tag name and commit")
+//        gitLineHandler.addParameters(
+//            "--name-status",
+//            "--oneline",
+//            "--find-renames=$similarityThreshold",
+//            "--reverse",
+//            "*${link.referencedFileName}"
+//        )
+//        val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
 
-        val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
+        // Get cached log or recompute if not cached
+        var outputLog = getLogOutputs(branchOrTagName)
+        if (specificCommit != null && !getFirstCommitSHA().startsWith(specificCommit)) {
+            // Pick only ones after specific commit
+            outputLog = GitLogUtils.filterFromUntil(outputLog, specificCommit, getHeadCommitSHA())
+        }
+        // Filter by input referenced filename
+        outputLog = GitLogUtils.filterByReferencedFileName(outputLog, link.referencedFileName)
+        // Reverse log
+        outputLog = GitLogUtils.reverseLog(outputLog)
+        return processChangesForFile(link.path, outputLog, specificCommit)
     }
 
     /**
@@ -435,6 +504,8 @@ class GitOperationManager(private val project: Project) {
                     .distinctBy { pair -> pair.value }
                     .map { (i: Int, line: String) -> Pair(i, line) }
 
+            println("[ GitOperationManager ][ processChangesForFile ] - changeList = $changeList")
+
             // if a specific commit is specified as a starting point
             // we  only want to start tracking the path that corresponds to the
             // first entry in change list
@@ -488,6 +559,7 @@ class GitOperationManager(private val project: Project) {
                     val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
+                    println("[ GitOperationManager ][ processChangesForFile ] - linkChange = $linkChange")
                     return linkChange
                 }
                 throw ReferencedPathNotFoundException(linkPath)
@@ -537,6 +609,7 @@ class GitOperationManager(private val project: Project) {
                     val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
                     linkChange.fileHistoryList = fileHistoryList
                     linkChange.deletionsAndAdditions = deletionsAndAdditions
+                    println("[ GitOperationManager ][ processChangesForFile ] - linkChange = $linkChange")
                     return linkChange
                 }
             }
@@ -546,6 +619,7 @@ class GitOperationManager(private val project: Project) {
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
             val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
             fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
+            println("[ GitOperationManager ][ processChangesForFile ] - fileChange = $fileChange")
             return fileChange
         }
         throw ReferencedFileNotFoundException()

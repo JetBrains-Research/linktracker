@@ -52,8 +52,4 @@ data class CustomChange(
             false
         }
     }
-
-    override fun toString(): String {
-        return "Change type is $customChangeType and after path is $afterPath with error message $errorMessage"
-    }
 }
