@@ -105,7 +105,6 @@ class RelativeLinksTest : TestCase() {
         Assertions.assertEquals(relativeLinkToLine.referencedEndingLine, -1)
         Assertions.assertEquals(relativeLinkToLines.referencedEndingLine, 12)
         Assertions.assertEquals(notSupportedLink.referencedEndingLine, -1)
-
     }
 
     fun testReferencedFileName() {
@@ -137,7 +136,8 @@ class RelativeLinksTest : TestCase() {
         Assertions.assertEquals(relativeLinkToLines.copyWithAfterPath(relativeLinkToLines,
             "test"), RelativeLinkToLines(linkInfo.copy(linkPath = "test")))
         Assertions.assertEquals(notSupportedLink.copyWithAfterPath(notSupportedLink,
-            "test"), NotSupportedLink(linkInfo.copy(linkPath = "test")))}
+            "test"), NotSupportedLink(linkInfo.copy(linkPath = "test")))
+    }
 
     fun testMarkdownFileMoved() {
         Assertions.assertEquals(relativeLinkToFile.markdownFileMoved("../../test"), true)

@@ -39,7 +39,7 @@ import java.io.IOException
 /**
  * Implementation of ChangeTrackerService interface, adapted to work in IntelliJ IDEA environment
  */
-class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
+class ChangeTrackerServiceImpl(val project: Project) : ChangeTrackerService {
 
     /**
      * This property handles the execution of all git commands needed by this class
@@ -64,6 +64,17 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
+        }
+
+        /**
+         * If a working tree change is  updated, its link path and after path will be same.
+         * Following functionality is written to move it from Changed Links to Unchanged Links.
+         */
+        if (workingTreeChange != null && link.path == workingTreeChange.afterPathString && (workingTreeChange
+                .customChangeType == CustomChangeType.MOVED || workingTreeChange.customChangeType == CustomChangeType.DELETED)) {
+            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
+            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
+            return CustomChange(CustomChangeType.ADDED, workingTreeChange.afterPathString)
         }
 
         val similarityThresholdSettings: SimilarityThresholdSettings =
