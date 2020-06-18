@@ -65,6 +65,7 @@ class RelativeLinksTest : TestCase() {
             linesChangeType = LinesChangeType.PARTIAL,
             newLines = mutableListOf(mutableListOf(Line(3, "line text"), Line(5, "text")))
         )
+        linesChange.selectedAfterPath = "after path#L3-L5"
         Assertions.assertEquals(relativeLinkToLines.updateLink(linesChange, "sha"), "after path#L3-L5")
     }
 
