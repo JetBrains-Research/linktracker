@@ -68,6 +68,20 @@ class RelativeLinksTest : TestCase() {
         Assertions.assertEquals(relativeLinkToLines.updateLink(linesChange, "sha"), "after path#L3-L5")
     }
 
+    fun testCheckRelativeLink() {
+        var linkPath = "src/.././path/new path/../../file.md"
+        var filePath = "root/README.md"
+        Assertions.assertEquals("root/file.md", checkRelativeLink(linkPath, filePath))
+
+        linkPath = "src/new path/test.txt/./../../file.md"
+        filePath = "main/./doc/.././../README.md"
+        Assertions.assertEquals("src/file.md", checkRelativeLink(linkPath, filePath))
+
+        linkPath = "src/////new path"
+        filePath = "README.md"
+        Assertions.assertEquals("src/new path", checkRelativeLink(linkPath, filePath))
+    }
+
     fun testLineReferenced() {
         Assertions.assertEquals(relativeLinkToFile.lineReferenced, -1)
         Assertions.assertEquals(relativeLinkToDirectory.lineReferenced, -1)
