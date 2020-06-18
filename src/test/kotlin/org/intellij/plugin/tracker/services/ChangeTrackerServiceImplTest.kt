@@ -3,10 +3,33 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
 import com.nhaarman.mockitokotlin2.mock
-import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.data.links.*
-import org.intellij.plugin.tracker.services.git4idea.test.*
+import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
+import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
+import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
+import org.intellij.plugin.tracker.services.git4idea.test.GitSingleRepoTest
+import org.intellij.plugin.tracker.services.git4idea.test.TestFile
+import org.intellij.plugin.tracker.services.git4idea.test.add
+import org.intellij.plugin.tracker.services.git4idea.test.addCommit
+import org.intellij.plugin.tracker.services.git4idea.test.commit
+import org.intellij.plugin.tracker.services.git4idea.test.delete
+import org.intellij.plugin.tracker.services.git4idea.test.mv
 import org.intellij.plugin.tracker.utils.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 import java.io.File
@@ -183,6 +206,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         repo.commit("Delete linked file")
 
         refresh()
+        updateChangeListManager()
 
         val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
 
@@ -190,6 +214,45 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.customChangeType, CustomChangeType.DELETED)
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes not existing file`() {
+
+        val link = createDummyLinkToFile("file.md", "file.md", "notexistingfile.txt")
+
+        createLinkingFile(content = "[link](notexistingfile.txt)")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<ReferencedFileNotFoundException> {
+            changeTracker.getLocalFileChanges(link) as CustomChange
+        }
+    }
+
+    fun `test parse changes file exception`() {
+        val link = RelativeLinkToFile(
+            LinkInfo(
+                fileName = "file.md",
+                foundAtLineNumber = 1,
+                linkPath = "none.txt",
+                linkText = "link",
+                project = project,
+                proveniencePath = "file.md",
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+        val linkingFile = file("file.md")
+        linkingFile.create("[link](none.txt)")
+        repo.add()
+        repo.commit("Create linking file")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<FileChangeGatheringException> {
+            changeTracker.getLocalFileChanges(link) as CustomChange
+        }
     }
 
     fun `test parse changes committed added directory`() {
@@ -257,7 +320,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
-    fun `test parse changes uncommitted deleted directory`() {
+    fun `test parse changes committed deleted directory`() {
 
         val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
 
@@ -270,6 +333,7 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         repo.commit("Delete linked directory")
 
         refresh()
+        updateChangeListManager()
 
         val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
 
@@ -277,6 +341,20 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.customChangeType, CustomChangeType.DELETED)
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes not existing directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "notexistingdir")
+
+        createLinkingFile(content = "[link](notexistingdir)")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<CommitSHAIsNullDirectoryException> {
+            changeTracker.getLocalDirectoryChanges(link) as CustomChange
+        }
     }
 
     fun `test single line moved with uncommitted file changes`() {
@@ -312,6 +390,28 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MODIFIED)
         Assertions.assertEquals(change.fileChange.afterPathString, "file.txt")
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
+    }
+
+    fun `test parse changes directory exception`() {
+        val link = RelativeLinkToDirectory(
+            LinkInfo(
+                fileName = "test.md",
+                foundAtLineNumber = 1,
+                linkPath = "none",
+                linkText = "link",
+                project = project,
+                proveniencePath = "test.md",
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+        val linkingFile = file("test.md")
+        linkingFile.create("[link](none)")
+        repo.add()
+        repo.commit("Create linking file")
+
+        assertFailsWith<CommitSHAIsNullDirectoryException> {
+            changeTracker.getLocalDirectoryChanges(link) as CustomChange
+        }
     }
 
     fun `test single line deleted with uncommitted file changes`() {
@@ -906,7 +1006,6 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
     }
 
-
     fun `test multiple lines fully moved with structure changes with uncommitted file and file deleted`() {
         val link = createDummyLinkToLines("file.md", "file.md", "file.txt#L1-L5")
 
@@ -1001,6 +1100,24 @@ class ChangeTrackerServiceTest : GitSingleRepoTest() {
         linkPath: String
     ): Link {
         return RelativeLinkToDirectory(
+            LinkInfo(
+                fileName = fileName,
+                foundAtLineNumber = 1,
+                linkPath = linkPath,
+                linkText = "link",
+                project = project,
+                proveniencePath = proveniencePath,
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+    }
+
+    private fun createDummyLinkToFile(
+        proveniencePath: String = "file.md",
+        fileName: String = "file.md",
+        linkPath: String
+    ): Link {
+        return RelativeLinkToFile(
             LinkInfo(
                 fileName = fileName,
                 foundAtLineNumber = 1,

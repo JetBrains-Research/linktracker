@@ -15,7 +15,6 @@ import org.intellij.plugin.tracker.utils.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
 import javax.swing.JComponent
 
-
 /**
  * This class registers the secondary settings page of the plugin (for token management)
  * in the general settings of the project
