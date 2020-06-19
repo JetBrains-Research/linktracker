@@ -2,6 +2,9 @@ package org.intellij.plugin.tracker
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.utils.UpdateManager
 import org.intellij.plugin.tracker.view.TreeView
 
@@ -17,8 +20,15 @@ class AcceptAction : AnAction() {
         val commitSHA = TreeView.myCommitSHA
         val updateManager = UpdateManager()
 
-        updateManager.updateLinks(acceptedChanges, myProject, commitSHA)
-        // Remove updated links from UI
-        updateManager.removeUpdatedLinks(myScanResult.myLinkChanges, acceptedChanges, myProject)
+        val verifiedChanges = mutableListOf<Pair<Link, Change>>()
+        for (linkChange in acceptedChanges) {
+            if (linkChange.first is RelativeLink<*> && linkChange.second.hasWorkingTreeChanges() &&
+                !UpdateManager.WorkingTreeChangeDialog(linkChange.first).showAndGet()) {
+                continue
+            } else {
+                verifiedChanges.add(linkChange)
+            }
+        }
+        updateManager.updateLinks(myScanResult.myLinkChanges, verifiedChanges, myProject, commitSHA)
     }
 }

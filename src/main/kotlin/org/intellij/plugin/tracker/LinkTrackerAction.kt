@@ -3,6 +3,7 @@ package org.intellij.plugin.tracker
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -60,6 +61,7 @@ class LinkTrackerAction : AnAction() {
                 dryRun = true
             )
 
+            FileDocumentManager.getInstance().saveAllDocuments()
             // Run task
             ProgressManager.getInstance().run(dataParsingTask)
         }

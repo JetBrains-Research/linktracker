@@ -72,7 +72,7 @@ class DataParsingTask(
         }
         for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-            val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
+            val link: Link = LinkFactory.createLink(linkInfo)
 
             if (link is NotSupportedLink) {
                 continue

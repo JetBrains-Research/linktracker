@@ -30,36 +30,50 @@ class UpdateManager {
     /**
      * Updates the links in the list.
      */
-    fun updateLinks(list: MutableCollection<Pair<Link, Change>>, project: Project, commitSHA: String?) {
+    fun updateLinks(
+        linksAndChanges: MutableList<Pair<Link, Change>>,
+        acceptedChanges: MutableList<Pair<Link, Change>>,
+        project: Project,
+        commitSHA: String?
+    ) {
         val myLinkUpdaterService = LinkUpdaterService(project)
-        ApplicationManager.getApplication().runWriteAction {
-            WriteCommandAction.runWriteCommandAction(project) {
-                try {
-                    myLinkUpdaterService.updateLinks(list, commitSHA)
-                } catch (e: Exception) {
-                    showRefreshDialog(project)
+        try {
+            ApplicationManager.getApplication().runWriteAction {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    myLinkUpdaterService.updateLinks(acceptedChanges, commitSHA)
+                    removeUpdatedLinks(linksAndChanges, acceptedChanges, project)
                 }
             }
+        } catch (e: ClassNotFoundException) {
+            // safe exception
+        } catch (e: Exception) {
+            showRefreshDialog(project)
         }
     }
 
     /**
      * Removes the updated links from UI and refresh the view.
      */
-    fun removeUpdatedLinks(linkAndChange: MutableList<Pair<Link, Change>>, acceptedChanges: MutableList<Pair<Link, Change>>, project: Project) {
+    private fun removeUpdatedLinks(linkAndChange: MutableList<Pair<Link, Change>>, acceptedChanges: MutableList<Pair<Link, Change>>, project: Project) {
         for (acceptedChange in acceptedChanges) {
-            when (val change = acceptedChange.second) {
-                is CustomChange -> {
-                    linkAndChange.remove(acceptedChange)
-                    linkAndChange.add(Pair(acceptedChange.first, CustomChange(CustomChangeType.ADDED, change.afterPathString)))
-                }
-                is LineChange -> {
-                    linkAndChange.remove(acceptedChange)
-                    linkAndChange.add(Pair(acceptedChange.first, LineChange(change.fileChange, LineChangeType.UNCHANGED)))
-                }
-                is LinesChange -> {
-                    linkAndChange.remove(acceptedChange)
-                    linkAndChange.add(Pair(acceptedChange.first, LinesChange(change.fileChange, LinesChangeType.UNCHANGED)))
+            if (acceptedChange.second.changes.contains(CustomChangeType.DELETED)) {
+                linkAndChange.remove(acceptedChange)
+            } else {
+                when (val change = acceptedChange.second) {
+                    is CustomChange -> {
+                        linkAndChange.remove(acceptedChange)
+                        linkAndChange.add(Pair(acceptedChange.first, CustomChange(CustomChangeType.ADDED, change.afterPathString)))
+                    }
+                    is LineChange -> {
+                        linkAndChange.remove(acceptedChange)
+                        val fileChange = CustomChange(CustomChangeType.ADDED, change.fileChange.afterPathString)
+                        linkAndChange.add(Pair(acceptedChange.first, LineChange(fileChange, LineChangeType.UNCHANGED)))
+                    }
+                    is LinesChange -> {
+                        linkAndChange.remove(acceptedChange)
+                        val fileChange = CustomChange(CustomChangeType.ADDED, change.fileChange.afterPathString)
+                        linkAndChange.add(Pair(acceptedChange.first, LinesChange(fileChange, LinesChangeType.UNCHANGED)))
+                    }
                 }
             }
         }
@@ -98,6 +112,27 @@ class UpdateManager {
             val dialogPanel = JPanel(BorderLayout())
             val label = JLabel(text)
             label.preferredSize = Dimension(100, 50)
+            dialogPanel.add(label, BorderLayout.CENTER)
+            return dialogPanel
+        }
+    }
+
+    /**
+     * A dialog popup warning the user about an working tree change
+     * update and asking whether them to update the change.
+     */
+    class WorkingTreeChangeDialog(val link: Link) : DialogWrapper(true) {
+        private val text = "<html>You are updating a working tree change. Do you want to continue? <br><br>" +
+                "<html>Link: <font color=#1E8ABD>${link.linkInfo.linkPath}</font></html>"
+
+        init {
+            super.init()
+            title = "Update Working Tree Change"
+        }
+
+        override fun createCenterPanel(): JComponent? {
+            val dialogPanel = JPanel(BorderLayout())
+            val label = JLabel(text)
             dialogPanel.add(label, BorderLayout.CENTER)
             return dialogPanel
         }

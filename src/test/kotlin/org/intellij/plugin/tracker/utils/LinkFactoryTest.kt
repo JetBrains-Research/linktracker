@@ -27,7 +27,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToFile(linkInfo), resultLink)
     }
 
@@ -42,7 +42,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToLine(linkInfo), resultLink)
     }
 
@@ -57,7 +57,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(RelativeLinkToLines(linkInfo), resultLink)
     }
 
@@ -72,7 +72,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToFile(linkInfo), resultLink)
     }
 
@@ -87,7 +87,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToLine(linkInfo), resultLink)
     }
 
@@ -102,7 +102,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToLines(linkInfo), resultLink)
     }
 
@@ -117,7 +117,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToDirectory(linkInfo), resultLink)
     }
 
@@ -132,7 +132,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -150,7 +150,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -168,7 +168,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(
             NotSupportedLink(linkInfo, errorMessage = "This type of web link is not supported"),
             resultLink
@@ -186,7 +186,7 @@ class LinkFactoryTest : TestCase() {
             project = mock()
         )
 
-        val resultLink: Link = LinkFactory.createLink(linkInfo, null)
+        val resultLink: Link = LinkFactory.createLink(linkInfo)
         Assertions.assertEquals(WebLinkToDirectory(linkInfo), resultLink)
     }
 }
