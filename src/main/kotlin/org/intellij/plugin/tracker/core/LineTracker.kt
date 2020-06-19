@@ -12,6 +12,10 @@ class LineTracker {
 
     companion object {
 
+        /**
+         * This method calls the LHDiff algorithm (`trackLine`)  on each single line of the group of lines
+         * and matches on the  return of this method.
+         */
         private fun trackEachLineIndividually(
             link: Link,
             linesToTrack: MutableList<Int>,
@@ -37,6 +41,11 @@ class LineTracker {
             }
         }
 
+        /**
+         * Auxiliary method that constructs a change map, i.e.
+         * it maps each original line number (before tracking) to the final result
+         * line number, all of this in a map data structure.
+         */
         private fun constructChangeMap(
             originalLineNumbers: MutableList<Int>,
             linesToTrack: MutableList<Int>
@@ -52,6 +61,11 @@ class LineTracker {
             return changeMap
         }
 
+        /**
+         * Auxiliary function that determines the final lines change type result,
+         * based on the track results that were obtained from performing LHDiff on each
+         * individual line from the group of lines.
+         */
         private fun determineLinesChangeType(
             trackResults: MutableList<MutableList<Int>>,
             changeMap: HashMap<Int, Int>
@@ -76,6 +90,11 @@ class LineTracker {
             return linesChangeType
         }
 
+        /**
+         * Based on the list of sequences of consecutive line numbers,
+         * constructs a lists of lists of lines that correspond to those
+         * consecutive line numbers.
+         */
         private fun groupTrackResults(
             trackResults: MutableList<MutableList<Int>>,
             contentHashMap: HashMap<Int, String>,
@@ -92,6 +111,20 @@ class LineTracker {
             }
             return newLines
         }
+
+        /**
+         * Tracks multiple lines across versions of a file.
+         *
+         * This is done by calling the `trackLine` method on each individual line and checking the output
+         * of this method call.
+         * If all of the outputs result in a new (single) group of consecutive lines, then classify this change
+         * as a full move of the lines and return only a group of lines.
+         *
+         * There can also be the case where the lines have been split into multiple groups. In this case, the method
+         * groups each consecutive sequence of lines an returns these groups, along with a partially moved change type.
+         *
+         * If all of the lines have been found to be deleted, then return a change type of deleted.
+         */
 
         fun trackLines(link: Link, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LinesChange {
             var linesToTrack: MutableList<Int> =
@@ -131,6 +164,10 @@ class LineTracker {
             )
         }
 
+        /**
+         * Groups a sequence of integer numbers into multiple sequences constituting
+         * consecutive groups of numbers that occur in the list.
+         */
         private fun groupConsecutiveNumbers(list: MutableList<Int>): MutableList<MutableList<Int>> {
             val result: MutableList<MutableList<Int>> = mutableListOf()
             var index = 0
@@ -152,6 +189,17 @@ class LineTracker {
             }
             return result
         }
+
+        /**
+         * Track a single line, throughout versions of a file.
+         *
+         * This method makes use of the LHDiff algorithm to be able to map a deleted line to an added line.
+         *
+         * This method will first calculate the sim-hash of the deleted line and of each added line, also the sim-hash
+         * of the the context lines of these lines, it will calculate then the hamming distance of these sim-hashes
+         * and create a candidate list of lines, which will then be passed to the `mapLine` method and
+         * `detectLineSplit` method respectively.
+         */
 
         fun trackLine(
             link: Link,
@@ -215,6 +263,11 @@ class LineTracker {
             return LineChange(fileChange, lineChangeType, newLine = line)
         }
 
+        /**
+         * For a deleted line from the before version of the file, constructs
+         * a candidate list of the added lines, by calculating the hamming distance
+         * between the sim-hashes of the two lines and of the context lines of each of the 2 lines.
+         */
         private fun constructCandidateListForDeletedLine(
             deletedLine: Line,
             addedLines: MutableList<Line>
@@ -247,6 +300,16 @@ class LineTracker {
             return candidateList
         }
 
+        /**
+         * Maps a deleted line from the before version of the file to an added line
+         * in the after version of the file. Loops over the candidate list constructed earlier,
+         * and tries to find the best matching line to the deleted line, according to the Levenshtein distance
+         * and to the Cosine distance of the context lines. If the best matching score exceeds a pre-defined threshold,
+         * then a new mapped line is identified.
+         *
+         * The candidate list is then sorted in increasing order, as the lower the hamming distance
+         * the greater the similarity between the lines.
+         */
         private fun mapADeletedLineToAnAddedLine(
             modificationParameter: Int,
             lineToTrackParameter: Int,
@@ -293,6 +356,11 @@ class LineTracker {
             return Triple(lineToTrack, modifications, lineIsDeleted)
         }
 
+        /**
+         * For an unchanged line between the before version after version of a file,
+         * calculate the new location of this line based on the amount of lines deleted and added
+         * before it.
+         */
         private fun determineNewLocationOfUnchangedLine(
             deletedLines: MutableList<Line>,
             addedLines: MutableList<Line>,
@@ -335,11 +403,24 @@ class LineTracker {
             return lineToTrack
         }
 
+        /**
+         * Constructs a joined string representation of the context lines of a specific line.
+         */
         private fun getJoinedStringContextLines(line: Line): String {
             return if (line.contextLines == null) ""
             else line.contextLines!!.joinToString()
         }
 
+        /**
+         * Method that detects whether a deleted line has been split over a set of added lines.
+         *
+         * This is done by taking each added line, concatenating them into a joined string one-by-one
+         * and calculating the Levenshtein similarity between the deleted line and this concatenated string,
+         * as long as this similarity keeps increasing with each new concatenation.
+         *
+         * If a score over the `thresholdValue` parameter is found, then a deleted line is considered
+         * as split over multiple lines.
+         */
         private fun detectLineSplit(
             deletedLine: String,
             addedLines: List<Line>,
@@ -395,6 +476,11 @@ class LineTracker {
             return Pair(null, 0)
         }
 
+        /**
+         * Calculates the Cosine similarity between the context lines of a deleted line
+         * and the context lines of the an added lines from a candidate list at a specific index,
+         * returning the cosine similarity value between these 2.
+         */
         private fun calculateCosineSimilarityOfContext(
             index: Int,
             deletedLine: Line,
@@ -415,6 +501,11 @@ class LineTracker {
             return 1 - Cosine().distance(contextLinesFirst, contextLinesSecond).toFloat()
         }
 
+        /**
+         * Main function that maps a deleted line to a set of added lines,
+         * by using the parameterized threshold value as a value under which lines are considered delete,
+         * and over which lines are consideres mapped (moved) respectively.
+         */
         private fun mapLine(
             deletedLine: Line,
             candidateList: List<Pair<Line, Float>>,

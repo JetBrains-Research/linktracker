@@ -9,6 +9,7 @@ import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
@@ -18,13 +19,29 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Class that handles the logic of git operations
+ * Class that handles the logic of executing all git commands needed throughout the project
+ * processing the outputs (of the git commands) and returning it.
  */
+
 class GitOperationManager(private val project: Project) {
 
+    /**
+     * Main, git service class. It is needed for running all of the git commands,
+     * by using it's runCommand method
+     */
     private val git: Git = Git.getInstance()
+
+    /**
+     * The git repository of the currently open project in the IDE
+     */
     private val gitRepository: GitRepository
 
+    /**
+     * Initializes the git repository property of this class, by fetching all of the repositories
+     * that exist in this project and getting the first one that appears in the list
+     *
+     * If this cannot be done, throw an exception
+     */
     init {
         val repositories: MutableList<GitRepository> = GitRepositoryManager.getInstance(project).repositories
         if (repositories.isNotEmpty()) {
@@ -51,9 +68,12 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Returns the contents of a line in a specified file at a specified commit
+     * Gets the contents of a single line from a file, at a specified commit
      *
-     * Runs git command `git show revision:path_to_file`
+     * Runs git command `git show <commitSHA>:<path>` that retrieves the contents of the file
+     * at <path> at <commitSHA>. Then the method tries to get the line at `lineNumber`.
+     *
+     * Throw an exception of the requested line do not exist in the version of file at <path> and <commitSHA>
      */
     @Throws(VcsException::class)
     fun getContentsOfLineInFileAtCommit(commitSHA: String, path: String, lineNumber: Int): String {
@@ -67,8 +87,15 @@ class GitOperationManager(private val project: Project) {
         throw OriginalLineContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
     }
 
+
     /**
      * Gets the contents of multiple, consecutive lines from a file, at a specified commit
+     *
+     * Runs git command `git show <commitSHA>:<path>` that retrieves the contents of the file
+     * at <path> at <commitSHA>. Then the method tries to get the lines starting (including)
+     * `startLineNumber` and ending `endLineNumber` (included as well).
+     *
+     * Throw an exception of the requested lines do not exist in the version of file at <path> and <commitSHA>
      */
     @Throws(VcsException::class)
     fun getContentsOfLinesInFileAtCommit(
@@ -88,8 +115,10 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Checks whether a reference name corresponds to a valid tag name
+     * Checks whether a reference name corresponds to a valid tag name (in the repository associated to the open project)
      *
+     * This is done by listing all tags in the repository and checking whether `ref` is present in this list
+     * Runs git command `git tag -l`
      */
     fun isRefATag(ref: String): Boolean {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.TAG)
@@ -103,8 +132,10 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Checks whether a reference name corresponds to a valid branch name
+     * Checks whether a reference name corresponds to a valid branch name (in the repository associated to the open project)
      *
+     * This is done by listing all branches in the repository and checking whether `ref` is present in this list
+     * Runs git command `git branch -l`
      */
     @Throws(VcsException::class)
     fun isRefABranch(ref: String): Boolean {
@@ -120,7 +151,10 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Checks whether a reference name corresponds to a valid commit SHA
+     * Checks whether a reference name corresponds to a valid commit SHA (in the repository associated to the open project)
+     *
+     * This is done by running git command `git rev-parse --verify -q <ref>^{commit}` and then checking the exit code
+     * If the exit code is 0, it means that `ref` points to a valid commit SHA. Otherwise, it does not and false is returned
      */
     fun isRefACommit(ref: String): Boolean {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
@@ -135,7 +169,7 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
-     * Get the commit SHA which points to the current HEAD
+     * Get the commit SHA which points to the current HEAD of the repository
      *
      * Runs git command `git rev-parse --short HEAD`
      */
@@ -157,6 +191,10 @@ class GitOperationManager(private val project: Project) {
      *
      * Runs a git command of the form 'git -L32,+1:README.md', where README.md would be the project relative path
      * to the markdown file in which the link was found and 32 would be the line number at which that link was found
+     *
+     * If the file does not exist at the found commit, then if `checkSurroundings` parameter is true,
+     * check the commits within `maxCommitsSurrounding` behind and in front of this initially found start commit.
+     * Then, return the first commit SHA at which the link path is found (it first tries to go backwards and then forwards).
      */
     fun getStartCommit(
         link: Link,
@@ -208,6 +246,22 @@ class GitOperationManager(private val project: Project) {
         return null
     }
 
+    /**
+     * Auxiliary function for method getStartCommit.
+     * This function retrieves all the commit SHAs that are in between a specific range and checks whether the file/directory
+     * (identified by the path parameter) exists at any of these retrieved commits.
+     *
+     * This method accepts either a `from` or `until` value, but not both. Also, when none of these is specified,
+     * it is also considered as an invalid method call.
+     *
+     * If `from` is specified, then the method will fetch the commits starting at `from` (not including) plus
+     * `maxCommitsSurrounding` in front of this commit.
+     * If `until` is specified, then the method will fetch the commits ending at `until` (not including) minus
+     * `maxCommitsSurrounding` behind this commit.
+     *
+     * With each of these commits, it will check whether `path` exists at that commit. If it exists,
+     * return the first commit SHA at which the path exists.
+     */
     private fun getCommitsInRange(
         from: String? = null,
         until: String? = null,
@@ -434,18 +488,38 @@ class GitOperationManager(private val project: Project) {
         }
     }
 
+    /**
+     * Checks whether a given file/directory (identified by a path) exists at a certain commit
+     * in the repository associated with the open project
+     *
+     * Runs git command `git show <commitSHA>:<path> and checks the exit code of this command.
+     */
     private fun fileExistsAtCommit(commitSHA: String, path: String): Boolean {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
         gitLineHandler.addParameters("$commitSHA:$path")
         return git.runCommand(gitLineHandler).exitCode == 0
     }
 
+    /**
+     * Auxiliary method of processChangesForFiles, which iterates through the git log
+     * outputs of a certain path, by traversing the git history of the file
+     * starting from the first path in the git output.
+     *
+     * It keeps track of the file history that is encountered through-out the traversal,
+     * as well as of the numbers of deletions and additions that a file is found to have
+     * during this traversal.
+     *
+     * It can throw 2 types of errors, one for the case where the path never existed in git history,
+     * and one for the case where the file name referenced existed, but that specific path
+     * never actually did.
+     */
     private fun traverseGitHistoryForFile(
         lookUpContentParameter: String,
         fileHistoryList: MutableList<FileHistory>,
         lookUpIndexParameter: Int,
         linkPath: String,
-        changeList: List<String>
+        changeList: List<String>,
+        specificCommit: String?
     ): CustomChange {
         var lookUpIndex: Int = lookUpIndexParameter
         var linkPathFound = false
@@ -484,9 +558,18 @@ class GitOperationManager(private val project: Project) {
             linkChange.deletionsAndAdditions = deletionsAndAdditions
             return linkChange
         }
-        throw ReferencedPathNotFoundException(linkPath)
+        val useCommit: String = specificCommit ?: getHeadCommitSHA()
+        return checkFileExistsOnDisk(linkPath, useCommit)
+            ?: throw ReferencedPathNotFoundException(linkPath)
     }
 
+    /**
+     * Starting from a `changed line` in the git log output,
+     * go line-by-line upwards in the output until the corresponding
+     * `commit line` to that `changed line` is found. When found,
+     * extract the commit SHA from the `commit line` and the new path from the `changed line`,
+     * creating a file history object and adding it to the file history list.
+     */
     private fun findCommitLineAndAddFileHistory(
         fileHistoryList: MutableList<FileHistory>,
         subList: List<String>,
@@ -512,6 +595,15 @@ class GitOperationManager(private val project: Project) {
         return lookUpContent
     }
 
+    private fun checkFileExistsOnDisk(linkPath: String, specificCommit: String?): CustomChange? {
+        if (File("${project.basePath}/$linkPath").exists()) {
+            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
+            fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
+            return fileChange
+        }
+        return null
+    }
+
     /**
      * Auxiliary function that processes the output of
      * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
@@ -533,6 +625,7 @@ class GitOperationManager(private val project: Project) {
         changes: String,
         specificCommit: String?
     ): CustomChange {
+        println("changes are: $changes")
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
             var additionList: List<Pair<Int, String>> =
@@ -557,7 +650,7 @@ class GitOperationManager(private val project: Project) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
 
-                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList)
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
             }
 
             additionList = additionList.reversed()
@@ -566,16 +659,12 @@ class GitOperationManager(private val project: Project) {
                 val lookUpIndex: Int = pair.first
                 val lookUpContent: String = pair.second
 
-                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList)
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
             }
         }
 
-        if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
-            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
-            fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
-            return fileChange
-        }
-        throw ReferencedFileNotFoundException()
+        return checkFileExistsOnDisk(linkPath, specificCommit)
+            ?:throw ReferencedFileNotFoundException()
     }
 
     /**
@@ -615,6 +704,8 @@ class GitOperationManager(private val project: Project) {
     /**
      * Runs a git diff command between the version of the file at path `beforePath` at `commit1`
      * and the version of the file at path `afterPath` at `commit2`.
+     *
+     * Runs command `git diff -U<contextLinesNumber> <commit1>:<beforePath> <commit2:afterPath>`
      */
     @Throws(VcsException::class)
     fun getDiffBetweenCommits(
