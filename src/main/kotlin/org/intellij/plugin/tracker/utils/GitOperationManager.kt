@@ -267,6 +267,7 @@ class GitOperationManager(private val project: Project) {
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
+                    if (lineSplit[1] == linkPath) return CustomChange(CustomChangeType.ADDED, lineSplit[1])
                     return CustomChange(CustomChangeType.MOVED, lineSplit[1])
                 }
                 change.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
@@ -439,6 +440,78 @@ class GitOperationManager(private val project: Project) {
         return git.runCommand(gitLineHandler).exitCode == 0
     }
 
+    private fun traverseGitHistoryForFile(
+        lookUpContentParameter: String,
+        fileHistoryList: MutableList<FileHistory>,
+        lookUpIndexParameter: Int,
+        linkPath: String,
+        changeList: List<String>
+    ): CustomChange {
+        var lookUpIndex: Int = lookUpIndexParameter
+        var linkPathFound = false
+        var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
+        var deletionsAndAdditions = 0
+        var lookUpContent: String = lookUpContentParameter
+
+        if (!lookUpContent.startsWith("D"))
+            fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+
+        while (lookUpIndex != -1) {
+            val parsedLookUpContent: String = parseContent(lookUpContent).trim()
+
+            if (lookUpContent.contains(linkPath)) linkPathFound = true
+
+            // if the link path has been found during the traversal
+            // and we encounter a delete change type, that means that that file was deleted
+            // stop the search and return
+            if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
+
+            // lookUpIndex will match the first line which is not a commit line and contains the
+            // parsedLookUpContent
+            lookUpIndex = subList.indexOfFirst { line ->
+                line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
+            }
+
+            if (lookUpIndex != -1) {
+                lookUpContent = findCommitLineAndAddFileHistory(fileHistoryList, subList, lookUpIndex)
+            }
+            subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
+        }
+
+        if (linkPathFound || lookUpContent.contains(linkPath)) {
+            val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
+            linkChange.fileHistoryList = fileHistoryList
+            linkChange.deletionsAndAdditions = deletionsAndAdditions
+            return linkChange
+        }
+        throw ReferencedPathNotFoundException(linkPath)
+    }
+
+    private fun findCommitLineAndAddFileHistory(
+        fileHistoryList: MutableList<FileHistory>,
+        subList: List<String>,
+        lookUpIndex: Int
+    ): String {
+        val lookUpContent = subList[lookUpIndex]
+        if (!lookUpContent.startsWith("D")) {
+            var lookUpIndexCopy = lookUpIndex - 1
+            while (lookUpIndexCopy >= 0) {
+                val parsedContent = parseContent(subList[lookUpIndexCopy])
+                if (parsedContent.startsWith("Commit: ")) {
+                    fileHistoryList.add(
+                        FileHistory(
+                            parsedContent,
+                            parseContent(lookUpContent)
+                        )
+                    )
+                    break
+                }
+                lookUpIndexCopy--
+            }
+        }
+        return lookUpContent
+    }
+
     /**
      * Auxiliary function that processes the output of
      * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
@@ -474,106 +547,27 @@ class GitOperationManager(private val project: Project) {
             // if we can not find the link path we are looking for within
             // the traversal, throw an exception
             if (specificCommit != null) {
-                var linkPathFound = false
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                var lookUpIndex: Int = 1
-                var lookUpContent = changeList[lookUpIndex]
-                var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
-
-                var deletionsAndAdditions = 0
+                val lookUpIndex: Int = 1
+                val lookUpContent = changeList[lookUpIndex]
 
                 // only add the FileHistory containing specificCommit as revision
                 // and linkPath as path if it truly existed
                 if (fileExistsAtCommit(specificCommit, linkPath)) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
 
-                while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
-
-                    if (lookUpContent.contains(linkPath)) linkPathFound = true
-
-                    // if the link path has been found during the traversal
-                    // and we encounter a delete change type, that means that that file was deleted
-                    // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
-
-                    // lookUpIndex will match the first line which is not a commit line and contains the
-                    // parsedLookUpContent
-                    lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
-                    }
-
-                    if (lookUpIndex != -1) {
-                        lookUpContent = subList[lookUpIndex]
-                        fileHistoryList.add(
-                            FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
-                            )
-                        )
-                    }
-                    subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
-                }
-
-                if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
-                    linkChange.fileHistoryList = fileHistoryList
-                    linkChange.deletionsAndAdditions = deletionsAndAdditions
-                    return linkChange
-                }
-                throw ReferencedPathNotFoundException(linkPath)
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList)
             }
 
             additionList = additionList.reversed()
             for (pair: Pair<Int, String> in additionList) {
-                var linkPathFound = false
-                var lookUpIndex: Int = pair.first
-                var lookUpContent: String = pair.second
-                var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
-
-                var deletionsAndAdditions = 0
-
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+                val lookUpIndex: Int = pair.first
+                val lookUpContent: String = pair.second
 
-                while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
-
-                    if (lookUpContent.contains(linkPath)) linkPathFound = true
-
-                    // if the link path has been found during the traversal
-                    // and we encounter a delete change type, that means that that file was deleted
-                    // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
-
-                    // lookUpIndex will match the first line which is not a commit line and contains the
-                    // parsedLookUpContent
-                    lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
-                    }
-
-                    if (lookUpIndex != -1) {
-                        lookUpContent = subList[lookUpIndex]
-                        fileHistoryList.add(
-                            FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
-                            )
-                        )
-                    }
-                    subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
-                }
-
-                if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
-                    linkChange.fileHistoryList = fileHistoryList
-                    linkChange.deletionsAndAdditions = deletionsAndAdditions
-                    return linkChange
-                }
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList)
             }
-            throw ReferencedPathNotFoundException(linkPath)
         }
 
         if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
