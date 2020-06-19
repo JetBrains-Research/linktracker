@@ -81,6 +81,16 @@ data class WebLinkToDirectory(
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
     }
+
+    /**
+     * Converts this link to a link to a file, containing the parameterized file path as link path
+     */
+    fun convertToFileLink(filePath: String): WebLinkToFile {
+        val linkInfoCopy: LinkInfo = linkInfo.copy(linkPath = filePath)
+        return WebLinkToFile(
+            linkInfo = linkInfoCopy
+        )
+    }
 }
 
 /**

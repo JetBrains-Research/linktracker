@@ -160,7 +160,6 @@ data class DiffOutput(
                 .filterNot { line -> line == "\\ No newline at end of file" }
 
             val diffOutputResult = processDiffOutputLines(lines, contextLinesNumber)
-
             return DiffOutput(beforePath, diffOutputResult.first, diffOutputResult.second, before, after)
         }
     }

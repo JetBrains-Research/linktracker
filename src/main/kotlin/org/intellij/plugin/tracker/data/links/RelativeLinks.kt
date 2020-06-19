@@ -61,6 +61,16 @@ data class RelativeLinkToDirectory(
     }
 
     override fun markdownFileMoved(afterPath: String): Boolean = false
+
+    /**
+     * Converts this link to a link to a file, containing the parameterized file path as link path
+     */
+    fun convertToFileLink(filePath: String): RelativeLinkToFile {
+        val linkInfoCopy: LinkInfo = linkInfo.copy(linkPath = filePath)
+        return RelativeLinkToFile(
+            linkInfo = linkInfoCopy
+        )
+    }
 }
 
 /**
