@@ -674,8 +674,8 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
         val change = changeTracker.getLocalLinesChanges(link) as LinesChange
 
-        val expectedLines1 = mutableListOf(12, 13)
-        val expectedLines2 = mutableListOf(17, 18, 19)
+        val expectedLines1 = mutableListOf(12, 13, 14)
+        val expectedLines2 = mutableListOf(17, 18)
 
         Assertions.assertEquals(LinesChangeType.PARTIAL, change.linesChangeType)
 
