@@ -20,6 +20,8 @@ class LinkUpdaterService(val project: Project) {
      * Used by IDEA to get a reference to the single instance of this class.
      */
     companion object {
+        var workingTreePaths = mutableListOf<RelativeLink<*>>()
+
         fun getInstance(project: Project): LinkUpdaterService =
             ServiceManager.getService(project, LinkUpdaterService::class.java)
     }
@@ -63,8 +65,11 @@ class LinkUpdaterService(val project: Project) {
      */
     @Suppress("UNCHECKED_CAST")
     private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
-        // if the change comes from the working tree, do not update the link
-        // let the user do it via the UI!
+
+        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> && !workingTreePaths.contains(link)) {
+            workingTreePaths.add(link)
+        }
+
         var afterPath: String? = null
         if (link is RelativeLink<*>) {
             val castLink: RelativeLink<Change> = link as RelativeLink<Change>
@@ -76,6 +81,14 @@ class LinkUpdaterService(val project: Project) {
 
         // calculated updated link is null -> something wrong must have happened, return false
         if (afterPath == null) return false
+
+        // removes the links from tree path list if it is being updated to its version in git history
+        for (treeLink in workingTreePaths) {
+            if (treeLink.path == afterPath && link.linkInfo.fileName == treeLink.linkInfo.fileName &&
+                link.linkInfo.proveniencePath == treeLink.linkInfo.proveniencePath) {
+                workingTreePaths.remove(link)
+            }
+        }
 
         val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
         element.replace(newElement)

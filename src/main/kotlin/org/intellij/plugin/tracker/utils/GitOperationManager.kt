@@ -20,6 +20,7 @@ import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.services.LinkUpdaterService
 
 /**
  * Class that handles the logic of executing all git commands needed throughout the project
@@ -389,7 +390,7 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link.path, outputLog.getOutputOrThrow(), specificCommit)
+        return processChangesForFile(link, link.path, outputLog.getOutputOrThrow(), specificCommit)
     }
 
     /**
@@ -486,6 +487,7 @@ class GitOperationManager(private val project: Project) {
      * If the output of the git command that is processed is the empty string, then that file never existed in git history.
      */
     private fun processChangesForFile(
+        link: Link,
         linkPath: String,
         changes: String,
         specificCommit: String?
@@ -603,6 +605,15 @@ class GitOperationManager(private val project: Project) {
                     return linkChange
                 }
             }
+
+            // If this is a working tree change, finds the corresponding change of this link
+            val paths = LinkUpdaterService.workingTreePaths
+            for (path in paths) {
+                if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                    path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
+                    return CustomChange(CustomChangeType.MOVED, path.path)
+                }
+            }
             throw ReferencedPathNotFoundException(linkPath)
         }
 
@@ -611,6 +622,16 @@ class GitOperationManager(private val project: Project) {
             fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
             return fileChange
         }
+
+        // If this is a working tree change, finds the corresponding change of this link
+        val paths = LinkUpdaterService.workingTreePaths
+        for (path in paths) {
+            if (path.linkInfo.fileName == link.linkInfo.fileName &&
+                path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
+                return CustomChange(CustomChangeType.MOVED, path.path)
+            }
+        }
+
         throw ReferencedFileNotFoundException()
     }
 

@@ -5,6 +5,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.view.TreeView
 
@@ -28,13 +29,10 @@ class CheckBoxHelper {
             }
             val file = add(node, "$fileName $path", false)
             for (links in linkList.value) {
-                val link = add(file, "${links.first.linkInfo.linkText} ${links.first.linkInfo.linkPath}", false)
+                val link = DefaultMutableTreeNode("${links.first.linkInfo.linkText} ${links.first.linkInfo.linkPath}")
+                file.add(link)
                 for (i in 0 until links.second.afterPath.size) {
-                    link.add(
-                        DefaultMutableTreeNode(
-                            "(${links.first.linkInfo.foundAtLineNumber}) ${links.second.afterPath[i]}"
-                        )
-                    )
+                    add(link, "(${links.first.linkInfo.foundAtLineNumber}) ${links.second.afterPath[i]}", false)
                 }
                 if (links.second.requiresUpdate) {
                     var displayString = ""
@@ -71,48 +69,68 @@ class CheckBoxHelper {
     }
 
     /**
-     * Checks children of a node and makes required updates
+     * Checks children of the parent node and makes required updates
      */
-    fun checkChildren() {
+    fun checkParentChildren() {
+        var parentSelected = false
+        var allOtherSelected = true
+        var nonSelected = true
+        var oneSelected = false
+        for ((key, value) in TreeView.nodesCheckingState) {
+            if (key.pathCount == 2 && value.isChecked) {
+                parentSelected = true
+            } else if (key.pathCount != 2 && !value.isChecked) {
+                if (getSiblings(key).size > 0) {
+                    if (!oneSiblingChecked(key)) {
+                        allOtherSelected = false
+                    }
+                } else {
+                    allOtherSelected = false
+                }
+            } else if (key.pathCount != 2 && value.isChecked) {
+                oneSelected = true
+                nonSelected = false
+            }
+        }
+        for ((key, value) in TreeView.nodesCheckingState) {
+            if (key.pathCount == 2 && !parentSelected && (oneSelected || allOtherSelected)) {
+                value.isChecked = true
+            } else if (key.pathCount == 2 && parentSelected && nonSelected) {
+                value.isChecked = false
+            }
+        }
+    }
+
+    /**
+     * Checks children of sub nodes and makes required updates
+     */
+    fun checkSubChildren() {
         val links = getLinkNodes()
         for (link in links) {
             var selected = false
             var allSelected = true
             var noSelected = true
+            var oneOtherSelected = false
             for ((key, value) in TreeView.nodesCheckingState) {
                 if (key.pathCount == 3 && value == link.key && value.isChecked) {
                     selected = true
-                } else if (key.pathCount == 4 && link.value.contains(value) && !value.isChecked) {
-                    allSelected = false
-                } else if (key.pathCount == 4 && link.value.contains(value) && value.isChecked) {
+                } else if (key.pathCount == 5 && link.value.contains(value) && !value.isChecked) {
+                    allSelected = if (getSiblings(key).size > 0) {
+                        oneSiblingChecked(key)
+                    } else {
+                        false
+                    }
+                } else if (key.pathCount == 5 && link.value.contains(value) && value.isChecked) {
+                    oneOtherSelected = true
                     noSelected = false
                 }
             }
             for ((key, value) in TreeView.nodesCheckingState) {
-                if (key.pathCount == 3 && value == link.key && !selected && allSelected) {
+                if (key.pathCount == 3 && value == link.key && !selected && (allSelected || oneOtherSelected)) {
                     value.isChecked = true
                 } else if (key.pathCount == 3 && value == link.key && selected && noSelected) {
                     value.isChecked = false
                 }
-            }
-        }
-        var parentSelected = false
-        var allOtherSelected = true
-        var nonSelected = true
-        for ((key, value) in TreeView.nodesCheckingState) {
-            if (key.pathCount == 2 && value.isChecked) {
-                parentSelected = true
-            } else if (key.pathCount != 2 && !value.isChecked) {
-                allOtherSelected = false
-            } else if (key.pathCount != 2 && value.isChecked) {
-                nonSelected = false
-            }
-        }
-        for ((key, value) in TreeView.nodesCheckingState) {
-            if (key.pathCount == 2 && !parentSelected && allOtherSelected) {
-                value.isChecked = true
-            } else if (key.pathCount == 2 && parentSelected && nonSelected) {
-                value.isChecked = false
             }
         }
     }
@@ -122,8 +140,14 @@ class CheckBoxHelper {
      */
     fun addToAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            if (pair.first.linkInfo.linkPath == path.lastPathComponent.toString().split(" ").last()) {
-                TreeView.acceptedChangeList.add(pair)
+            for (afterPath in pair.second.afterPath) {
+                val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+                if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                    if (pair.second is LinesChange) {
+                        (pair.second as LinesChange).selectedAfterPath = afterPath
+                    }
+                    TreeView.acceptedChangeList.add(pair)
+                }
             }
         }
     }
@@ -133,8 +157,53 @@ class CheckBoxHelper {
      */
     fun removeFromAcceptedChangeList(changes: MutableList<Pair<Link, Change>>, path: TreePath) {
         for (pair in changes) {
-            if (pair.first.path == path.lastPathComponent.toString().split(" ").last()) TreeView.acceptedChangeList.remove(pair)
+            for (afterPath in pair.second.afterPath) {
+                val p = "(${pair.first.linkInfo.foundAtLineNumber}) $afterPath"
+                if (path.lastPathComponent.toString() == p || path.lastPathComponent.toString().contains(">$afterPath<")) {
+                    if (pair.second is LinesChange) {
+                        (pair.second as LinesChange).selectedAfterPath = null
+                    }
+                    TreeView.acceptedChangeList.remove(pair)
+                }
+            }
         }
+    }
+
+    private fun oneSiblingChecked(path: TreePath): Boolean {
+        val siblingNodes = getSiblings(path)
+        for (s in siblingNodes) {
+            if (s.isChecked) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fun notSiblingChecked(path: TreePath): Boolean {
+        val siblingNodes = getSiblings(path)
+        return if (siblingNodes.size == 0) {
+            true
+        } else {
+            var checkedOther = false
+            for (s in siblingNodes) {
+                if (s.isChecked) {
+                    checkedOther = true
+                }
+            }
+            !checkedOther
+        }
+    }
+
+    fun getSiblings(path: TreePath): MutableList<CheckBoxNodeData> {
+        val siblings = mutableListOf<CheckBoxNodeData>()
+        val last = path.lastPathComponent.toString()
+        val common = path.toString().replace(last, "").replace("]", "")
+        for (node in TreeView.nodesCheckingState) {
+            if (node.key.toString().contains(common) && node.key != path) {
+                siblings.add(node.value)
+            }
+        }
+        return siblings
     }
 
     /**
@@ -160,7 +229,7 @@ class CheckBoxHelper {
         for (file in getFileNodes()) {
             val list = mutableListOf<CheckBoxNodeData>()
             for ((key, value) in TreeView.nodesCheckingState) {
-                if (key.pathCount == 4 && key.toString().contains(file.first.toString().replace("]", ""))) {
+                if (key.pathCount == 5 && key.toString().contains(file.first.toString().replace("]", ""))) {
                     list.add(value)
                 }
             }

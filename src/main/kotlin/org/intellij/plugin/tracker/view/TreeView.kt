@@ -57,7 +57,7 @@ class TreeView : JPanel(BorderLayout()) {
      */
     fun updateModel(currentScanResult: ScanResult) {
         acceptedChangeList = mutableListOf()
-        checkedPaths = HashSet<TreePath>()
+        checkedPaths = HashSet()
         nodesCheckingState = HashMap()
 
         // Parse data from result
@@ -227,7 +227,8 @@ class TreeView : JPanel(BorderLayout()) {
                                 }
                             }
                         }
-                    } else if (selPath != null) checkCheckBoxes(selPath)
+                    }
+                    if (selPath != null) checkCheckBoxes(selPath)
                 }
             })
         }
@@ -250,10 +251,18 @@ class TreeView : JPanel(BorderLayout()) {
                     2 -> {
                         for (node in nodesCheckingState) {
                             if (!node.value.isChecked) {
-                                node.value.isChecked = true
-                                checkedPaths.add(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
+                                    if (checkBoxHelper.notSiblingChecked(node.key)) {
+                                        node.value.isChecked = true
+                                        checkedPaths.add(node.key)
+                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                    }
+                                } else {
+                                    node.value.isChecked = true
+                                    checkedPaths.add(node.key)
+                                    if (node.key.pathCount == 5) {
+                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                    }
                                 }
                             }
                         }
@@ -264,19 +273,35 @@ class TreeView : JPanel(BorderLayout()) {
                             if (!node.value.isChecked && node.key.toString()
                                     .contains(selPath.toString().replace("]", ""))
                             ) {
-                                node.value.isChecked = true
-                                checkedPaths.add(node.key)
-                                if (node.key.pathCount == 4) {
-                                    checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                if (checkBoxHelper.getSiblings(node.key).size > 0 && node.key.pathCount == 5) {
+                                    if (checkBoxHelper.notSiblingChecked(node.key)) {
+                                        node.value.isChecked = true
+                                        checkedPaths.add(node.key)
+                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                    }
+                                } else {
+                                    node.value.isChecked = true
+                                    checkedPaths.add(node.key)
+                                    if (node.key.pathCount == 5) {
+                                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
+                                    }
                                 }
                             }
                         }
                     }
                     // case for the fourth level nodes
                     else -> {
-                        data.isChecked = true
-                        checkedPaths.add(selPath)
-                        checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
+                        if (checkBoxHelper.getSiblings(selPath).size > 0) {
+                            if (checkBoxHelper.notSiblingChecked(selPath)) {
+                                data.isChecked = true
+                                checkedPaths.add(selPath)
+                                checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
+                            }
+                        } else {
+                            data.isChecked = true
+                            checkedPaths.add(selPath)
+                            checkBoxHelper.addToAcceptedChangeList(ourScanResult.myLinkChanges, selPath)
+                        }
                     }
                 }
             } else {
@@ -287,7 +312,7 @@ class TreeView : JPanel(BorderLayout()) {
                             if (node.value.isChecked) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if (node.key.pathCount == 4) {
+                                if (node.key.pathCount == 5) {
                                     checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
                                 }
                             }
@@ -301,7 +326,7 @@ class TreeView : JPanel(BorderLayout()) {
                             ) {
                                 node.value.isChecked = false
                                 checkedPaths.remove(node.key)
-                                if (node.key.pathCount == 4) {
+                                if (node.key.pathCount == 5) {
                                     checkBoxHelper.removeFromAcceptedChangeList(ourScanResult.myLinkChanges, node.key)
                                 }
                             }
@@ -316,7 +341,8 @@ class TreeView : JPanel(BorderLayout()) {
                 }
             }
             // call @checkChildren method to make parents/children of the respective node selected/unselected
-            checkBoxHelper.checkChildren()
+            checkBoxHelper.checkSubChildren()
+            checkBoxHelper.checkParentChildren()
         }
     }
 

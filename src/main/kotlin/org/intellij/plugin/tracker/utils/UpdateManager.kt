@@ -44,6 +44,8 @@ class UpdateManager {
                     removeUpdatedLinks(linksAndChanges, acceptedChanges, project)
                 }
             }
+        } catch (e: ClassNotFoundException) {
+            // safe exception
         } catch (e: Exception) {
             showRefreshDialog(project)
         }
@@ -110,6 +112,27 @@ class UpdateManager {
             val dialogPanel = JPanel(BorderLayout())
             val label = JLabel(text)
             label.preferredSize = Dimension(100, 50)
+            dialogPanel.add(label, BorderLayout.CENTER)
+            return dialogPanel
+        }
+    }
+
+    /**
+     * A dialog popup warning the user about an working tree change
+     * update and asking whether them to update the change.
+     */
+    class WorkingTreeChangeDialog(val link: Link) : DialogWrapper(true) {
+        private val text = "<html>You are updating a working tree change. Do you want to continue? <br><br>" +
+                "<html>Link: <font color=#1E8ABD>${link.linkInfo.linkPath}</font></html>"
+
+        init {
+            super.init()
+            title = "Update Working Tree Change"
+        }
+
+        override fun createCenterPanel(): JComponent? {
+            val dialogPanel = JPanel(BorderLayout())
+            val label = JLabel(text)
             dialogPanel.add(label, BorderLayout.CENTER)
             return dialogPanel
         }

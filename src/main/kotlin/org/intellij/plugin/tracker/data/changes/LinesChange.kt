@@ -87,6 +87,11 @@ data class LinesChange(
 ) : Change {
 
     /**
+     * The path user selected to update
+     */
+    var selectedAfterPath: String? = null
+
+    /**
      * Changes are made up of the change of the file in which the lines are located
      * together with the change of the lines
      */

@@ -251,7 +251,7 @@ data class RelativeLinkToLines(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.afterPath[0]
+    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.selectedAfterPath
 }
 
 /**

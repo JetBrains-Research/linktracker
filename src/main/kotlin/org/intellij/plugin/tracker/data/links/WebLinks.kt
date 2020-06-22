@@ -300,7 +300,12 @@ data class WebLinkToLines(
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
     override fun generateNewPath(change: LinesChange, newPath: String): String? {
-        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
+        if (change.newLines == null) return null
+
+        return newPath.replace(
+            "$path#L$referencedStartingLine-L$referencedEndingLine",
+            change.selectedAfterPath!!
+        )
     }
 
     /**
