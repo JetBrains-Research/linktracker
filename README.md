@@ -42,7 +42,7 @@ plugin.
 * The plugin settings have been placed into the default settings of Intellij IDEA. These can be found under `Tools/Link Tracking`. There are 2 different pages that constitute the plugin’s settings. 
 The first one is a page where the user can set similarity thresholds for tracking links to files, directories and lines. The second one corresponds to a token
 management page for managing personal access token to private GitHub repositories. The latter is needed in order to track links to web-repositories that do not correspond to the currently open project. 
-<img src="https://user-images.githubusercontent.com/47633984/85557381-01996a80-b628-11ea-9e0f-da20a5a90a71.jpg" width="500" />
+<img src="https://user-images.githubusercontent.com/47633984/85557381-01996a80-b628-11ea-9e0f-da20a5a90a71.jpg" width="400" />
 <img src="https://user-images.githubusercontent.com/47633984/85557452-10801d00-b628-11ea-9ef5-a67f0e92bc1f.jpg" height="200" />
 
 ## Functionality
@@ -55,7 +55,7 @@ needs to click on the checkmark on the left part of the Tool Window, which will 
 - A button for accessing the settings page of the plugin has been included in the left bar. The plugin action can also
 be re-triggered by pressing the first button in the left bar.
 
-![Image of MD Plugin](https://user-images.githubusercontent.com/47633984/85557780-65239800-b628-11ea-8a15-55f021c5e9a9.jpg)
+<img src="https://user-images.githubusercontent.com/47633984/85557780-65239800-b628-11ea-8a15-55f021c5e9a9.jpg" height="250" />
 
 ## Contributors
 * [Ceren Ugurlu](https://gitlab.ewi.tudelft.nl/cugurlu)
