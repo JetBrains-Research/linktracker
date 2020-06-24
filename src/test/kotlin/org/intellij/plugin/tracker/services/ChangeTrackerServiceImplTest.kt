@@ -3,9 +3,14 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
 import com.nhaarman.mockitokotlin2.mock
+import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
+import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
 import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.changes.LineChange
@@ -14,6 +19,7 @@ import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
 import org.intellij.plugin.tracker.data.links.RelativeLinkToLines
@@ -73,6 +79,26 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
     }
 
+    fun `test parse changes uncommitted added file`() {
+
+        // Create files
+        val linkedFile: TestFile = file("file.txt")
+        linkedFile.create("Some content")
+
+        val linkingFile: TestFile = file("file.md")
+        linkingFile.create("[link](file.txt)")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "file.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.ADDED)
+        Assertions.assertEquals(change.requiresUpdate, false)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
     fun `test parse changes committed moved file`() {
 
         // Create and commit files
@@ -118,6 +144,56 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
     }
 
+    fun `test parse changes committed and then uncommitted moved`() {
+
+        // Create and commit files
+        val linkedFile = createLinkedFile()
+        createLinkingFile()
+
+        // Create new directory and move linked file to new directory
+        val dir = Executor.mkdir("mydirectory")
+        val mvFile = File(dir.path, "file.txt")
+        repo.mv(linkedFile.file, mvFile)
+        repo.add()
+        repo.commit("move file to new dir")
+
+        // Create new directory and move linked file to new directory
+        val dir2 = Executor.mkdir("newdirectory")
+        val mvFile2 = File(dir2.path, "file.txt")
+        repo.mv(mvFile, mvFile2)
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "newdirectory/file.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
+    fun `test parse changes uncommitted renamed`() {
+
+        // Create and commit files
+        val linkedFile = createLinkedFile()
+        createLinkingFile()
+
+        // Rename the file
+        val renameFile = File("renamed.txt")
+        repo.mv(linkedFile.file, renameFile)
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "renamed.txt")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
+    }
+
     fun `test parse changes uncommitted deleted`() {
 
         // Create and commit files
@@ -130,6 +206,7 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         repo.commit("Delete linked file")
 
         refresh()
+        updateChangeListManager()
 
         val change: CustomChange = changeTracker.getLocalFileChanges(defaultLink) as CustomChange
 
@@ -137,6 +214,147 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.customChangeType, CustomChangeType.DELETED)
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes not existing file`() {
+
+        val link = createDummyLinkToFile("file.md", "file.md", "notexistingfile.txt")
+
+        createLinkingFile(content = "[link](notexistingfile.txt)")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<ReferencedFileNotFoundException> {
+            changeTracker.getLocalFileChanges(link) as CustomChange
+        }
+    }
+
+    fun `test parse changes file exception`() {
+        val link = RelativeLinkToFile(
+            LinkInfo(
+                fileName = "file.md",
+                foundAtLineNumber = 1,
+                linkPath = "none.txt",
+                linkText = "link",
+                project = project,
+                proveniencePath = "file.md",
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+        val linkingFile = file("file.md")
+        linkingFile.create("[link](none.txt)")
+        repo.add()
+        repo.commit("Create linking file")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<FileChangeGatheringException> {
+            changeTracker.getLocalFileChanges(link) as CustomChange
+        }
+    }
+
+    fun `test parse changes committed added directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.ADDED)
+        Assertions.assertEquals(change.requiresUpdate, false)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes uncommitted renamed directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Create new directory and move linked file to new directory
+        val dir = File("mydirectory")
+        repo.mv(linkedDirectory.file, dir)
+        repo.add()
+        repo.commit("rename the directory")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "mydirectory")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes committed moved directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Create new directory and move linked file to new directory
+        val dir = Executor.mkdir("mydirectory")
+        repo.mv(linkedDirectory.file, dir)
+        repo.commit("Move linked directory to new directory")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "mydirectory/dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes committed deleted directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "dir")
+
+        val linkedDirectory = createLinkedDirectory()
+        createLinkingFile(content = "[link](dir)")
+
+        // Delete linked file
+        repo.delete(linkedDirectory)
+        repo.add()
+        repo.commit("Delete linked directory")
+
+        refresh()
+        updateChangeListManager()
+
+        val change: CustomChange = changeTracker.getLocalDirectoryChanges(link) as CustomChange
+
+        Assertions.assertEquals(change.afterPathString, "dir")
+        Assertions.assertEquals(change.customChangeType, CustomChangeType.DELETED)
+        Assertions.assertEquals(change.requiresUpdate, true)
+        Assertions.assertEquals(change.hasWorkingTreeChanges(), false)
+    }
+
+    fun `test parse changes not existing directory`() {
+
+        val link = createDummyLinkToDirectory("file.md", "file.md", "notexistingdir")
+
+        createLinkingFile(content = "[link](notexistingdir)")
+
+        refresh()
+        updateChangeListManager()
+
+        assertFailsWith<CommitSHAIsNullDirectoryException> {
+            changeTracker.getLocalDirectoryChanges(link) as CustomChange
+        }
     }
 
     fun `test single line moved with uncommitted file changes`() {
@@ -172,6 +390,28 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MODIFIED)
         Assertions.assertEquals(change.fileChange.afterPathString, "file.txt")
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
+    }
+
+    fun `test parse changes directory exception`() {
+        val link = RelativeLinkToDirectory(
+            LinkInfo(
+                fileName = "test.md",
+                foundAtLineNumber = 1,
+                linkPath = "none",
+                linkText = "link",
+                project = project,
+                proveniencePath = "test.md",
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+        val linkingFile = file("test.md")
+        linkingFile.create("[link](none)")
+        repo.add()
+        repo.commit("Create linking file")
+
+        assertFailsWith<CommitSHAIsNullDirectoryException> {
+            changeTracker.getLocalDirectoryChanges(link) as CustomChange
+        }
     }
 
     fun `test single line deleted with uncommitted file changes`() {
@@ -399,6 +639,16 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         updateChangeListManager()
 
         assertFailsWith<FileHasBeenDeletedException> {
+            changeTracker.getLocalLineChanges(link) as LineChange
+        }
+    }
+
+    fun `test single line null commit sha`() {
+        val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1")
+
+        createLinkingFile(content = "[link](file.txt#L1)")
+
+        assertFailsWith<CommitSHAIsNullLineException> {
             changeTracker.getLocalLineChanges(link) as LineChange
         }
     }
@@ -798,6 +1048,16 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         }
     }
 
+    fun `test multiple lines null commit sha`() {
+        val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1-L3")
+
+        createLinkingFile(content = "[link](file.txt#L1-L3)")
+
+        assertFailsWith<CommitSHAIsNullLinesException> {
+            changeTracker.getLocalLinesChanges(link) as LinesChange
+        }
+    }
+
     private fun createDummyLinkToLine(
         proveniencePath: String = "file.md",
         fileName: String = "file.md",
@@ -834,6 +1094,42 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         )
     }
 
+    private fun createDummyLinkToDirectory(
+        proveniencePath: String = "file.md",
+        fileName: String = "file.md",
+        linkPath: String
+    ): Link {
+        return RelativeLinkToDirectory(
+            LinkInfo(
+                fileName = fileName,
+                foundAtLineNumber = 1,
+                linkPath = linkPath,
+                linkText = "link",
+                project = project,
+                proveniencePath = proveniencePath,
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+    }
+
+    private fun createDummyLinkToFile(
+        proveniencePath: String = "file.md",
+        fileName: String = "file.md",
+        linkPath: String
+    ): Link {
+        return RelativeLinkToFile(
+            LinkInfo(
+                fileName = fileName,
+                foundAtLineNumber = 1,
+                linkPath = linkPath,
+                linkText = "link",
+                project = project,
+                proveniencePath = proveniencePath,
+                linkElement = LinkElementImpl(mock())
+            )
+        )
+    }
+
     private fun createLinkedFile(fileName: String? = null, content: String? = null): TestFile {
         val linkedFile: TestFile = if (fileName != null)
             file(fileName)
@@ -847,6 +1143,18 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         repo.add()
         repo.commit("Create linked file")
         return linkedFile
+    }
+
+    private fun createLinkedDirectory(fileName: String? = null, content: String? = null): TestFile {
+        val linkedFile = createLinkedFile("dirFile.txt")
+
+        // Create directory and commit files
+        val dir = Executor.mkdir("dir")
+        val mvFile = File(dir.path, "dirFile.txt")
+        repo.mv(linkedFile.file, mvFile)
+        repo.add()
+        repo.commit("Create linked file in new directory")
+        return TestFile(repo, dir)
     }
 
     private fun createLinkingFile(fileName: String? = null, content: String? = null): TestFile {
