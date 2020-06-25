@@ -2,51 +2,77 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.VcsException
 import org.intellij.plugin.tracker.core.LineTracker
 import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.CredentialsManager
 import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.intellij.plugin.tracker.utils.LinkPatterns
 import org.kohsuke.github.*
 import java.io.File
 import java.io.IOException
-import java.util.regex.Matcher
-import kotlin.math.max
-import kotlin.math.min
 
-
-typealias Change1 = com.intellij.openapi.vcs.changes.Change
-
+/**
+ * Implementation of ChangeTrackerService interface, adapted to work in IntelliJ IDEA environment
+ */
 
 class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
+    /**
+     * This property handles the execution of all git commands needed by this class
+     */
     private val gitOperationManager = GitOperationManager(project = project)
 
+    /**
+     * Auxiliary method to get the saved file similarity threshold settings
+     */
+    private fun getFileSimilaritySettings(): Int {
+        val similarityThresholdSettings: SimilarityThresholdSettings =
+            SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+        return similarityThresholdSettings.fileSimilarity
+    }
 
+    /**
+     * Auxiliary method to get the saved file similarity threshold settings
+     */
+    private fun getDirectorySimilaritySettings(): Int {
+        val similarityThresholdSettings: SimilarityThresholdSettings =
+            SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
+        return similarityThresholdSettings.directorySimilarity
+    }
+
+    /**
+     * Get the change for a link to a file that corresponds to the currently open project in the IDE
+     *
+     * First, it checks whether the file referenced is un-tracked - if so, return
+     * Otherwise, it tries to fetch all the changes that have affected the file throughout git history
+     *
+     * If a new path is found, then try to see whether there is any working tree changes that would affect
+     * this new path. If there are changes, then use this new change as the final change.
+     * Otherwise, return the previous change.
+     */
     override fun getLocalFileChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
-        val workingTreeChange: FileChange? = gitOperationManager.checkWorkingTreeChanges(link)
+        val workingTreeChange: CustomChange? = gitOperationManager.checkWorkingTreeChanges(link)
 
         // this file has just been added and is not tracked by git, but the link is considered valid
-        if (workingTreeChange != null && workingTreeChange.fileChangeType == FileChangeType.ADDED) {
+        if (workingTreeChange != null && workingTreeChange.customChangeType == CustomChangeType.ADDED) {
             val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
             workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
             return workingTreeChange
         }
 
-        val similarityThresholdSettings: SimilarityThresholdSettings =
-            SimilarityThresholdSettings.getCurrentSimilarityThresholdSettings()
-        val threshold: Int = similarityThresholdSettings.fileSimilarity
-
-        val change: FileChange =
+        val change: CustomChange =
             gitOperationManager.getAllChangesForFile(
-                link, threshold,
+                link, getFileSimilaritySettings(),
                 branchOrTagName = branchOrTagName, specificCommit = specificCommit
             )
 
@@ -60,7 +86,7 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // we want to check whether there is any non-committed change that affects this new path
             if (workingTreeChange == null) {
                 val newLink: Link = link.copyWithAfterPath(link, change.afterPathString)
-                val currentChange: FileChange =
+                val currentChange: CustomChange =
                     gitOperationManager.checkWorkingTreeChanges(newLink) ?: return change
 
                 // new change identified (from checking working tree). Use this newly-found change instead.
@@ -73,8 +99,8 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // (calculated using the unchanged path retrieved from the markdown files),
             // use this change instead of the one found from `git log` command (it overrides it).
             // Otherwise, return the change found from `git log` command.
-            return when (workingTreeChange.fileChangeType) {
-                FileChangeType.DELETED, FileChangeType.MOVED -> {
+            return when (workingTreeChange.customChangeType) {
+                CustomChangeType.DELETED, CustomChangeType.MOVED, CustomChangeType.MODIFIED -> {
                     change.fileHistoryList.add(
                         FileHistory(
                             path = workingTreeChange.afterPathString,
@@ -90,66 +116,159 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
             // this might be the case when a link corresponds to an uncommitted rename
             // git log history will have no changes when using the new name
             // but the working tree change will capture the rename, so we want to return it
-            if (workingTreeChange != null) {
-                val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
-                workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
-                return workingTreeChange
+            return processUncommittedRename(workingTreeChange, e.message)
+        }
+    }
+
+    /**
+     * Auxiliary function that processed an uncommitted  rename operation
+     * performed on a file tracked by git.
+     */
+    private fun processUncommittedRename(workingTreeChange: CustomChange?, errorMessage: String?): CustomChange {
+        if (workingTreeChange != null) {
+            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
+            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
+            return workingTreeChange
+        }
+        throw InvalidFileChangeTypeException(errorMessage)
+    }
+
+    /**
+     * For each file identified as content of a directory at at specific commit,
+     * track that file individually through-out git history, identifying thus
+     * the set of moved out-files from the directory and the set of deleted files from the directory.
+     */
+    private fun trackDirectoryContents(
+        link: Link,
+        similarityThreshold: Int,
+        directoryContents: List<String>
+    ): Pair<MutableList<String>, Int> {
+        var deletedFiles = 0
+        val movedFiles: MutableList<String> = mutableListOf()
+
+        for (filePath: String in directoryContents) {
+            val fileLink: Link = if (link is RelativeLinkToDirectory) {
+                link.convertToFileLink(filePath)
+            } else {
+                link as WebLinkToDirectory
+                link.convertToFileLink(filePath)
             }
-            throw InvalidFileChangeTypeException(e.message)
+
+            try {
+                val fileChange: CustomChange = gitOperationManager.getAllChangesForFile(
+                    fileLink,
+                    similarityThreshold
+                )
+                if (fileChange.customChangeType == CustomChangeType.MOVED) {
+                    movedFiles.add(fileChange.afterPathString)
+                }
+                if (fileChange.customChangeType == CustomChangeType.DELETED) {
+                    deletedFiles++
+                }
+            } catch (e: FileChangeGatheringException) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            } catch (e: VcsException) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            } catch (e: Exception) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            }
         }
+        return Pair(movedFiles, deletedFiles)
     }
 
-    override fun getLocalDirectoryChanges(link: Link): Change {
-        val changeList = gitOperationManager.getDiffWithWorkingTree(link.commitSHA!!)
-        return if (changeList != null) {
-            val directoryChange = extractSpecificDirectoryChanges(changeList = changeList)
-            directoryChange
-        } else {
-            DirectoryChange(FileChangeType.ADDED, "")
+    /**
+     * Get change that has affected a directory that is referenced by a link
+     *
+     * This method first tries to see whether the folder exists at the commit that is pointing to HEAD.
+     * If so, return a change that this directory is not changed.
+     *
+     * Otherwise, try to get the start commit of the line containing this link in the project. If it cannot be found,
+     * raise an appropriate exception.
+     * Then, the method tries to fetch the directory contents at this start commit. After that, using these contents (files),
+     * it will track each file individually throughout git history.
+     * The method then checks whether the size of the directory contents at start commit is equal to the size of
+     * the files found deleted + the files found to be moved. If so, it means that the directory has either been deleted/moved.
+     *
+     * In that case, if we can find a common sub-path in the moved files, and if the number of occurrences of this common sub-path
+     * exceeds a given threshold value, we can say that the directory has been moved. Otherwise, it is deleted.
+     */
+    override fun getLocalDirectoryChanges(link: Link, branchOrTagName: String?, specificCommit: String?): Change {
+        val similarityThreshold: Int = getDirectorySimilaritySettings()
+        val linkPath: String = link.path
+        val currentContents: Boolean? = gitOperationManager.getDirectoryContentsAtCommit(linkPath, "HEAD")?.isNotEmpty()
+
+        if (currentContents == null || currentContents) {
+            return CustomChange(CustomChangeType.ADDED, link.linkInfo.linkPath)
         }
+
+        val startCommit: String = specificCommit
+            ?: (gitOperationManager
+                .getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName)
+                ?: throw CommitSHAIsNullDirectoryException())
+
+        val directoryContents: MutableList<String>? =
+            gitOperationManager.getDirectoryContentsAtCommit(linkPath, startCommit)
+
+        if (directoryContents == null || directoryContents.size == 0) {
+            throw LocalDirectoryNeverExistedException()
+        }
+
+        val trackingResult = trackDirectoryContents(link, similarityThreshold, directoryContents)
+        val movedFiles = trackingResult.first
+        val deletedFiles = trackingResult.second
+
+        if (deletedFiles + movedFiles.size == directoryContents.size) {
+            val similarityPair: Pair<String, Int>? = calculateSimilarity(movedFiles, directoryContents.size)
+            if (similarityPair != null && similarityPair.second >= similarityThreshold) {
+                return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
+            }
+            return CustomChange(CustomChangeType.DELETED, afterPathString = linkPath)
+        }
+        return CustomChange(CustomChangeType.ADDED, linkPath)
     }
 
+    /**
+     * Get the changes for a single line
+     *
+     * Ifa specific commit is not specified (the link is not a permalink), then
+     * we need to fetch the start commit of the line containing the link. Otherwise, use `specificCommit`
+     * as start commit.
+     * Using the start commit, we want to get the original line contents from the file at commit `startCommit`.
+     *
+     * After that is done, we will retrieve the changes for the file in which the lines are located.
+     * Using the file history list of the file change object returned, we will take the git diff
+     * of this file's versions, generating a list of diff output objects which contain deleted and added lines.
+     *
+     * As the final step, the method will call the LineTracker class method `trackLine`, which maps
+     * the line to it's new location using the generated diff outputs as input.
+     */
     override fun getLocalLineChanges(
         link: Link,
         branchOrTagName: String?,
         specificCommit: String?
     ): Change {
-        // if we cannot get the start commit, return
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLineException(fileChange = FileChange(FileChangeType.INVALID, ""))
+        val startCommit: String = specificCommit
+            ?: (gitOperationManager
+                .getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName)
+                ?: throw CommitSHAIsNullLineException(fileChange = CustomChange(CustomChangeType.INVALID, "")))
 
         try {
-            val fileChange: FileChange = getLocalFileChanges(link, specificCommit = startCommit) as FileChange
+            val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
             val fileHistoryList: MutableList<FileHistory> = fileChange.fileHistoryList
             val diffOutputList: MutableList<DiffOutput> = mutableListOf()
-
             var originalLineContent = ""
+
             if (fileHistoryList.isNotEmpty()) {
                 originalLineContent =
-                gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
+                    gitOperationManager.getContentsOfLineInFileAtCommit(startCommit, link.path, link.lineReferenced)
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
-                if (fileChange.fileChangeType == FileChangeType.DELETED)
+                if (fileChange.customChangeType == CustomChangeType.DELETED) {
                     throw FileHasBeenDeletedException(fileChange = fileChange)
-
-                if (!fileChange.hasWorkingTreeChanges()) {
-                    for (x: Int in 0 until fileHistoryList.size - 1) {
-                        val beforeCommitSHA: String = fileHistoryList[x].revision
-                        val beforePath: String = fileHistoryList[x].path
-
-                        val afterCommitSHA: String = fileHistoryList[x + 1].revision
-                        val afterPath: String = fileHistoryList[x + 1].path
-
-                        val output: DiffOutput? = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
-                        if (output != null) {
-                            diffOutputList.add(output)
-                        }
-                    }
-                } else {
-                    throw NotImplementedError("TODO: get diff with working tree version of a file")
                 }
+                getDiffOutputs(fileHistoryList, diffOutputList)
             }
+
             val diffOutputMultipleRevisions =
                 DiffOutputMultipleRevisions(
                     fileChange,
@@ -157,28 +276,71 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                     originalLineContent = originalLineContent
                 )
             return LineTracker.trackLine(link, diffOutputMultipleRevisions)
-
         } catch (e: FileChangeGatheringException) {
-            throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
+            throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
         }
     }
 
+    /**
+     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
+     * between the file at a commit and a path (before) and the file at another commit and path (after)
+     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
+     */
+    private fun getDiffOutputs(fileHistoryList: List<FileHistory>, diffOutputList: MutableList<DiffOutput>) {
+        if (fileHistoryList.size >= 2) {
+            for (x: Int in 0 until fileHistoryList.size - 1) {
+                val beforeCommitSHA: String = fileHistoryList[x].revision
+                val beforePath: String = fileHistoryList[x].path
+
+                val afterCommitSHA: String = fileHistoryList[x + 1].revision
+                val afterPath: String = fileHistoryList[x + 1].path
+
+                val output: DiffOutput? =
+                    DiffOutput.getDiffOutput(
+                        gitOperationManager,
+                        beforeCommitSHA,
+                        afterCommitSHA,
+                        beforePath,
+                        afterPath
+                    )
+                if (output != null) {
+                    diffOutputList.add(output)
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the changes for multiple lines
+     *
+     * Ifa specific commit is not specified (the link is not a permalink), then
+     * we need to fetch the start commit of the line containing the link. Otherwise, use `specificCommit`
+     * as start commit.
+     * Using the start commit, we want to get the original lines contents from the file at commit `startCommit`.
+     *
+     * After that is done, we will retrieve the changes for the file in which the lines are located.
+     * Using the file history list of the file change object returned, we will take the git diff
+     * of this file's versions, generating a list of diff output objects which contain deleted and added lines.
+     *
+     * As the final step, the method will call the LineTracker class method `trackLines`, which maps
+     * the lines to their new locations using the generated diff outputs as input.
+     */
     override fun getLocalLinesChanges(
         link: Link,
         branchOrTagName: String?,
         specificCommit: String?
     ): Change {
-        // if we cannot get the start commit, throw an exception
-        val startCommit: String =
-            gitOperationManager.getStartCommit(link.linkInfo)
-                ?: throw CommitSHAIsNullLinesException(fileChange = FileChange(FileChangeType.INVALID, ""))
+        val startCommit: String = specificCommit
+            ?: (gitOperationManager
+                .getStartCommit(link, checkSurroundings = true, branchOrTagName = branchOrTagName)
+                ?: throw CommitSHAIsNullLinesException(fileChange = CustomChange(CustomChangeType.INVALID, "")))
 
         try {
-            val fileChange: FileChange = getLocalFileChanges(link, specificCommit = startCommit) as FileChange
-
+            val fileChange: CustomChange = getLocalFileChanges(link, specificCommit = startCommit) as CustomChange
             val fileHistoryList: MutableList<FileHistory> = fileChange.fileHistoryList
             val diffOutputList: MutableList<DiffOutput> = mutableListOf()
             val originalLineBlockContents: MutableList<String> = mutableListOf()
+
             if (fileHistoryList.isNotEmpty()) {
                 originalLineBlockContents.addAll(
                     gitOperationManager.getContentsOfLinesInFileAtCommit(
@@ -186,30 +348,14 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                         link.path,
                         link.referencedStartingLine,
                         link.referencedEndingLine
-                    ))
-
+                    )
+                )
                 // if the file change type is deleted, throw an exception.
                 // There is no need to track the lines in this file.
-                if (fileChange.fileChangeType == FileChangeType.DELETED) {
-                    throw FileHasBeenDeletedException(fileChange = fileChange)
+                if (fileChange.customChangeType == CustomChangeType.DELETED) {
+                    throw FileHasBeenDeletedLinesException(fileChange = fileChange)
                 }
-
-                if (!fileChange.hasWorkingTreeChanges()) {
-                    for (x: Int in 0 until fileHistoryList.size - 1) {
-                        val beforeCommitSHA: String = fileHistoryList[x].revision
-                        val beforePath: String = fileHistoryList[x].path
-
-                        val afterCommitSHA: String = fileHistoryList[x + 1].revision
-                        val afterPath: String = fileHistoryList[x + 1].path
-
-                        val output: DiffOutput? = getDiffOutput(beforeCommitSHA, afterCommitSHA, beforePath, afterPath)
-                        if (output != null) {
-                            diffOutputList.add(output)
-                        }
-                    }
-                } else {
-                    throw NotImplementedError("TODO: get diff with working tree version of a file")
-                }
+                getDiffOutputs(fileHistoryList, diffOutputList)
             }
 
             val diffOutputMultipleRevisions =
@@ -221,26 +367,17 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
 
             return LineTracker.trackLines(link, diffOutputMultipleRevisions)
         } catch (e: FileChangeGatheringException) {
-            throw InvalidFileChangeException(fileChange = FileChange(FileChangeType.INVALID, "", e.message))
+            throw InvalidFileChangeException(fileChange = CustomChange(CustomChangeType.INVALID, "", e.message))
         }
     }
 
-    override fun getRemoteFileChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun getRemoteLineChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun getRemoteLinesChanges(link: Link): Change {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun getRemoteDirectoryChanges(link: Link): Change {
-        link as WebLinkToDirectory
-        val similarityThreshold = 50
-
+    /**
+     * Auxiliary method of getRemoteDirectoryChanges method
+     *
+     * Constructs a GitHubBuilder object instance with the right credentials
+     * (given the link's platform name and project owner name) for the type of link being tracked
+     */
+    private fun initializeGitHubClient(link: WebLinkToDirectory): GitHubBuilder {
         // initialize the GitHub client
         val githubBuilder = GitHubBuilder()
 
@@ -254,39 +391,66 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
         if (token != null) {
             githubBuilder.withOAuthToken(token)
         }
+        return githubBuilder
+    }
 
+    /**
+     * Auxiliary method of getRemoteDirectoryChanges method
+     *
+     * Loops through the commit objects that result from the call to GitHub's API
+     * and groups the changes that affected all the files in a specific directory
+     * into a set of moved out files (from the dir), set of added files (to the dir)
+     * and set of deleted files
+     */
+    private fun processRemoteCommitResults(
+        deletedFiles: MutableList<String>,
+        movedFiles: MutableList<String>,
+        addedFiles: MutableList<String>,
+        linkPath: String,
+        commitList: PagedIterable<GHCommit>
+    ) {
+        for (commit: GHCommit in commitList) {
+            for (file: GHCommit.File in commit.files) {
+                val fileName: String = file.fileName
+                val fileStatus: String = file.status
+
+                when {
+                    fileName.startsWith(linkPath) && fileStatus == "added" -> addedFiles.add(fileName)
+                    fileName.startsWith(linkPath) && fileStatus == "removed" -> deletedFiles.add(fileName)
+                    fileStatus == "renamed" -> {
+                        if (!file.previousFilename.startsWith(linkPath) && fileName.startsWith(linkPath))
+                            addedFiles.add(fileName)
+                        if (file.previousFilename.startsWith(linkPath) && !fileName.startsWith(linkPath))
+                            movedFiles.add(file.fileName)
+                    }
+                }
+            }
+        }
+    }
+
+    /***
+     * Get the changes for a remote directory link, by initializing
+     * a GitHub client using the user's credentials, fetching the changes
+     * that have affected the directory path from the API and processing
+     * the results, from which a directory change is determined.
+     */
+    override fun getRemoteDirectoryChanges(link: Link): Change {
+        link as WebLinkToDirectory
+        val similarityThreshold = 50
         // list of all the files that have been added to this folder
         var addedFiles: MutableList<String> = mutableListOf()
-        // list of all the files that have been moved out of this folder
+        // list of all the files that have been delete from this folder
         val deletedFiles: MutableList<String> = mutableListOf()
-        // list of all the files deletes from this folder
+        // list of all the files that have been moved out out this folder
         val movedFiles: MutableList<String> = mutableListOf()
 
         return try {
-            val github: GitHub = githubBuilder.build()
+            val github: GitHub = initializeGitHubClient(link).build()
             val ghRepository: GHRepository = github.getRepository("$link.projectOwnerName/$link.projectName")
             val commitQueryBuilder: GHCommitQueryBuilder = ghRepository.queryCommits()
             // get only commits that affect the directory path
             commitQueryBuilder.path(link.path)
-            val commitList: PagedIterable<GHCommit> = commitQueryBuilder.list()
-
-            for (commit: GHCommit in commitList) {
-                for (file: GHCommit.File in commit.files) {
-                    val fileName: String = file.fileName
-                    val fileStatus: String = file.status
-
-                    when {
-                        fileName.startsWith(link.path) && fileStatus == "added" -> addedFiles.add(fileName)
-                        fileName.startsWith(link.path) && fileStatus == "removed" -> deletedFiles.add(fileName)
-                        fileStatus == "renamed" -> {
-                            if (!file.previousFilename.startsWith(link.path) && fileName.startsWith(link.path))
-                                addedFiles.add(fileName)
-                            if (file.previousFilename.startsWith(link.path) && !fileName.startsWith(link.path))
-                                movedFiles.add(file.fileName)
-                        }
-                    }
-                }
-            }
+            processRemoteCommitResults(deletedFiles, movedFiles, addedFiles, link.path, commitQueryBuilder.list())
 
             addedFiles = addedFiles.distinct().toMutableList()
 
@@ -301,151 +465,83 @@ class ChangeTrackerServiceImpl(project: Project) : ChangeTrackerService {
                 // if the similarity is above a certain settable number, declare the directory as moved
                 // else, deleted
 
-                val similarityPair: Pair<String, Int> = calculateSimilarity(movedFiles, addedFiles.size)
+                val similarityPair: Pair<String, Int>? = calculateSimilarity(movedFiles, addedFiles.size)
 
-                if (similarityPair.second >= similarityThreshold) {
-                    return DirectoryChange(FileChangeType.MOVED, afterPathString = similarityPair.first)
+                if (similarityPair != null && similarityPair.second >= similarityThreshold) {
+                    return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
                 }
-                return DirectoryChange(FileChangeType.DELETED, afterPathString = link.path)
+                return CustomChange(CustomChangeType.DELETED, afterPathString = link.path)
             }
-
             // as long as there is something in the directory, we can declare it valid
-            DirectoryChange(FileChangeType.ADDED, afterPathString = link.path)
+            CustomChange(CustomChangeType.ADDED, afterPathString = link.path)
         } catch (e: IOException) {
             throw UnableToFetchRemoteDirectoryChangesException(e.message)
         }
     }
 
-    private fun calculateSimilarity(movedFiles: List<String>, addedFilesSize: Int): Pair<String, Int> {
-        val countMap: Map<String, Int> = movedFiles.map { path -> path.replace(File(path).name, "") }
-            .groupingBy { it }
-            .eachCount()
-        val maxPair: Map.Entry<String, Int>? = countMap.maxBy { it.value }
-        return Pair(maxPair!!.key, (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
+    /**
+     * Method that takes in a list of paths of the moved files and the size of the
+     * added files list as parameters. It then tries to split each path in the moved files
+     * into separate sub-paths, adding each to a counting map
+     *
+     * It then fetches the most numerous sub-path amongst all the moved files paths
+     * and divides the number of occurrences to the added files list size.
+     */
+    private fun calculateSimilarity(movedFiles: List<String>, addedFilesSize: Int): Pair<String, Int>? {
+        val countMap: HashMap<String, Int> = hashMapOf()
+        for (path in movedFiles) {
+            val usePath = path.replace(File(path).name, "")
+            val splitPaths: List<String> = usePath.split("/")
+            var pathStart = ""
+            for (splitPath in splitPaths) {
+                if (splitPath.isNotBlank()) {
+                    pathStart += "$splitPath/"
+                    if (countMap.containsKey(pathStart)) countMap[pathStart] = countMap[pathStart]!! + 1
+                    else countMap[pathStart] = 1
+                }
+            }
+        }
+        val maxValue: Int = countMap.maxBy { it.value }?.value ?: return null
+        val maxPair =
+            countMap.filter { entry -> entry.value == maxValue }.maxBy { it.key.length }
+        return Pair(maxPair!!.key.removeSuffix("/"), (maxPair.value.toDouble() / addedFilesSize * 100).toInt())
     }
 
     /**
-     * Extract the directory we are looking for from a list of changes
+     * Get the changes for (web) links to a file that does not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
      */
-    private fun extractSpecificDirectoryChanges(changeList: MutableCollection<Change1>): DirectoryChange {
-        for (change: Change1 in changeList) {
-            val prevPath = change.beforeRevision?.file?.parentPath
-            val currPath = change.afterRevision?.file?.parentPath
-            if (prevPath != currPath) return DirectoryChange.changeToDirectoryChange(change)
-        }
-        return DirectoryChange(FileChangeType.ADDED, "")
+    override fun getRemoteFileChanges(link: Link): Change {
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
-    private fun getDiffOutput(
-        before: String,
-        after: String,
-        beforePath: String,
-        afterPath: String,
-        contextLinesNumber: Int = 3
-    ): DiffOutput? {
-        val output: String =
-            gitOperationManager.getDiffBetweenCommits(before, after, beforePath, afterPath, contextLinesNumber)
-        // skip the git diff header (first 4 lines)
-        if (output.isEmpty()) return null
-        // filter out all git-added "No newline at end of file" lines
-        val lines: List<String?> = output.lines()
-            .subList(4, output.lines().size)
-            .filterNot { line -> line == "\\ No newline at end of file" }
-        val addedLines: MutableList<Line> = mutableListOf()
-        val deletedLines: MutableList<Line> = mutableListOf()
-        var startDeletedLine: Int
-        var startAddedLine: Int
-        var currentAddedLine = 0
-        var currentDeletedLine = 0
-        var contextLinesDeleted: MutableList<Line> = mutableListOf()
-        var contextLinesAdded: MutableList<Line> = mutableListOf()
+    /**
+     * Get the changes for (web) links to a single line that does not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
+     */
+    override fun getRemoteLineChanges(link: Link): Change {
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
+    }
 
-        for (line: String? in lines) {
-            if (line == null) {
-                break
-                // git hunk info header
-            } else if (line.startsWith("@@ ")) {
-                val info = line.split(" @@")[0]
-                val matcher: Matcher = LinkPatterns.GitDiffChangedLines.pattern.matcher(info)
-                if (matcher.matches()) {
-                    startDeletedLine = matcher.group(1).toInt()
-                    currentDeletedLine = startDeletedLine
-                    startAddedLine = matcher.group(6).toInt()
-                    currentAddedLine = startAddedLine
-                }
-                // added line
-            } else if (line.startsWith("+")) {
-                val addedLine = Line(currentAddedLine, line.replaceFirst("+", ""))
-                addedLines.add(addedLine)
-                contextLinesAdded.add(addedLine)
-                currentAddedLine++
-                // deleted line
-            } else if (line.startsWith("-")) {
-                val deletedLine = Line(currentDeletedLine, line.replaceFirst("-", ""))
-                deletedLines.add(deletedLine)
-                contextLinesDeleted.add(deletedLine)
-                currentDeletedLine++
-                // this is an unchanged line: just add it to the context lines lists and increment the indices
-            } else {
-                contextLinesDeleted.add(Line(currentDeletedLine, line))
-                contextLinesAdded.add(Line(currentAddedLine, line))
-                currentAddedLine++
-                currentDeletedLine++
-            }
-        }
-
-        // remove git-added warning lines
-        while (contextLinesAdded.last().content == "\\ No newline at end of file") {
-            contextLinesAdded = contextLinesAdded.subList(0, contextLinesAdded.size - 1)
-        }
-
-        // remove git-added warning lines
-        while (contextLinesDeleted.last().content == "\\ No newline at end of file") {
-            contextLinesDeleted = contextLinesDeleted.subList(0, contextLinesDeleted.size - 1)
-        }
-
-        // populate the context lines properties of the added lines
-        for (l: Line in addedLines) {
-            val maxContextLineNumber: Int = contextLinesAdded.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
-
-            // get all of the context lines on the upper side of the line:
-            // that is, the lines within [current_line_number - contextLinesNumber, current_line_number)
-            // as well as all of the context line on the lower side of the line:
-            // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
-            val contextLines: MutableList<Line> = contextLinesAdded.filter { line ->
-                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
-                    l.lineNumber + contextLinesNumber,
-                    maxContextLineNumber
-                ))
-            }.toMutableList()
-            l.contextLines = contextLines
-        }
-
-        // populate the context lines properties of the deleted lines
-        for (l: Line in deletedLines) {
-            val maxContextLineNumber: Int =
-                contextLinesDeleted.maxBy { line -> line.lineNumber }?.lineNumber ?: continue
-
-            // get all of the context lines on the upper side of the line:
-            // that is, the lines within [current_line_number - contextLinesNumber, current_line_number)
-            // as well as all of the context line on the lower side of the line:
-            // all of the lines within the interval (current_line_number, current_line-number+ contextLinesNumber)
-            val contextLines: MutableList<Line> = contextLinesDeleted.filter { line ->
-                (line.lineNumber < l.lineNumber && line.lineNumber >= max(0, l.lineNumber - contextLinesNumber))
-                        || (line.lineNumber > l.lineNumber && line.lineNumber <= min(
-                    l.lineNumber + contextLinesNumber,
-                    maxContextLineNumber
-                ))
-            }.toMutableList()
-            l.contextLines = contextLines
-        }
-
-        return DiffOutput(beforePath, addedLines, deletedLines, before, after)
+    /**
+     * Get the changes for (web) links to multiple lines that do not correspond to the currently open project
+     *
+     * Has to resort to using the API of the platform hosting the code
+     */
+    override fun getRemoteLinesChanges(link: Link): Change {
+        TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
     }
 
     companion object {
+        /**
+         * Used by IDEA to get a reference to the single instance of this class.
+         */
         fun getInstance(project: Project): ChangeTrackerServiceImpl =
-            ServiceManager.getService(project, ChangeTrackerServiceImpl::class.java)
+            ServiceManager.getService(
+                project,
+                ChangeTrackerServiceImpl::class.java
+            )
     }
 }

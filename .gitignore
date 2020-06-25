@@ -22,3 +22,6 @@ gradle-app.setting
 .idea/
 *.iml
 /bin
+
+# local dir of dependency source
+/libs/jetCheck-0.2.1/

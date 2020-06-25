@@ -1,19 +1,38 @@
-package org.intellij.plugin.tracker.integration
+package org.intellij.plugin.tracker.services
 
+import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.intellij.markdown.MarkdownElementTypes.INLINE_LINK
 import org.intellij.plugin.tracker.data.Line
-import org.intellij.plugin.tracker.data.changes.*
-import org.intellij.plugin.tracker.data.links.*
-import org.intellij.plugin.tracker.services.LinkUpdaterService
-import org.junit.jupiter.api.*
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.LinkInfo
+import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
+import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
+import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
+import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugins.markdown.lang.MarkdownElementType
 
 /**
  * This class is a template for testing updating links.
  * In order to create tests with a new project instance per test
  * it is necessary to create a different instance of this class for each test case.
+ * WARNING: All filenames of test files should be unique project-wide,
+ * and all link texts should be unique file-wide.
  */
 abstract class TestUpdateLinks : BasePlatformTestCase() {
 
@@ -26,25 +45,39 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
         "main/directory/file2.txt"
     )
 
-    @Override
     override fun getTestDataPath(): String {
-        return "src/test/kotlin/org/intellij/plugin/tracker/integration/testdata"
+        return "src/test/kotlin/org/intellij/plugin/tracker/services/testdata"
     }
 
-    @BeforeAll
     override fun setUp() {
         super.setUp()
         myFixture.configureByFiles(*myFiles)
-    }
-
-    @AfterAll
-    override fun tearDown() {
-        super.tearDown()
-    }
-
-    @BeforeEach
-    fun init() {
         myLinkUpdateService = LinkUpdaterService.getInstance(project)
+    }
+
+    protected fun refresh(dir: VirtualFile = project.baseDir) {
+        VfsUtil.markDirtyAndRefresh(false, true, false, dir)
+    }
+
+    /**
+     * Finds the Psi link destination element in the given file with the given link text.
+     * Assumes that the filename is unique in the project's file tree and that the element's text
+     * is unique in its file.
+     */
+    protected fun findElement(fileName: String, text: String): PsiElement {
+        val files = FilenameIndex.getFilesByName(
+            project, fileName,
+            GlobalSearchScope.projectScope(project)
+        )
+        assert(files.size == 1)
+        val file = files[0]
+        val matches = PsiTreeUtil
+            .findChildrenOfType(file, ASTWrapperPsiElement::class.java)
+            .toList()
+            .filter { it.elementType == MarkdownElementType.platformType(INLINE_LINK) }
+            .filter { it.children[0].text == "[$text]" }
+        assert(matches.size == 1)
+        return matches[0].children[1]
     }
 }
 
@@ -53,25 +86,26 @@ abstract class TestUpdateLinks : BasePlatformTestCase() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToFile : TestUpdateLinks() {
 
-    @Test
-    fun updateRelativeLinkToFile() {
+    fun testUpdateRelativeLinkToFile() {
+        val linkText = "relative link to file"
+        val fileName = "testUpdateLinks.md"
+        val linkElement = LinkElementImpl(findElement(fileName, linkText))
         val linkInfo = LinkInfo(
-            linkText = "relative link to file",
+            linkText = linkText,
             linkPath = "file.txt",
-            proveniencePath = "testUpdateLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 24,
-            fileName = "testUpdateLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement
         )
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -94,25 +128,26 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinkToLine : TestUpdateLinks() {
 
-    @Test
-    fun updateRelativeLinkToLine() {
+    fun testUpdateRelativeLinkToLine() {
+        val linkText = "relative link to line"
+        val fileName = "testUpdateLinks.md"
+        val linkElement = LinkElementImpl(findElement(fileName, linkText))
         val linkInfo = LinkInfo(
-            linkText = "relative link to line",
+            linkText = linkText,
             linkPath = "file.txt#L1",
-            proveniencePath = "testUpdateLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 63,
-            fileName = "testUpdateLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement
         )
         val link = RelativeLinkToFile(
             linkInfo = linkInfo
         )
-        val change = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt#L1"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -136,37 +171,42 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
  * to a new directory "main", and moving files "file1.txt" and "file2.txt"
  * from the root directory to a new directory "main/directory".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestRelativeLinks : TestUpdateLinks() {
 
-    @Test
-    fun updateRelativeLinks() {
+    fun testUpdateRelativeLinks() {
+        val fileName = "testUpdateRelativeLinks.md"
+        val linkText1 = "relative link 1"
+        val linkElement1 = LinkElementImpl(findElement(fileName, linkText1))
         val linkInfo1 = LinkInfo(
-            linkText = "relative link 1",
+            linkText = linkText1,
             linkPath = "file.txt",
-            proveniencePath = "testUpdateRelativeLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 18,
-            fileName = "testUpdateRelativeLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement1
         )
+        val linkText2 = "relative link 2"
+        val linkElement2 = LinkElementImpl(findElement(fileName, linkText2))
         val linkInfo2 = LinkInfo(
-            linkText = "relative link 2",
+            linkText = linkText2,
             linkPath = "file1.txt",
-            proveniencePath = "testUpdateRelativeLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 46,
-            fileName = "testUpdateRelativeLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement2
         )
+        val linkText3 = "relative link 3"
+        val linkElement3 = LinkElementImpl(findElement(fileName, linkText3))
         val linkInfo3 = LinkInfo(
-            linkText = "relative link 3",
+            linkText = linkText3,
             linkPath = "file2.txt",
-            proveniencePath = "testUpdateRelativeLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 3,
-            textOffset = 75,
-            fileName = "testUpdateRelativeLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement3
         )
         val link1 = RelativeLinkToFile(
             linkInfo = linkInfo1
@@ -177,16 +217,16 @@ class TestRelativeLinks : TestUpdateLinks() {
         val link3 = RelativeLinkToFile(
             linkInfo = linkInfo3
         )
-        val change1 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change1 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
-        val change2 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change2 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/directory/file1.txt"
         )
-        val change3 = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val change3 = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/directory/file2.txt"
         )
         val list = mutableListOf<Pair<Link, Change>>(
@@ -211,41 +251,45 @@ class TestRelativeLinks : TestUpdateLinks() {
  * Simulates the effect of moving test file "file.txt"
  * from the root directory to a new directory "main".
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestMultipleLinks : TestUpdateLinks() {
 
     // This test case is disabled because one of the tested features
     // (updating links to directories) is not yet ready.
     // Do not remove the test.
-    @Disabled
-    @Test
-    fun updateMultipleLinks() {
+    fun testUpdateVariousLinks() {
+        val fileName = "testUpdateLinks.md"
+        val linkText1 = "relative link to file"
+        val linkElement1 = LinkElementImpl(findElement(fileName, linkText1))
         val linkInfoToFile = LinkInfo(
-            linkText = "relative link to file",
+            linkText = linkText1,
             linkPath = "file.txt",
-            proveniencePath = "testUpdateLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 1,
-            textOffset = 24,
-            fileName = "testUpdateLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement1
         )
+        val linkText2 = "relative link to line"
+        val linkElement2 = LinkElementImpl(findElement(fileName, linkText2))
         val linkInfoToLine = LinkInfo(
-            linkText = "relative link to line",
+            linkText = linkText2,
             linkPath = "file.txt#L1",
-            proveniencePath = "testUpdateLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 2,
-            textOffset = 63,
-            fileName = "testUpdateLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement2
         )
+        val linkText3 = "relative link to directory"
+        val linkElement3 = LinkElementImpl(findElement(fileName, linkText3))
         val linkInfoToDir = LinkInfo(
-            linkText = "relative link to directory",
+            linkText = linkText3,
             linkPath = ".",
-            proveniencePath = "testUpdateLinks.md",
+            proveniencePath = fileName,
             foundAtLineNumber = 3,
-            textOffset = 110,
-            fileName = "testUpdateLinks.md",
-            project = project
+            fileName = fileName,
+            project = project,
+            linkElement = linkElement3
         )
         val linkToFile = RelativeLinkToFile(
             linkInfo = linkInfoToFile
@@ -256,17 +300,17 @@ class TestMultipleLinks : TestUpdateLinks() {
         val linkToDir = RelativeLinkToDirectory(
             linkInfo = linkInfoToDir
         )
-        val linkChangeToFile = FileChange(
-            fileChangeType = FileChangeType.MOVED,
+        val linkChangeToFile = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main/file.txt"
         )
         val linkChangeToLine = LineChange(
-            fileChange = FileChange(FileChangeType.MOVED, afterPathString= "main/file.txt"),
+            fileChange = CustomChange(CustomChangeType.MOVED, afterPathString = "main/file.txt"),
             lineChangeType = LineChangeType.MOVED,
             newLine = Line(lineNumber = 1, content = "dummy line")
         )
-        val linkChangeToDir = DirectoryChange(
-            changeType = FileChangeType.MOVED,
+        val linkChangeToDir = CustomChange(
+            customChangeType = CustomChangeType.MOVED,
             afterPathString = "main"
         )
         val list = mutableListOf<Pair<Link, Change>>(

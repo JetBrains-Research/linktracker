@@ -7,12 +7,26 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.psi.PsiManager
-import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.*
+import org.intellij.plugin.tracker.data.DirectoryChangeGatheringException
+import org.intellij.plugin.tracker.data.FileChangeGatheringException
+import org.intellij.plugin.tracker.data.LineChangeGatheringException
+import org.intellij.plugin.tracker.data.LinesChangeGatheringException
+import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.LineChange
+import org.intellij.plugin.tracker.data.changes.LineChangeType
+import org.intellij.plugin.tracker.data.changes.LinesChange
+import org.intellij.plugin.tracker.data.changes.LinesChangeType
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink
-import org.intellij.plugin.tracker.services.*
+import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.services.HistoryService
+import org.intellij.plugin.tracker.services.LinkRetrieverService
+import org.intellij.plugin.tracker.services.LinkUpdaterService
+import org.intellij.plugin.tracker.services.UIService
 
 /**
  * A runnable task that executes the plugin's main logic:
@@ -58,25 +72,29 @@ class DataParsingTask(
         }
         for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-            val link: Link = LinkFactory.createLink(linkInfo, myHistoryService.stateObject.commitSHA)
+            val link: Link = LinkFactory.createLink(linkInfo)
 
             if (link is NotSupportedLink) {
                 continue
             }
 
             try {
-                println("LINK IS: $link")
                 val change = link.visit(myChangeTrackerService)
-                println("CHANGE IS: $change")
-                println("AFTER PATH IS: ${change.afterPath}")
                 myLinksAndChangesList.add(Pair(link, change))
                 // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
                 continue
             } catch (e: FileChangeGatheringException) {
-                myLinksAndChangesList.add(Pair(link, FileChange(FileChangeType.INVALID, afterPathString = "", errorMessage = e.message)))
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)
+                ))
             } catch (e: DirectoryChangeGatheringException) {
-                myLinksAndChangesList.add(Pair(link, DirectoryChange(FileChangeType.INVALID, errorMessage = e.message)))
+                myLinksAndChangesList.add(Pair(link, CustomChange(
+                    CustomChangeType.INVALID,
+                    afterPathString = "",
+                    errorMessage = e.message)))
             } catch (e: LineChangeGatheringException) {
                 val lineChange = LineChange(
                     fileChange = e.fileChange,
@@ -91,18 +109,15 @@ class DataParsingTask(
                     errorMessage = e.message
                 )
                 myLinksAndChangesList.add(Pair(link, linesChange))
-             // catch any errors that might result from using vcs commands (git).
+                // catch any errors that might result from using vcs commands (git).
             } catch (e: VcsException) {
-                println("here: ${e.message}")
             }
         }
         try {
             myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
         } catch (e: VcsException) {
-
         }
     }
-
 
     /**
      * Callback executed when link data parsing is complete.
@@ -128,16 +143,10 @@ class DataParsingTask(
         ApplicationManager.getApplication().invokeLater {
             WriteCommandAction.runWriteCommandAction(currentProject) {
                 if (myLinksAndChangesList.size != 0) {
-                    myLinksAndChangesList.map { println(it) }
                     val result = myLinkUpdateService.updateLinks(
                         myLinksAndChangesList,
                         myGitOperationManager.getHeadCommitSHA()
                     )
-                    // Debug
-                    println("[ DataParsingTask ][ updateLinks() ] - Update result: $result")
-                } else {
-                    // Debug
-                    println("[ DataParsingTask ][ updateLinks() ] - No links to update...")
                 }
             }
         }
