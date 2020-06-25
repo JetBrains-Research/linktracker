@@ -3,26 +3,31 @@ package org.intellij.plugin.tracker.data
 import org.intellij.plugin.tracker.data.changes.CustomChange
 
 /**
+ * Generic, base exception class for change gathering exceptions
+ */
+open class ChangeGatheringException(override val message: String?): Exception(message)
+
+/**
  * Base exception for errors that occur during the process of retrieving changes for a file
  */
-open class FileChangeGatheringException(override val message: String?) : Exception(message)
+open class FileChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a directory
  */
-open class DirectoryChangeGatheringException(override val message: String?) : Exception(message)
+open class DirectoryChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a single line
  */
 open class LineChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    Exception(message)
+    ChangeGatheringException(message)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for multiple lines
  */
 open class LinesChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    Exception(message)
+    ChangeGatheringException(message)
 
 /**
  * Exception thrown when the start commit SHA of a link to a line cannot be retrieved

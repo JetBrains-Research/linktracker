@@ -8,24 +8,21 @@ import git4idea.commands.GitCommandResult
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
-import java.io.File
-import kotlin.math.max
-import kotlin.math.min
-import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
-import org.intellij.plugin.tracker.data.OriginalLineContentsNotFoundException
-import org.intellij.plugin.tracker.data.OriginalLinesContentsNotFoundException
-import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
-import org.intellij.plugin.tracker.data.ReferencedPathNotFoundException
+import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.services.LinkUpdaterService
+import java.io.File
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Class that handles the logic of executing all git commands needed throughout the project
  * processing the outputs (of the git commands) and returning it.
  */
+
 class GitOperationManager(private val project: Project) {
 
     /**
@@ -43,7 +40,7 @@ class GitOperationManager(private val project: Project) {
      * Initializes the git repository property of this class, by fetching all of the repositories
      * that exist in this project and getting the first one that appears in the list
      *
-     * If this cannot ber done, throw an exception
+     * If this cannot be done, throw an exception
      */
     init {
         val repositories: MutableList<GitRepository> = GitRepositoryManager.getInstance(project).repositories
@@ -89,6 +86,7 @@ class GitOperationManager(private val project: Project) {
         }
         throw OriginalLineContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
     }
+
 
     /**
      * Gets the contents of multiple, consecutive lines from a file, at a specified commit
@@ -176,11 +174,16 @@ class GitOperationManager(private val project: Project) {
      * Runs git command `git rev-parse --short HEAD`
      */
     @Throws(VcsException::class)
-    fun getHeadCommitSHA(): String {
+    fun getHeadCommitSHA(branchOrTagName: String? = null): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("HEAD")
         val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
+        if (output.exitCode == 0) {
+            return output.output[0]
+        }
+        throw VcsException("Cannot get HEAD commit SHA")
     }
 
     /**
@@ -193,9 +196,16 @@ class GitOperationManager(private val project: Project) {
      * check the commits within `maxCommitsSurrounding` behind and in front of this initially found start commit.
      * Then, return the first commit SHA at which the link path is found (it first tries to go backwards and then forwards).
      */
-    fun getStartCommit(link: Link, checkSurroundings: Boolean = false, maxCommitsSurroundings: Int = 5): String? {
+    fun getStartCommit(
+        link: Link,
+        checkSurroundings: Boolean = false,
+        maxCommitsSurroundings: Int = 5,
+        branchOrTagName: String?
+    ): String? {
         val linkInfo = link.linkInfo
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("--oneline", "-S${linkInfo.getMarkDownSyntaxString()}")
         val outputLog = git.runCommand(gitLineHandler)
         if (outputLog.exitCode == 0) {
@@ -212,19 +222,21 @@ class GitOperationManager(private val project: Project) {
                 // go - maxCommitsSurroundings back and + maxCommitsSurroundings
                 // after the found commit.
                 if (checkSurroundings) {
-                    if (commitSHA != getFirstCommitSHA()) {
+                    if (commitSHA != getFirstCommitSHA(branchOrTagName = branchOrTagName)) {
                         val startCommit = getCommitsInRange(
                             until = commitSHA,
                             maxCommitsSurroundings = maxCommitsSurroundings,
-                            path = link.path
+                            path = link.path,
+                            branchOrTagName = branchOrTagName
                         )
                         if (startCommit != null) return startCommit
                     }
-                    if (commitSHA != getHeadCommitSHA()) {
+                    if (commitSHA != getHeadCommitSHA(branchOrTagName = branchOrTagName)) {
                         val startCommit = getCommitsInRange(
                             from = commitSHA,
                             maxCommitsSurroundings = maxCommitsSurroundings,
-                            path = link.path
+                            path = link.path,
+                            branchOrTagName = branchOrTagName
                         )
                         if (startCommit != null) return startCommit
                     }
@@ -254,12 +266,15 @@ class GitOperationManager(private val project: Project) {
         from: String? = null,
         until: String? = null,
         maxCommitsSurroundings: Int,
-        path: String
+        path: String,
+        branchOrTagName: String?
     ): String? {
         if (from == null && until == null || from != null && until != null) {
             throw VcsException("Illegal arguments")
         }
         val gitLineHandlerLog = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+        if (branchOrTagName != null)
+            gitLineHandlerLog.addParameters(branchOrTagName)
         if (from != null) {
             gitLineHandlerLog.addParameters("$from..", "--oneline")
         } else {
@@ -306,6 +321,7 @@ class GitOperationManager(private val project: Project) {
                 change.startsWith("R") -> {
                     val lineSplit = change.split(" -> ")
                     assert(lineSplit.size == 2)
+                    if (lineSplit[1] == linkPath) return CustomChange(CustomChangeType.ADDED, lineSplit[1])
                     return CustomChange(CustomChangeType.MOVED, lineSplit[1])
                 }
                 change.startsWith("D") -> return CustomChange(CustomChangeType.DELETED, linkPath)
@@ -321,8 +337,10 @@ class GitOperationManager(private val project: Project) {
      * Runs git command `git rev-list --max-parents=0 HEAD`
      */
     @Throws(VcsException::class)
-    fun getFirstCommitSHA(): String {
+    fun getFirstCommitSHA(branchOrTagName: String? = null): String {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
         gitLineHandler.addParameters("--max-parents=0")
         gitLineHandler.addParameters("HEAD")
         val output: GitCommandResult = git.runCommand(gitLineHandler)
@@ -390,7 +408,19 @@ class GitOperationManager(private val project: Project) {
         )
 
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return processChangesForFile(link, link.path, outputLog.getOutputOrThrow(), specificCommit)
+        var output = outputLog.getOutputOrThrow()
+        if (output.isEmpty() && specificCommit != null) {
+            val gitLineHandler2 = GitLineHandler(project, gitRepository.root, GitCommand.LOG)
+            gitLineHandler2.addParameters(
+                "--name-status",
+                "--oneline",
+                "--find-renames=$similarityThreshold",
+                "--reverse",
+                "*${link.referencedFileName}"
+            )
+            output = git.runCommand(gitLineHandler2).getOutputOrThrow()
+        }
+        return processChangesForFile(link.path, output, specificCommit)
     }
 
     /**
@@ -471,6 +501,110 @@ class GitOperationManager(private val project: Project) {
     }
 
     /**
+     * Auxiliary method of processChangesForFiles, which iterates through the git log
+     * outputs of a certain path, by traversing the git history of the file
+     * starting from the first path in the git output.
+     *
+     * It keeps track of the file history that is encountered through-out the traversal,
+     * as well as of the numbers of deletions and additions that a file is found to have
+     * during this traversal.
+     *
+     * It can throw 2 types of errors, one for the case where the path never existed in git history,
+     * and one for the case where the file name referenced existed, but that specific path
+     * never actually did.
+     */
+    private fun traverseGitHistoryForFile(
+        lookUpContentParameter: String,
+        fileHistoryList: MutableList<FileHistory>,
+        lookUpIndexParameter: Int,
+        linkPath: String,
+        changeList: List<String>,
+        specificCommit: String?
+    ): CustomChange {
+        var lookUpIndex: Int = lookUpIndexParameter
+        var linkPathFound = false
+        var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
+        var deletionsAndAdditions = 0
+        var lookUpContent: String = lookUpContentParameter
+
+        if (!lookUpContent.startsWith("D"))
+            fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+
+        while (lookUpIndex != -1) {
+            val parsedLookUpContent: String = parseContent(lookUpContent).trim()
+
+            if (lookUpContent.contains(linkPath)) linkPathFound = true
+
+            // if the link path has been found during the traversal
+            // and we encounter a delete change type, that means that that file was deleted
+            // stop the search and return
+            if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
+
+            // lookUpIndex will match the first line which is not a commit line and contains the
+            // parsedLookUpContent
+            lookUpIndex = subList.indexOfFirst { line ->
+                line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
+            }
+
+            if (lookUpIndex != -1) {
+                lookUpContent = findCommitLineAndAddFileHistory(fileHistoryList, subList, lookUpIndex)
+            }
+            subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
+        }
+
+        if (linkPathFound || lookUpContent.contains(linkPath)) {
+            val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
+            linkChange.fileHistoryList = fileHistoryList
+            linkChange.deletionsAndAdditions = deletionsAndAdditions
+            return linkChange
+        }
+        val useCommit: String = specificCommit ?: getHeadCommitSHA()
+        return checkFileExistsOnDisk(linkPath, useCommit)
+            ?: throw ReferencedPathNotFoundException(linkPath)
+    }
+
+    /**
+     * Starting from a `changed line` in the git log output,
+     * go line-by-line upwards in the output until the corresponding
+     * `commit line` to that `changed line` is found. When found,
+     * extract the commit SHA from the `commit line` and the new path from the `changed line`,
+     * creating a file history object and adding it to the file history list.
+     */
+    private fun findCommitLineAndAddFileHistory(
+        fileHistoryList: MutableList<FileHistory>,
+        subList: List<String>,
+        lookUpIndex: Int
+    ): String {
+        val lookUpContent = subList[lookUpIndex]
+        if (!lookUpContent.startsWith("D")) {
+            var lookUpIndexCopy = lookUpIndex - 1
+            while (lookUpIndexCopy >= 0) {
+                val parsedContent = parseContent(subList[lookUpIndexCopy])
+                if (parsedContent.startsWith("Commit: ")) {
+                    fileHistoryList.add(
+                        FileHistory(
+                            parsedContent,
+                            parseContent(lookUpContent)
+                        )
+                    )
+                    break
+                }
+                lookUpIndexCopy--
+            }
+        }
+        return lookUpContent
+    }
+
+    private fun checkFileExistsOnDisk(linkPath: String, specificCommit: String?): CustomChange? {
+        if (File("${project.basePath}/$linkPath").exists()) {
+            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
+            fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
+            return fileChange
+        }
+        return null
+    }
+
+    /**
      * Auxiliary function that processes the output of
      * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
      *
@@ -487,11 +621,11 @@ class GitOperationManager(private val project: Project) {
      * If the output of the git command that is processed is the empty string, then that file never existed in git history.
      */
     private fun processChangesForFile(
-        link: Link,
         linkPath: String,
         changes: String,
         specificCommit: String?
     ): CustomChange {
+        println("changes are: $changes")
         if (changes.isNotEmpty()) {
             val changeList: List<String> = changes.split("\n")
             var additionList: List<Pair<Int, String>> =
@@ -506,137 +640,35 @@ class GitOperationManager(private val project: Project) {
             // if we can not find the link path we are looking for within
             // the traversal, throw an exception
             if (specificCommit != null) {
-                var linkPathFound = false
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                var lookUpIndex: Int = 1
-                var lookUpContent = changeList[lookUpIndex]
-                var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
-
-                var deletionsAndAdditions = 0
+                val lookUpIndex: Int = 1
+                val lookUpContent = changeList[lookUpIndex]
 
                 // only add the FileHistory containing specificCommit as revision
                 // and linkPath as path if it truly existed
                 if (fileExistsAtCommit(specificCommit, linkPath)) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
 
-                while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
-
-                    if (lookUpContent.contains(linkPath)) linkPathFound = true
-
-                    // if the link path has been found during the traversal
-                    // and we encounter a delete change type, that means that that file was deleted
-                    // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
-
-                    // lookUpIndex will match the first line which is not a commit line and contains the
-                    // parsedLookUpContent
-                    lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
-                    }
-
-                    if (lookUpIndex != -1) {
-                        lookUpContent = subList[lookUpIndex]
-                        fileHistoryList.add(
-                            FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
-                            )
-                        )
-                    }
-                    subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
-                }
-
-                if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
-                    linkChange.fileHistoryList = fileHistoryList
-                    linkChange.deletionsAndAdditions = deletionsAndAdditions
-                    return linkChange
-                }
-                throw ReferencedPathNotFoundException(linkPath)
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
             }
 
             additionList = additionList.reversed()
             for (pair: Pair<Int, String> in additionList) {
-                var linkPathFound = false
-                var lookUpIndex: Int = pair.first
-                var lookUpContent: String = pair.second
-                var subList: List<String> = changeList.subList(min(lookUpIndex + 1, changeList.size), changeList.size)
-
-                var deletionsAndAdditions = 0
-
                 val fileHistoryList: MutableList<FileHistory> = mutableListOf()
-                fileHistoryList.add(FileHistory(parseContent(changeList[lookUpIndex - 1]), parseContent(lookUpContent)))
+                val lookUpIndex: Int = pair.first
+                val lookUpContent: String = pair.second
 
-                while (lookUpIndex != -1) {
-                    val parsedLookUpContent: String = parseContent(lookUpContent).trim()
-
-                    if (lookUpContent.contains(linkPath)) linkPathFound = true
-
-                    // if the link path has been found during the traversal
-                    // and we encounter a delete change type, that means that that file was deleted
-                    // stop the search and return
-                    if (linkPathFound && lookUpContent.startsWith("D")) deletionsAndAdditions++
-
-                    // lookUpIndex will match the first line which is not a commit line and contains the
-                    // parsedLookUpContent
-                    lookUpIndex = subList.indexOfFirst { line ->
-                        line.contains(parsedLookUpContent) && !parseContent(line).startsWith("Commit: ")
-                    }
-
-                    if (lookUpIndex != -1) {
-                        lookUpContent = subList[lookUpIndex]
-                        fileHistoryList.add(
-                            FileHistory(
-                                parseContent(subList[max(0, lookUpIndex - 1)]),
-                                parseContent(lookUpContent)
-                            )
-                        )
-                    }
-                    subList = subList.subList(min(lookUpIndex + 1, subList.size), subList.size)
-                }
-
-                if (linkPathFound || lookUpContent.contains(linkPath)) {
-                    val linkChange: CustomChange = extractChangeType(linkPath, lookUpContent)
-                    linkChange.fileHistoryList = fileHistoryList
-                    linkChange.deletionsAndAdditions = deletionsAndAdditions
-                    return linkChange
-                }
-            }
-
-            // If this is a working tree change, finds the corresponding change of this link
-            val paths = LinkUpdaterService.workingTreePaths
-            for (path in paths) {
-                if (path.linkInfo.fileName == link.linkInfo.fileName &&
-                    path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
-                    return CustomChange(CustomChangeType.MOVED, path.path)
-                }
-            }
-            throw ReferencedPathNotFoundException(linkPath)
-        }
-
-        if (specificCommit != null && File("${project.basePath}/$linkPath").exists()) {
-            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
-            fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
-            return fileChange
-        }
-
-        // If this is a working tree change, finds the corresponding change of this link
-        val paths = LinkUpdaterService.workingTreePaths
-        for (path in paths) {
-            if (path.linkInfo.fileName == link.linkInfo.fileName &&
-                path.linkInfo.proveniencePath == link.linkInfo.proveniencePath) {
-                return CustomChange(CustomChangeType.MOVED, path.path)
+                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
             }
         }
 
-        throw ReferencedFileNotFoundException()
+        return checkFileExistsOnDisk(linkPath, specificCommit)
+            ?:throw ReferencedFileNotFoundException()
     }
 
     /**
-     * Get the remote origin url of a git repository (associated with the currently open project)
+     * Get the remote origin url of a git repository
      *
      * Runs git command `git config --get remote.origin.url`
      */

@@ -79,10 +79,7 @@ class DataParsingTask(
             }
 
             try {
-                println("LINK IS: $link")
                 val change = link.visit(myChangeTrackerService)
-                println("CHANGE IS: $change")
-                println("AFTER PATH IS: ${change.afterPath}")
                 myLinksAndChangesList.add(Pair(link, change))
                 // temporary solution to ignoring not implemented stuff
             } catch (e: NotImplementedError) {
@@ -114,13 +111,11 @@ class DataParsingTask(
                 myLinksAndChangesList.add(Pair(link, linesChange))
                 // catch any errors that might result from using vcs commands (git).
             } catch (e: VcsException) {
-                println("here: ${e.message}")
             }
         }
         try {
             myHistoryService.saveCommitSHA(myGitOperationManager.getHeadCommitSHA())
         } catch (e: VcsException) {
-            println("here: ${e.message}")
         }
     }
 
@@ -152,11 +147,6 @@ class DataParsingTask(
                         myLinksAndChangesList,
                         myGitOperationManager.getHeadCommitSHA()
                     )
-                    // Debug
-                    println("[ DataParsingTask ][ updateLinks() ] - Update result: $result")
-                } else {
-                    // Debug
-                    println("[ DataParsingTask ][ updateLinks() ] - No links to update...")
                 }
             }
         }

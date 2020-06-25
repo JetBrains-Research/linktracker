@@ -54,10 +54,15 @@ data class WebLinkToDirectory(
      */
     override fun visit(visitor: ChangeTrackerService): Change {
         if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return visitor.getLocalDirectoryChanges(this)
-        }
-        if (platformName.contains("github")) {
-            return visitor.getRemoteDirectoryChanges(this)
+            return when (referenceType) {
+                WebLinkReferenceType.COMMIT -> visitor.getLocalDirectoryChanges(
+                    link = this,
+                    specificCommit = referencingName
+                )
+                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
+                    visitor.getLocalDirectoryChanges(link = this, branchOrTagName = referencingName)
+                else -> throw WebLinkReferenceTypeIsInvalidException()
+            }
         }
 
         throw NotImplementedError()
@@ -75,6 +80,16 @@ data class WebLinkToDirectory(
     override fun copyWithAfterPath(link: Link, afterPath: String): WebLinkToDirectory {
         val linkInfoCopy: LinkInfo = link.linkInfo.copy(linkPath = afterPath)
         return copy(linkInfo = linkInfoCopy)
+    }
+
+    /**
+     * Converts this link to a link to a file, containing the parameterized file path as link path
+     */
+    fun convertToFileLink(filePath: String): WebLinkToFile {
+        val linkInfoCopy: LinkInfo = linkInfo.copy(linkPath = filePath)
+        return WebLinkToFile(
+            linkInfo = linkInfoCopy
+        )
     }
 }
 

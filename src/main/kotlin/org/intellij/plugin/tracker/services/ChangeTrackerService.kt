@@ -4,11 +4,11 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 
 /**
- * Generic interface for a change tracker class
- *
- * This interface declares common behaviour of a service that retrieves changes for links
- * depending on the environment in which the software is running
- */
+* Generic interface for a change tracker class
+*
+* This interface declares common behaviour of a service that retrieves changes for links
+* depending on the environment in which the software is running
+*/
 interface ChangeTrackerService {
 
     /**
@@ -23,7 +23,11 @@ interface ChangeTrackerService {
     /**
      * Get the changes for (relative) links to directories that correspond to the currently open project
      */
-    fun getLocalDirectoryChanges(link: Link): Change
+    fun getLocalDirectoryChanges(
+        link: Link,
+        branchOrTagName: String? = null,
+        specificCommit: String? = null
+    ): Change
 
     /**
      * Get the changes for (relative) links to a single line that correspond to the currently open project
@@ -56,6 +60,7 @@ interface ChangeTrackerService {
      * Has to resort to using the API of the platform hosting the code
      */
     fun getRemoteDirectoryChanges(link: Link): Change
+
 
     /**
      * Get the changes for (web) links to a single line that does not correspond to the currently open project
