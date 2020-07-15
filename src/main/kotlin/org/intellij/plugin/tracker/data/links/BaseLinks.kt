@@ -2,15 +2,14 @@ package org.intellij.plugin.tracker.data.links
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
-import org.intellij.markdown.MarkdownElementTypes
 import java.lang.IllegalArgumentException
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.intellij.plugin.tracker.utils.LinkElement
+import org.intellij.plugin.tracker.core.change.GitOperationManager
+import org.intellij.plugin.tracker.core.update.LinkElement
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 
@@ -37,7 +36,9 @@ abstract class Link(
     /**
      * Pattern that corresponds to a certain type of link (e.g. can be a WebLinkToFile pattern)
      */
-    open val pattern: Pattern? = null
+    open val pattern: Pattern? = null,
+
+    open var specificCommit: String? = null
 ) {
 
     /**
@@ -100,8 +101,9 @@ abstract class Link(
  */
 abstract class RelativeLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null
-) : Link(linkInfo, pattern) {
+    override val pattern: Pattern? = null,
+    override var specificCommit: String? = null
+) : Link(linkInfo, pattern, specificCommit) {
 
     override val path: String
         get() = linkInfo.linkPath
@@ -135,8 +137,9 @@ abstract class RelativeLink<in T : Change>(
  */
 abstract class WebLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern
-) : Link(linkInfo, pattern) {
+    override val pattern: Pattern,
+    override var specificCommit: String? = null
+) : Link(linkInfo, pattern, specificCommit) {
 
     /**
      * Retrieves the reference type of this web link
@@ -149,7 +152,8 @@ abstract class WebLink<in T : Change>(
         get() {
             if (field == null) {
                 val ref: String = referencingName
-                val gitOperationManager = GitOperationManager(linkInfo.project)
+                val gitOperationManager =
+                    GitOperationManager(linkInfo.project)
                 try {
                     val result: WebLinkReferenceType = when {
                         gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH

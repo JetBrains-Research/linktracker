@@ -15,8 +15,9 @@ import org.intellij.plugin.tracker.utils.LinkPatterns
  */
 data class RelativeLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null
-) : RelativeLink<CustomChange>(linkInfo, pattern) {
+    override val pattern: Pattern? = null,
+    override var specificCommit: String? = null
+) : RelativeLink<CustomChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * No lines referenced
@@ -65,12 +66,8 @@ data class RelativeLinkToDirectory(
     /**
      * Converts this link to a link to a file, containing the parameterized file path as link path
      */
-    fun convertToFileLink(filePath: String): RelativeLinkToFile {
-        val linkInfoCopy: LinkInfo = linkInfo.copy(linkPath = filePath)
-        return RelativeLinkToFile(
-            linkInfo = linkInfoCopy
-        )
-    }
+    fun convertToFileLink(filePath: String): RelativeLinkToFile =
+        RelativeLinkToFile(linkInfo = linkInfo.copy(linkPath = filePath), specificCommit = specificCommit)
 }
 
 /**
@@ -78,8 +75,9 @@ data class RelativeLinkToDirectory(
  */
 data class RelativeLinkToFile(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null
-) : RelativeLink<CustomChange>(linkInfo, pattern) {
+    override val pattern: Pattern? = null,
+    override var specificCommit: String? = null
+) : RelativeLink<CustomChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * No lines referenced
@@ -139,8 +137,9 @@ data class RelativeLinkToFile(
  */
 data class RelativeLinkToLine(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern
-) : RelativeLink<LineChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.RelativeLinkToLine.pattern,
+    override var specificCommit: String? = null
+) : RelativeLink<LineChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * Get the referenced line part from the path
@@ -203,8 +202,9 @@ data class RelativeLinkToLine(
  */
 data class RelativeLinkToLines(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern
-) : RelativeLink<LinesChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.RelativeLinkToLines.pattern,
+    override var specificCommit: String? = null
+) : RelativeLink<LinesChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * No single line referenced
