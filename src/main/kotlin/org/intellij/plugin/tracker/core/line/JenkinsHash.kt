@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.core
+package org.intellij.plugin.tracker.core.line
 
 import kotlin.experimental.and
 

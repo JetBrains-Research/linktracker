@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.utils
+package org.intellij.plugin.tracker.core.update
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction

@@ -25,11 +25,11 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
 import org.apache.commons.lang.StringUtils.substringBetween
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.results.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.ChangeType
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxHelper
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
 import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
@@ -119,7 +119,9 @@ class TreeView : JPanel(BorderLayout()) {
         myCommitSHA = try {
             ProgressManager.getInstance()
                 .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { ourScanResult.myProject.let { GitOperationManager(it).getHeadCommitSHA() } },
+                    { ourScanResult.myProject.let { GitOperationManager(
+                        it
+                    ).getHeadCommitSHA() } },
                     "Getting head commit SHA..",
                     true,
                     ourScanResult.myProject

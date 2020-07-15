@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.data.changes
 
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.junit.jupiter.api.Assertions
 

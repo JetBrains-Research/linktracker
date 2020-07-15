@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.results
 
 import org.intellij.plugin.tracker.data.links.Link
 

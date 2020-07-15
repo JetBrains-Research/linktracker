@@ -2,14 +2,14 @@ package org.intellij.plugin.tracker.data.links
 
 import com.nhaarman.mockitokotlin2.mock
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LineChangeType
 import org.intellij.plugin.tracker.data.changes.LinesChange
 import org.intellij.plugin.tracker.data.changes.LinesChangeType
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import org.junit.jupiter.api.Assertions
 import java.lang.UnsupportedOperationException
@@ -63,7 +63,12 @@ class RelativeLinksTest : TestCase() {
         val linesChange = LinesChange(
             fileChange = customChange,
             linesChangeType = LinesChangeType.PARTIAL,
-            newLines = mutableListOf(mutableListOf(Line(3, "line text"), Line(5, "text")))
+            newLines = mutableListOf(mutableListOf(
+                Line(
+                    3,
+                    "line text"
+                ), Line(5, "text")
+            ))
         )
         linesChange.selectedAfterPath = "after path#L3-L5"
         Assertions.assertEquals(relativeLinkToLines.updateLink(linesChange, "sha"), "after path#L3-L5")

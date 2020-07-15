@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.data.links
 
 import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.services.git4idea.test.GitSingleRepoTest
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import org.junit.jupiter.api.Assertions
 

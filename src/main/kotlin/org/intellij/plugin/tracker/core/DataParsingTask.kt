@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.utils
+package org.intellij.plugin.tracker.core
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
@@ -28,6 +28,8 @@ import org.intellij.plugin.tracker.services.HistoryService
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.services.UIService
+import org.intellij.plugin.tracker.utils.LinkFactory
+import org.intellij.plugin.tracker.utils.PsiTreeChangeListenerImpl
 
 /**
  * A runnable task that executes the plugin's main logic:
@@ -80,7 +82,8 @@ class DataParsingTask(
 
         for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
-            val link: Link = LinkFactory.createLink(linkInfo)
+            val link: Link =
+                LinkFactory.createLink(linkInfo)
 
             if (link is NotSupportedLink) {
                 continue

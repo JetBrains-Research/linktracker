@@ -2,12 +2,12 @@ package org.intellij.plugin.tracker.data.links
 
 import com.nhaarman.mockitokotlin2.mock
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LineChangeType
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import org.junit.jupiter.api.Assertions
 
@@ -102,7 +102,9 @@ class WebLinksTest : TestCase() {
         Assertions.assertEquals(webLinkToLine.generateNewPath(LineChange(CustomChange(CustomChangeType.MOVED,
             "dummy.md"), LineChangeType.DELETED), "new path"), null)
         Assertions.assertEquals(webLinkToLine.generateNewPath(LineChange(CustomChange(CustomChangeType.MOVED, "dummy.md"),
-            LineChangeType.DELETED, "error", Line(3, "line content")), "new path"), "new path")
+            LineChangeType.DELETED, "error",
+            Line(3, "line content")
+        ), "new path"), "new path")
     }
 
     fun testCopyWithAfterPath() {

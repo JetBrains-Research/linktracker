@@ -13,7 +13,7 @@ import com.intellij.psi.util.elementType
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.intellij.markdown.MarkdownElementTypes.INLINE_LINK
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -24,7 +24,7 @@ import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
 import org.intellij.plugin.tracker.data.links.RelativeLinkToFile
 import org.intellij.plugin.tracker.data.links.RelativeLinkToLine
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.intellij.plugins.markdown.lang.MarkdownElementType
 
 /**
@@ -91,7 +91,8 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
     fun testUpdateRelativeLinkToFile() {
         val linkText = "relative link to file"
         val fileName = "testUpdateLinks.md"
-        val linkElement = LinkElementImpl(findElement(fileName, linkText))
+        val linkElement =
+            LinkElementImpl(findElement(fileName, linkText))
         val linkInfo = LinkInfo(
             linkText = linkText,
             linkPath = "file.txt",
@@ -133,7 +134,8 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
     fun testUpdateRelativeLinkToLine() {
         val linkText = "relative link to line"
         val fileName = "testUpdateLinks.md"
-        val linkElement = LinkElementImpl(findElement(fileName, linkText))
+        val linkElement =
+            LinkElementImpl(findElement(fileName, linkText))
         val linkInfo = LinkInfo(
             linkText = linkText,
             linkPath = "file.txt#L1",
@@ -176,7 +178,8 @@ class TestRelativeLinks : TestUpdateLinks() {
     fun testUpdateRelativeLinks() {
         val fileName = "testUpdateRelativeLinks.md"
         val linkText1 = "relative link 1"
-        val linkElement1 = LinkElementImpl(findElement(fileName, linkText1))
+        val linkElement1 =
+            LinkElementImpl(findElement(fileName, linkText1))
         val linkInfo1 = LinkInfo(
             linkText = linkText1,
             linkPath = "file.txt",
@@ -187,7 +190,8 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkElement = linkElement1
         )
         val linkText2 = "relative link 2"
-        val linkElement2 = LinkElementImpl(findElement(fileName, linkText2))
+        val linkElement2 =
+            LinkElementImpl(findElement(fileName, linkText2))
         val linkInfo2 = LinkInfo(
             linkText = linkText2,
             linkPath = "file1.txt",
@@ -198,7 +202,8 @@ class TestRelativeLinks : TestUpdateLinks() {
             linkElement = linkElement2
         )
         val linkText3 = "relative link 3"
-        val linkElement3 = LinkElementImpl(findElement(fileName, linkText3))
+        val linkElement3 =
+            LinkElementImpl(findElement(fileName, linkText3))
         val linkInfo3 = LinkInfo(
             linkText = linkText3,
             linkPath = "file2.txt",
@@ -259,7 +264,8 @@ class TestMultipleLinks : TestUpdateLinks() {
     fun testUpdateVariousLinks() {
         val fileName = "testUpdateLinks.md"
         val linkText1 = "relative link to file"
-        val linkElement1 = LinkElementImpl(findElement(fileName, linkText1))
+        val linkElement1 =
+            LinkElementImpl(findElement(fileName, linkText1))
         val linkInfoToFile = LinkInfo(
             linkText = linkText1,
             linkPath = "file.txt",
@@ -270,7 +276,8 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkElement = linkElement1
         )
         val linkText2 = "relative link to line"
-        val linkElement2 = LinkElementImpl(findElement(fileName, linkText2))
+        val linkElement2 =
+            LinkElementImpl(findElement(fileName, linkText2))
         val linkInfoToLine = LinkInfo(
             linkText = linkText2,
             linkPath = "file.txt#L1",
@@ -281,7 +288,8 @@ class TestMultipleLinks : TestUpdateLinks() {
             linkElement = linkElement2
         )
         val linkText3 = "relative link to directory"
-        val linkElement3 = LinkElementImpl(findElement(fileName, linkText3))
+        val linkElement3 =
+            LinkElementImpl(findElement(fileName, linkText3))
         val linkInfoToDir = LinkInfo(
             linkText = linkText3,
             linkPath = ".",
@@ -307,7 +315,10 @@ class TestMultipleLinks : TestUpdateLinks() {
         val linkChangeToLine = LineChange(
             fileChange = CustomChange(CustomChangeType.MOVED, afterPathString = "main/file.txt"),
             lineChangeType = LineChangeType.MOVED,
-            newLine = Line(lineNumber = 1, content = "dummy line")
+            newLine = Line(
+                lineNumber = 1,
+                content = "dummy line"
+            )
         )
         val linkChangeToDir = CustomChange(
             customChangeType = CustomChangeType.MOVED,

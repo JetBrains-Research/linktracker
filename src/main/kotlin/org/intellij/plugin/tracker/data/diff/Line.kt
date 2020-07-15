@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.data
+package org.intellij.plugin.tracker.data.diff
 
 /**
  * A class that defines the characteristics of a line

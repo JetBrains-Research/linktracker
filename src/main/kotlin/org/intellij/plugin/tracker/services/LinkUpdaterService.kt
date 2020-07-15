@@ -2,12 +2,12 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import org.intellij.plugin.tracker.data.UpdateResult
+import org.intellij.plugin.tracker.data.results.UpdateResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.WebLink
-import org.intellij.plugin.tracker.utils.LinkElement
+import org.intellij.plugin.tracker.core.update.LinkElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
 
@@ -65,11 +65,6 @@ class LinkUpdaterService(val project: Project) {
      */
     @Suppress("UNCHECKED_CAST")
     private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
-
-        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> && !workingTreePaths.contains(link)) {
-            workingTreePaths.add(link)
-        }
-
         var afterPath: String? = null
         if (link is RelativeLink<*>) {
             val castLink: RelativeLink<Change> = link as RelativeLink<Change>
@@ -81,14 +76,6 @@ class LinkUpdaterService(val project: Project) {
 
         // calculated updated link is null -> something wrong must have happened, return false
         if (afterPath == null) return false
-
-        // removes the links from tree path list if it is being updated to its version in git history
-        for (treeLink in workingTreePaths) {
-            if (treeLink.path == afterPath && link.linkInfo.fileName == treeLink.linkInfo.fileName &&
-                link.linkInfo.proveniencePath == treeLink.linkInfo.proveniencePath) {
-                workingTreePaths.remove(link)
-            }
-        }
 
         val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
         element.replace(newElement)

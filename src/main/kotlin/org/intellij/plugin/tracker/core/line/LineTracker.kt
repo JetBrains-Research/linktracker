@@ -1,7 +1,7 @@
-package org.intellij.plugin.tracker.core
+package org.intellij.plugin.tracker.core.line
 
 import info.debatty.java.stringsimilarity.Cosine
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.links.Link
@@ -23,13 +23,14 @@ class LineTracker {
             originalLinesContents: List<String>
         ) {
             for ((index: Int, line: Int) in linesToTrack.withIndex()) {
-                val result: LineChange = trackLine(
-                    link,
-                    fileChange,
-                    originalLinesContents[index],
-                    diffOutputList,
-                    givenLineToTrack = line
-                )
+                val result: LineChange =
+                    trackLine(
+                        link,
+                        fileChange,
+                        originalLinesContents[index],
+                        diffOutputList,
+                        givenLineToTrack = line
+                    )
                 when (result.lineChangeType) {
                     LineChangeType.DELETED -> linesToTrack[index] = -1
                     LineChangeType.MOVED -> linesToTrack[index] = result.newLine!!.lineNumber
@@ -103,7 +104,12 @@ class LineTracker {
             for (group in trackResults) {
                 val lineGroup: MutableList<Line> = mutableListOf()
                 for (lineNumber in group) {
-                    lineGroup.add(Line(lineNumber, contentHashMap[changeMap[lineNumber]]!!))
+                    lineGroup.add(
+                        Line(
+                            lineNumber,
+                            contentHashMap[changeMap[lineNumber]]!!
+                        )
+                    )
                 }
                 newLines.add(lineGroup)
             }
@@ -142,8 +148,18 @@ class LineTracker {
                 contentHashMap[originalLineNumbers[i]] = originalLinesContents[i]
             }
 
-            trackEachLineIndividually(link, linesToTrack, fileChange, diffOutputList, originalLinesContents)
-            val changeMap: HashMap<Int, Int> = constructChangeMap(originalLineNumbers, linesToTrack)
+            trackEachLineIndividually(
+                link,
+                linesToTrack,
+                fileChange,
+                diffOutputList,
+                originalLinesContents
+            )
+            val changeMap: HashMap<Int, Int> =
+                constructChangeMap(
+                    originalLineNumbers,
+                    linesToTrack
+                )
 
             linesToTrack = linesToTrack.filter { lineNo -> lineNo != -1 }.toMutableList()
             linesToTrack = linesToTrack.distinct().toMutableList()
@@ -156,9 +172,21 @@ class LineTracker {
                 )
             }
 
-            val trackResults: MutableList<MutableList<Int>> = groupConsecutiveNumbers(linesToTrack)
-            val newLines: MutableList<MutableList<Line>> = groupTrackResults(trackResults, contentHashMap, changeMap)
-            val linesChangeType: LinesChangeType = determineLinesChangeType(trackResults, changeMap)
+            val trackResults: MutableList<MutableList<Int>> =
+                groupConsecutiveNumbers(
+                    linesToTrack
+                )
+            val newLines: MutableList<MutableList<Line>> =
+                groupTrackResults(
+                    trackResults,
+                    contentHashMap,
+                    changeMap
+                )
+            val linesChangeType: LinesChangeType =
+                determineLinesChangeType(
+                    trackResults,
+                    changeMap
+                )
 
             return LinesChange(
                 fileChange,
@@ -229,10 +257,18 @@ class LineTracker {
                 addedLines = diffOutput.addedLines
                 // remove leading / trailing spaces from line contents
                 deletedLines = deletedLines.map { line ->
-                    Line(line.lineNumber, line.content.trim(), line.contextLines)
+                    Line(
+                        line.lineNumber,
+                        line.content.trim(),
+                        line.contextLines
+                    )
                 }.toMutableList()
                 addedLines = addedLines.map { line ->
-                    Line(line.lineNumber, line.content.trim(), line.contextLines)
+                    Line(
+                        line.lineNumber,
+                        line.content.trim(),
+                        line.contextLines
+                    )
                 }.toMutableList()
 
                 // try to find from the deleted lines list a line which has the same line number
@@ -241,7 +277,13 @@ class LineTracker {
 
                 // we found the line
                 if (deletedLine != null) {
-                    val result = mapADeletedLineToAnAddedLine(modifications, lineToTrack, deletedLine, addedLines)
+                    val result =
+                        mapADeletedLineToAnAddedLine(
+                            modifications,
+                            lineToTrack,
+                            deletedLine,
+                            addedLines
+                        )
                     lineToTrack = result.first
                     modifications = result.second
                     lineIsDeleted = result.third
@@ -251,7 +293,12 @@ class LineTracker {
                     // line has not been deleted, but we still need to calculate the new location of the line
                     // based on the lines added / deleted before `lineToTrack`
                     val previousLineToTrack: Int = lineToTrack
-                    lineToTrack = determineNewLocationOfUnchangedLine(deletedLines, addedLines, lineToTrack)
+                    lineToTrack =
+                        determineNewLocationOfUnchangedLine(
+                            deletedLines,
+                            addedLines,
+                            lineToTrack
+                        )
                     if (previousLineToTrack != lineToTrack) modifications++
                 }
             }
@@ -263,7 +310,8 @@ class LineTracker {
                 else -> LineChangeType.MOVED
             }
 
-            if (line == null) line = Line(lineToTrack, trimmedOriginalContent)
+            if (line == null) line =
+                Line(lineToTrack, trimmedOriginalContent)
             return LineChange(fileChange, lineChangeType, newLine = line)
         }
 
@@ -277,26 +325,44 @@ class LineTracker {
             addedLines: MutableList<Line>
         ): ArrayList<Pair<Line, Float>> {
             // join its context lines together in a string
-            val joinedStringContextLines: String = getJoinedStringContextLines(line = deletedLine)
+            val joinedStringContextLines: String =
+                getJoinedStringContextLines(
+                    line = deletedLine
+                )
 
             // calculate the SimHash value for both the line contents and concatenated context lines
-            val deletedLineContextSimHash: Long = getSimHash(line = joinedStringContextLines)
-            val deletedLineContentSimHash: Long = getSimHash(line = deletedLine.content)
+            val deletedLineContextSimHash: Long =
+                getSimHash(line = joinedStringContextLines)
+            val deletedLineContentSimHash: Long =
+                getSimHash(line = deletedLine.content)
             // list of the added lines together with the calculated overall
             // hamming score
             val candidateList: ArrayList<Pair<Line, Float>> = arrayListOf()
 
             for (line: Line in addedLines) {
-                val joinedStringContextLines1: String = getJoinedStringContextLines(line = line)
+                val joinedStringContextLines1: String =
+                    getJoinedStringContextLines(
+                        line = line
+                    )
 
                 // calculate the SimHash values of added lines joined context lines
                 // and added line contents respectively
-                val simHashContextAddedLine: Long = getSimHash(line = joinedStringContextLines1)
-                val simHashContentAddedLine: Long = getSimHash(line = line.content)
+                val simHashContextAddedLine: Long =
+                    getSimHash(line = joinedStringContextLines1)
+                val simHashContentAddedLine: Long =
+                    getSimHash(line = line.content)
 
                 // calculate the hamming distance between the previously SimHash values
-                val scoreOfContext: Int = hamming(deletedLineContextSimHash, simHashContextAddedLine)
-                val scoreOfContent: Int = hamming(deletedLineContentSimHash, simHashContentAddedLine)
+                val scoreOfContext: Int =
+                    hamming(
+                        deletedLineContextSimHash,
+                        simHashContextAddedLine
+                    )
+                val scoreOfContent: Int =
+                    hamming(
+                        deletedLineContentSimHash,
+                        simHashContentAddedLine
+                    )
 
                 val overallScore: Float = 0.40f * scoreOfContext + 0.60f * scoreOfContent
                 candidateList.add(Pair(line, overallScore))
@@ -325,7 +391,10 @@ class LineTracker {
             var modifications: Int = modificationParameter
             var lineToTrack: Int = lineToTrackParameter
             val candidateList: ArrayList<Pair<Line, Float>> =
-                constructCandidateListForDeletedLine(deletedLine, addedLines)
+                constructCandidateListForDeletedLine(
+                    deletedLine,
+                    addedLines
+                )
 
             if (candidateList.size > 0) {
                 // sort by the overall score in ascending order
@@ -333,7 +402,11 @@ class LineTracker {
                 // e.g. a small hamming distance between 2 strings
                 // will show that the 2 strings are similar
                 candidateList.sortBy { pair -> pair.second }
-                val result: Line? = mapLine(deletedLine, candidateList)
+                val result: Line? =
+                    mapLine(
+                        deletedLine,
+                        candidateList
+                    )
                 if (result != null) {
                     modifications++
                     lineIsFound = true
@@ -344,7 +417,11 @@ class LineTracker {
             }
 
             // try to see whether the line was split.
-            val lineSplit: Pair<Line?, Int> = detectLineSplit(deletedLine.content, addedLines)
+            val lineSplit: Pair<Line?, Int> =
+                detectLineSplit(
+                    deletedLine.content,
+                    addedLines
+                )
 
             // for now, use the split line number for further calculations instead
             // TODO: track the group of lines further
@@ -527,7 +604,12 @@ class LineTracker {
             for (i: Int in candidateList.indices) {
                 // calculate the levenshtein distance between the deleted line and currently inspected added line
                 val scoreContent: Float = Levenshtein().compare(deletedLine.content, candidateList[i].first.content)
-                val scoreContext: Float = calculateCosineSimilarityOfContext(i, deletedLine, candidateList)
+                val scoreContext: Float =
+                    calculateCosineSimilarityOfContext(
+                        i,
+                        deletedLine,
+                        candidateList
+                    )
                 val score: Double = Math.round((0.6 * scoreContent + 0.4 * scoreContext) * 20.0) / 20.0
 
                 // if the overall score is best so far, save the details
@@ -577,13 +659,18 @@ class LineTracker {
          */
         private fun getSimHash(line: String, hashSize: Int = 32): Long {
             val bitArray = IntArray(hashSize) { 0 }
-            val shingleList: ArrayList<String> = createShingles(line)
+            val shingleList: ArrayList<String> =
+                createShingles(line)
             var simHashValue: Long = 0
 
             for (shingle: String in shingleList) {
                 val hashedShingle: Long = JenkinsHash().hash(shingle.toByteArray())
                 for (i: Int in 0 until hashSize) {
-                    bitArray[i] += if (ithBitSet(hashedShingle, i)) 1 else -1
+                    bitArray[i] += if (ithBitSet(
+                            hashedShingle,
+                            i
+                        )
+                    ) 1 else -1
                 }
             }
             for (i: Int in 0 until hashSize) {

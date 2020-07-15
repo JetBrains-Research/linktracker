@@ -9,7 +9,7 @@ import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
 import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
 import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -30,7 +30,7 @@ import org.intellij.plugin.tracker.services.git4idea.test.addCommit
 import org.intellij.plugin.tracker.services.git4idea.test.commit
 import org.intellij.plugin.tracker.services.git4idea.test.delete
 import org.intellij.plugin.tracker.services.git4idea.test.mv
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 import java.io.File
 import kotlin.test.assertFailsWith
@@ -48,7 +48,7 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
     override fun setUp() {
         super.setUp()
 
-        changeTracker = ChangeTrackerServiceImpl.getInstance(project)
+        changeTracker = ChangeTrackerServiceImpl(project, ChangeTrackingPolicy.HISTORY)
         defaultLink = RelativeLinkToFile(
             LinkInfo(
                 fileName = "file.md",
@@ -384,7 +384,9 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         val change = changeTracker.getLocalLineChanges(link) as LineChange
 
         Assertions.assertEquals(change.lineChangeType, LineChangeType.MOVED)
-        Assertions.assertEquals(change.newLine, Line(4, "public static void dummyMethod() {"))
+        Assertions.assertEquals(change.newLine,
+            Line(4, "public static void dummyMethod() {")
+        )
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MODIFIED)
@@ -438,7 +440,6 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         )
 
         val change = changeTracker.getLocalLineChanges(link) as LineChange
-        println("change is $change")
         Assertions.assertEquals(change.lineChangeType, LineChangeType.DELETED)
         Assertions.assertEquals(change.newLine?.lineNumber, 1)
         Assertions.assertEquals(change.newLine?.content, "")
@@ -476,7 +477,9 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
         val change = changeTracker.getLocalLineChanges(link) as LineChange
         Assertions.assertEquals(change.lineChangeType, LineChangeType.UNCHANGED)
-        Assertions.assertEquals(change.newLine, Line(1, "public static void dummyMethod() {"))
+        Assertions.assertEquals(change.newLine,
+            Line(1, "public static void dummyMethod() {")
+        )
         Assertions.assertEquals(change.requiresUpdate, false)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MODIFIED)
@@ -512,7 +515,9 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
         var change = changeTracker.getLocalLineChanges(link) as LineChange
         Assertions.assertEquals(change.lineChangeType, LineChangeType.MOVED)
-        Assertions.assertEquals(change.newLine, Line(5, "public static void dummyMethod() {"))
+        Assertions.assertEquals(change.newLine,
+            Line(5, "public static void dummyMethod() {")
+        )
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MODIFIED)
@@ -588,7 +593,8 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         refresh()
         updateChangeListManager()
 
-        val expectedLine = Line(12, "public static void dummyMethod() {")
+        val expectedLine =
+            Line(12, "public static void dummyMethod() {")
 
         val change = changeTracker.getLocalLineChanges(link) as LineChange
         Assertions.assertEquals(change.lineChangeType, LineChangeType.MOVED)
@@ -773,7 +779,6 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         )
 
         change = changeTracker.getLocalLinesChanges(link) as LinesChange
-        println("CHANGE~ IS: $change")
         expectedLines = (5..8).toList()
 
         Assertions.assertEquals(LinesChangeType.FULL, change.linesChangeType)
@@ -825,7 +830,6 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         )
 
         val change = changeTracker.getLocalLinesChanges(link) as LinesChange
-        println("CHANGE IS: $change")
         val expectedLines = (12..15).toList()
 
         Assertions.assertEquals(LinesChangeType.FULL, change.linesChangeType)
@@ -874,8 +878,6 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         )
 
         val change = changeTracker.getLocalLinesChanges(link) as LinesChange
-
-        println("change del : $change")
         Assertions.assertEquals(LinesChangeType.DELETED, change.linesChangeType)
         Assertions.assertEquals(change.requiresUpdate, true)
         Assertions.assertEquals(change.hasWorkingTreeChanges(), true)
@@ -988,7 +990,6 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
         repo.mv(linkedFile.file, mvFile)
 
         val change = changeTracker.getLocalLinesChanges(link) as LinesChange
-        println("change is $change")
         val expectedLines = (12..15).toList()
 
         Assertions.assertEquals(LinesChangeType.FULL, change.linesChangeType)
@@ -1181,13 +1182,11 @@ class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
 
     private fun printVfsTree(node: VirtualFile, prefix: String, excludeGit: Boolean) {
         val nodePath = prefix + "/" + node.name
-        println(nodePath)
         val newPrefix = prefix + "\t"
         for (child in node.children) {
             if (excludeGit && child.name == ".git") {
                 continue
             }
-
             printVfsTree(child, newPrefix, excludeGit)
         }
     }

@@ -7,7 +7,7 @@ import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.results.ScanResult
 import org.intellij.plugin.tracker.view.TreeView
 
 class UIService(val project: Project) {

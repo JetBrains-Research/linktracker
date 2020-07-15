@@ -4,7 +4,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 
 /**
