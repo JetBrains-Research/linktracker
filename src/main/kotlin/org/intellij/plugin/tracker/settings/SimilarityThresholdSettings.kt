@@ -64,6 +64,21 @@ data class SimilarityThresholdSettings(
                 "${similarityThresholdSettings.lineSimilarity}"
             )
         }
+
+        /**
+         * Auxiliary method to get the saved directory similarity threshold settings
+         */
+        fun getSavedDirectorySimilarity(): Int = getCurrentSimilarityThresholdSettings().directorySimilarity
+
+        /**
+         * Auxiliary method to get the saved file similarity threshold settings
+         */
+        fun getSavedFileSimilarity(): Int = getCurrentSimilarityThresholdSettings().fileSimilarity
+
+        /**
+         * Auxiliary method to get the saved line similarity threshold settings
+         */
+        fun getSavedLineSimilarity(): Int = getCurrentSimilarityThresholdSettings().lineSimilarity
     }
 
     /**

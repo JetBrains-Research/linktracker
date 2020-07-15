@@ -7,11 +7,12 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.psi.PsiManager
+import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.data.DirectoryChangeGatheringException
 import org.intellij.plugin.tracker.data.FileChangeGatheringException
 import org.intellij.plugin.tracker.data.LineChangeGatheringException
 import org.intellij.plugin.tracker.data.LinesChangeGatheringException
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.results.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -57,7 +58,11 @@ class DataParsingTask(
     // initialize lists
     private val myLinksAndChangesList: MutableList<Pair<Link, Change>> = mutableListOf()
     private val myLinkInfoList: MutableList<LinkInfo> = mutableListOf()
-    private val myScanResult: ScanResult = ScanResult(myLinkChanges = myLinksAndChangesList, myProject = project)
+    private val myScanResult: ScanResult =
+        ScanResult(
+            myLinkChanges = myLinksAndChangesList,
+            myProject = project
+        )
 
     fun getResult(): ScanResult {
         return myScanResult
@@ -70,6 +75,9 @@ class DataParsingTask(
         ApplicationManager.getApplication().runReadAction {
             myLinkService.getLinks(myLinkInfoList)
         }
+
+        //ChangeListOperationManager(project).testing()
+
         for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
             val link: Link = LinkFactory.createLink(linkInfo)

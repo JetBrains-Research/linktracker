@@ -21,13 +21,24 @@ public class LinkTrackingSettingsForm {
     private JSlider directorySimilaritySlider;
     private JLabel lineSimilarityLabel;
     private JSlider lineSimilaritySlider;
+    private JCheckBox historyTraversalCheckBox;
 
     /**
      * Initializes the UI, returning the main panel object. But first, it initializes the slider values.
      */
     public JComponent getComponent() {
         initializeSliderValues(SimilarityThresholdSettings.Companion.getCurrentSimilarityThresholdSettings());
+        initializeCheckboxes(FeatureSwitchSettings.Companion.getCurrentFeatureSwitchSettings());
         return mainPanel;
+    }
+
+    /**
+     * Initializes the sliders' values to the values that have been previously saved
+     *
+     * If no values saved are found, then use the default values.
+     */
+    private void initializeCheckboxes(FeatureSwitchSettings featureSwitchSettings) {
+        historyTraversalCheckBox.setSelected(featureSwitchSettings.getHistoryTraversalSwitch());
     }
 
     /**
@@ -46,6 +57,16 @@ public class LinkTrackingSettingsForm {
      */
     public void reset() {
         initializeSliderValues(SimilarityThresholdSettings.Companion.getCurrentSimilarityThresholdSettings());
+        initializeCheckboxes(FeatureSwitchSettings.Companion.getCurrentFeatureSwitchSettings());
+    }
+
+    public boolean isModified() {
+        return getSimilarityThresholdSettings().isModified() || getFeatureSwitchSettings().isModified();
+    }
+
+    public void saveValues() {
+        SimilarityThresholdSettings.Companion.saveSetValues(getSimilarityThresholdSettings());
+        FeatureSwitchSettings.Companion.saveFeatureSwitchSettings(getFeatureSwitchSettings());
     }
 
     /**
@@ -56,6 +77,13 @@ public class LinkTrackingSettingsForm {
                 fileSimilaritySlider.getValue(),
                 directorySimilaritySlider.getValue(),
                 lineSimilaritySlider.getValue());
+    }
+
+    /**
+     * Get a FeatureSwitchSettings object based on the values currently present in the settings page.
+     */
+    public FeatureSwitchSettings getFeatureSwitchSettings() {
+        return new FeatureSwitchSettings(historyTraversalCheckBox.isSelected());
     }
 
     {

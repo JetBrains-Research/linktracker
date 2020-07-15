@@ -4,7 +4,6 @@ import info.debatty.java.stringsimilarity.Cosine
 import org.intellij.plugin.tracker.data.Line
 import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.diff.DiffOutput
-import org.intellij.plugin.tracker.data.diff.DiffOutputMultipleRevisions
 import org.intellij.plugin.tracker.data.links.Link
 import org.simmetrics.metrics.Levenshtein
 
@@ -19,17 +18,16 @@ class LineTracker {
         private fun trackEachLineIndividually(
             link: Link,
             linesToTrack: MutableList<Int>,
-            diffOutputMultipleRevisions: DiffOutputMultipleRevisions
+            fileChange: CustomChange,
+            diffOutputList: MutableList<DiffOutput>,
+            originalLinesContents: List<String>
         ) {
             for ((index: Int, line: Int) in linesToTrack.withIndex()) {
-                val diffOutputMultipleRevisionTransformed = DiffOutputMultipleRevisions(
-                    diffOutputMultipleRevisions.fileChange,
-                    diffOutputMultipleRevisions.diffOutputList,
-                    diffOutputMultipleRevisions.originalLinesContents[index]
-                )
                 val result: LineChange = trackLine(
                     link,
-                    diffOutputMultipleRevisionTransformed,
+                    fileChange,
+                    originalLinesContents[index],
+                    diffOutputList,
                     givenLineToTrack = line
                 )
                 when (result.lineChangeType) {
@@ -126,7 +124,12 @@ class LineTracker {
          * If all of the lines have been found to be deleted, then return a change type of deleted.
          */
 
-        fun trackLines(link: Link, diffOutputMultipleRevisions: DiffOutputMultipleRevisions): LinesChange {
+        fun trackLines(
+            link: Link,
+            diffOutputList: MutableList<DiffOutput>,
+            fileChange: CustomChange,
+            originalLinesContents: List<String>
+        ): LinesChange {
             var linesToTrack: MutableList<Int> =
                 (link.referencedStartingLine..link.referencedEndingLine).toMutableList()
 
@@ -136,10 +139,10 @@ class LineTracker {
             val contentHashMap: HashMap<Int, String> = hashMapOf()
 
             for (i: Int in 0 until originalLineNumbers.size) {
-                contentHashMap[originalLineNumbers[i]] = diffOutputMultipleRevisions.originalLinesContents[i]
+                contentHashMap[originalLineNumbers[i]] = originalLinesContents[i]
             }
 
-            trackEachLineIndividually(link, linesToTrack, diffOutputMultipleRevisions)
+            trackEachLineIndividually(link, linesToTrack, fileChange, diffOutputList, originalLinesContents)
             val changeMap: HashMap<Int, Int> = constructChangeMap(originalLineNumbers, linesToTrack)
 
             linesToTrack = linesToTrack.filter { lineNo -> lineNo != -1 }.toMutableList()
@@ -148,7 +151,7 @@ class LineTracker {
 
             if (linesToTrack.size == 0) {
                 return LinesChange(
-                    diffOutputMultipleRevisions.fileChange,
+                    fileChange,
                     LinesChangeType.DELETED
                 )
             }
@@ -158,7 +161,7 @@ class LineTracker {
             val linesChangeType: LinesChangeType = determineLinesChangeType(trackResults, changeMap)
 
             return LinesChange(
-                diffOutputMultipleRevisions.fileChange,
+                fileChange,
                 linesChangeType,
                 newLines = newLines
             )
@@ -203,11 +206,12 @@ class LineTracker {
 
         fun trackLine(
             link: Link,
-            diffOutputMultipleRevisions: DiffOutputMultipleRevisions,
+            fileChange: CustomChange,
+            originalLineContent: String,
+            diffOutputList: MutableList<DiffOutput>,
             givenLineToTrack: Int = -1
         ): LineChange {
-            val fileChange: CustomChange = diffOutputMultipleRevisions.fileChange
-            val originalLineContent: String = diffOutputMultipleRevisions.originalLineContent.trim()
+            val trimmedOriginalContent: String = originalLineContent.trim()
             var lineToTrack: Int
             lineToTrack = if (givenLineToTrack != -1) {
                 givenLineToTrack
@@ -218,7 +222,7 @@ class LineTracker {
             var modifications = 0
             var lineIsDeleted = false
 
-            for (diffOutput: DiffOutput in diffOutputMultipleRevisions.diffOutputList) {
+            for (diffOutput: DiffOutput in diffOutputList) {
                 // get the deleted line between the commits
                 var deletedLines: MutableList<Line> = diffOutput.deletedLines
                 // get the added lines between the commits
@@ -259,7 +263,7 @@ class LineTracker {
                 else -> LineChangeType.MOVED
             }
 
-            if (line == null) line = Line(lineToTrack, originalLineContent)
+            if (line == null) line = Line(lineToTrack, trimmedOriginalContent)
             return LineChange(fileChange, lineChangeType, newLine = line)
         }
 

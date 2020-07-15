@@ -11,7 +11,7 @@ import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.utils.CredentialsManager
-import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
 import javax.swing.JComponent
 
@@ -57,7 +57,9 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
         ApplicationManager.getApplication().run {
             object : Task.Modal(project, "Retrieving remote origin url", true) {
                 override fun run(indicator: ProgressIndicator) {
-                    remoteOriginUrl = GitOperationManager(project).getRemoteOriginUrl()
+                    remoteOriginUrl = GitOperationManager(
+                        project
+                    ).getRemoteOriginUrl()
                 }
             }
         }

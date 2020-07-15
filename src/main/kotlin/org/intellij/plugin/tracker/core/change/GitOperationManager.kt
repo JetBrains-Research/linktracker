@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.utils
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
+import com.intellij.util.diff.Diff
 import git4idea.commands.Git
 import git4idea.commands.GitCommand
 import git4idea.commands.GitCommandResult
@@ -12,8 +13,12 @@ import org.intellij.plugin.tracker.data.*
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.links.WebLink
+import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
+import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
@@ -364,6 +369,24 @@ class GitOperationManager(private val project: Project) {
         return processWorkingTreeChanges(link.path, outputLog.getOutputOrThrow())
     }
 
+    fun getGitHistoryChangeForFile(link: Link): CustomChange {
+        if (link is WebLink<*>) {
+            if (link.correspondsToLocalProject(getRemoteOriginUrl())) {
+                return when (link.referenceType) {
+                    WebLinkReferenceType.COMMIT -> {
+                        getGitHistoryFileChange(link = link, specificCommit = link.referencingName)
+                    }
+                    WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG -> {
+                        getGitHistoryFileChange(link = link, branchOrTagName = link.referencingName)
+                    }
+                    else -> throw WebLinkReferenceTypeIsInvalidException()
+                }
+            }
+            throw FileWebLinkNotCorrespondingToLocalProjectException()
+        }
+        return getGitHistoryFileChange(link)
+    }
+
     /**
      * Get all working tree changes by calling git command
      * `git log --name-status --oneline --find-renames=<sim_threshold> --reverse <*file_name>`
@@ -380,9 +403,9 @@ class GitOperationManager(private val project: Project) {
      * @param specificCommit: specific commit SHA which to use as a starting point for the git command.
      */
     @Throws(VcsException::class)
-    fun getAllChangesForFile(
+    fun getGitHistoryFileChange(
         link: Link,
-        similarityThreshold: Int,
+        similarityThreshold: Int = SimilarityThresholdSettings.getSavedFileSimilarity(),
         branchOrTagName: String? = null,
         specificCommit: String? = null
     ): CustomChange {
@@ -677,6 +700,68 @@ class GitOperationManager(private val project: Project) {
         gitLineHandler.addParameters("--get", "remote.origin.url")
         val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
         return outputLog.getOutputOrThrow()
+    }
+
+    /**
+     * Calls the git diff command -- depending on whether the after commit sha if blank or not,
+     * it will call the method of getting diff between commits if it is not blank and
+     * the method of getting diff with working version of file if the after commit sha is blank.
+     *
+     * It then does some processing of the output of git diff before calling auxiliary methods
+     * of extracting info on the lines of the output
+     */
+    private fun getDiffOutput(
+        before: String,
+        after: String,
+        beforePath: String,
+        afterPath: String,
+        contextLinesNumber: Int = 3
+    ): DiffOutput? {
+        val output: String = if (after.isNotBlank()) {
+            getDiffBetweenCommits(before, after, beforePath, afterPath, contextLinesNumber)
+        } else {
+            getDiffWithWorkingVersionOfFile(beforePath, afterPath, contextLinesNumber)
+        }
+        // skip the git diff header (first 4 lines)
+        if (output.isEmpty()) return null
+        // filter out all git-added "No newline at end of file" lines
+        val lines: List<String?> = output.lines()
+            .subList(4, output.lines().size)
+            .filterNot { line -> line == "\\ No newline at end of file" }
+
+        val diffOutputResult = processDiffOutputLines(lines, contextLinesNumber)
+        return DiffOutput(beforePath, diffOutputResult.first, diffOutputResult.second)
+    }
+
+    /**
+     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
+     * between the file at a commit and a path (before) and the file at another commit and path (after)
+     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
+     */
+    fun getDiffOutput(fileChange: CustomChange): MutableList<DiffOutput> {
+        val diffOutputList: MutableList<DiffOutput> = mutableListOf()
+        val fileHistoryList = fileChange.fileHistoryList
+        if (fileHistoryList.size >= 2) {
+            for (x: Int in 0 until fileHistoryList.size - 1) {
+                val beforeCommitSHA: String = fileHistoryList[x].revision
+                val beforePath: String = fileHistoryList[x].path
+
+                val afterCommitSHA: String = fileHistoryList[x + 1].revision
+                val afterPath: String = fileHistoryList[x + 1].path
+
+                val output: DiffOutput? =
+                    getDiffOutput(
+                        beforeCommitSHA,
+                        afterCommitSHA,
+                        beforePath,
+                        afterPath
+                    )
+                if (output != null) {
+                    diffOutputList.add(output)
+                }
+            }
+        }
+        return diffOutputList
     }
 
     /**
