@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker
+package org.intellij.plugin.tracker.actions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -9,8 +9,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.settings.FeatureSwitchSettings
-import org.intellij.plugin.tracker.utils.DataParsingTask
-import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.core.DataParsingTask
+import org.intellij.plugin.tracker.core.change.GitOperationManager
 
 /**
  * Main action of the plugin.
@@ -44,7 +44,8 @@ class LinkTrackerAction : AnAction() {
             val linkService: LinkRetrieverService = LinkRetrieverService.getInstance(project)
             val linkUpdateService: LinkUpdaterService = LinkUpdaterService.getInstance(project)
             val uiService: UIService = UIService.getInstance(project)
-            val gitOperationManager = GitOperationManager(project)
+            val gitOperationManager =
+                GitOperationManager(project)
 
             // Initialize task
             val dataParsingTask = DataParsingTask(

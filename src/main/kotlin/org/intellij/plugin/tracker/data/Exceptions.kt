@@ -1,6 +1,7 @@
 package org.intellij.plugin.tracker.data
 
 import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.CustomChangeType
 
 /**
  * Generic, base exception class for change gathering exceptions
@@ -36,7 +37,7 @@ class CommitSHAIsNullLineException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**
@@ -46,7 +47,7 @@ class CommitSHAIsNullLinesException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LinesChangeGatheringException(message, fileChange)
 
 /**
@@ -81,17 +82,21 @@ class InvalidFileChangeTypeException(
     override val message: String?
 ) : FileChangeGatheringException(message)
 
+class FileWebLinkNotCorrespondingToLocalProjectException(
+    override val message: String? = "The web link to file does not correspond to the currently open project"
+) : FileChangeGatheringException(message)
+
 /**
  * If the file in which a line is located is deleted, then the line cannot be tracked further
  */
 class FileHasBeenDeletedException(
     override val message: String? = "File has been deleted. Line can not be tracked.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 class FileHasBeenDeletedLinesException(
     override val message: String? = "File has been deleted. Lines can not be tracked.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LinesChangeGatheringException(message, fileChange)
 
 class InvalidFileChangeException(
@@ -165,3 +170,7 @@ class UnableToFetchLocalDirectoryChangesException(
 ) : DirectoryChangeGatheringException(
     "There was a problem in gathering the directory changes from local directory: $message"
 )
+
+class FileNotFoundInChangeListsException(
+    override val message: String? = "Referenced file does not exist"
+) : FileChangeGatheringException(message)
