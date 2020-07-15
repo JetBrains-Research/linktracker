@@ -1,5 +1,6 @@
 package org.intellij.plugin.tracker.data.changes
 
+import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.diff.FileHistory
 
 /**
@@ -72,6 +73,10 @@ data class CustomChange(
      */
     override val errorMessage: String? = null,
 
+    val beforeContent: CharSequence? = null,
+
+    val afterContent: CharSequence? = null,
+
     /**
      * A list of FileHistory objects for a linked file, containing the paths and revisions
      * discovered of a file during the traversal of git history.
@@ -121,5 +126,27 @@ data class CustomChange(
 
     override fun toString(): String {
         return "Change type is $customChangeType and after path is $afterPath with error message $errorMessage"
+    }
+
+    companion object {
+        fun convertChangeToCustomChange(
+            project: Project,
+            change: com.intellij.openapi.vcs.changes.Change
+        ): CustomChange {
+            val changeType: CustomChangeType = when (change.type) {
+                com.intellij.openapi.vcs.changes.Change.Type.MODIFICATION -> CustomChangeType.MODIFIED
+                com.intellij.openapi.vcs.changes.Change.Type.NEW -> CustomChangeType.ADDED
+                com.intellij.openapi.vcs.changes.Change.Type.DELETED -> CustomChangeType.DELETED
+                com.intellij.openapi.vcs.changes.Change.Type.MOVED -> CustomChangeType.MOVED
+            }
+            val afterPathString =
+                change.afterRevision?.file?.path?.removePrefix("${project.basePath}/" as CharSequence) ?: ""
+            return CustomChange(
+                changeType,
+                afterPathString,
+                beforeContent = change.beforeRevision?.content as CharSequence,
+                afterContent = change.afterRevision?.content as CharSequence
+            )
+        }
     }
 }
