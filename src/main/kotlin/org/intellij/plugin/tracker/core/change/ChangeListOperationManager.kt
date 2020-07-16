@@ -106,7 +106,7 @@ class ChangeListOperationManager(val project: Project) {
     }
 
     fun getOriginalLineContents(fileChange: CustomChange, lineNumber: Int): String {
-        val lines = fileChange.beforeContent?.lines()
+        val lines = getLines(fileChange)
         if (lines != null) {
             if (lineNumber <= lines.size) {
                 return lines[lineNumber - 1]
@@ -116,12 +116,20 @@ class ChangeListOperationManager(val project: Project) {
     }
 
     fun getMultipleOriginalLinesContents(fileChange: CustomChange, startLine: Int, endLine: Int): List<String> {
-        val lines = fileChange.beforeContent?.lines()
+        val lines = getLines(fileChange)
         if (lines != null) {
             if (startLine <= lines.size && endLine <= lines.size) {
-                return lines.subList(startLine - 1, endLine - 1)
+                return lines.subList(startLine - 1, endLine)
             }
         }
         throw OriginalLinesContentsNotFoundException(fileChange = fileChange)
+    }
+
+    private fun getLines(fileChange: CustomChange): List<String>? {
+        return if (fileChange.customChangeType == CustomChangeType.MODIFIED) {
+            fileChange.beforeContent?.lines()
+        } else {
+            File(project.basePath, fileChange.afterPathString).readText().lines()
+        }
     }
 }
