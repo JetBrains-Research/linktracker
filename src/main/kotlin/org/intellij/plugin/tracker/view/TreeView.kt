@@ -10,30 +10,28 @@ import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.SideBorder
 import com.intellij.ui.treeStructure.Tree
+import org.apache.commons.lang.StringUtils.substringBetween
+import org.intellij.plugin.tracker.core.change.GitOperationManager
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugin.tracker.data.changes.ChangeType
+import org.intellij.plugin.tracker.data.links.Link
+import org.intellij.plugin.tracker.data.results.ScanResult
+import org.intellij.plugin.tracker.core.change.ChangeTrackingPolicy
+import org.intellij.plugin.tracker.settings.FeatureSwitchSettings
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxHelper
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
+import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
-import javax.swing.JPanel
-import javax.swing.JScrollPane
-import javax.swing.JTree
-import javax.swing.SwingConstants
-import javax.swing.SwingUtilities
+import javax.swing.*
 import javax.swing.border.Border
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
-import org.apache.commons.lang.StringUtils.substringBetween
-import org.intellij.plugin.tracker.data.results.ScanResult
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.ChangeType
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.core.change.GitOperationManager
-import org.intellij.plugin.tracker.view.checkbox.CheckBoxHelper
-import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeData
-import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeEditor
-import org.intellij.plugin.tracker.view.checkbox.CheckBoxNodeRenderer
 
 /**
  * Class creating tree view
@@ -119,9 +117,13 @@ class TreeView : JPanel(BorderLayout()) {
         myCommitSHA = try {
             ProgressManager.getInstance()
                 .runProcessWithProgressSynchronously<String?, VcsException>(
-                    { ourScanResult.myProject.let { GitOperationManager(
-                        it
-                    ).getHeadCommitSHA() } },
+                    {
+                        ourScanResult.myProject.let {
+                            GitOperationManager(
+                                it
+                            ).getHeadCommitSHA()
+                        }
+                    },
                     "Getting head commit SHA..",
                     true,
                     ourScanResult.myProject

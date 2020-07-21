@@ -1,34 +1,48 @@
 package org.intellij.plugin.tracker.data
 
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.*
 
 /**
  * Generic, base exception class for change gathering exceptions
  */
-open class ChangeGatheringException(override val message: String?): Exception(message)
+open class ChangeGatheringException(
+    override val message: String?,
+    open val change: Change
+) : Exception(message)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a file
  */
-open class FileChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
+open class FileChangeGatheringException(
+    override val message: String?,
+    override val change: Change = CustomChange(CustomChangeType.INVALID, "", message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a directory
  */
-open class DirectoryChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
+open class DirectoryChangeGatheringException(
+    override val message: String?,
+    override val change: Change = CustomChange(CustomChangeType.INVALID, "", message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a single line
  */
-open class LineChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    ChangeGatheringException(message)
+open class LineChangeGatheringException(
+    override val message: String?,
+    open val fileChange: CustomChange,
+    override val change: Change = LineChange(fileChange, LineChangeType.INVALID, message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for multiple lines
  */
-open class LinesChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    ChangeGatheringException(message)
+open class LinesChangeGatheringException(
+    override val message: String?,
+    open val fileChange: CustomChange,
+    override val change: Change = LinesChange(fileChange, LinesChangeType.INVALID, message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Exception thrown when the start commit SHA of a link to a line cannot be retrieved
@@ -64,7 +78,7 @@ class CommitSHAIsNullDirectoryException(
  */
 class OriginalLineContentsNotFoundException(
     override val message: String? = "Could not find the contents of the line specified in the link",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**
@@ -72,7 +86,7 @@ class OriginalLineContentsNotFoundException(
  */
 class OriginalLinesContentsNotFoundException(
     override val message: String? = "Could not find the contents of the lines specified in the link",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**

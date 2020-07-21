@@ -10,7 +10,8 @@ import com.intellij.openapi.ui.Messages
 import org.intellij.plugin.tracker.services.*
 import org.intellij.plugin.tracker.settings.FeatureSwitchSettings
 import org.intellij.plugin.tracker.core.DataParsingTask
-import org.intellij.plugin.tracker.core.change.GitOperationManager
+import org.intellij.plugin.tracker.core.change.ChangeTrackerImpl
+import org.intellij.plugin.tracker.services.LinkRetrieverService
 
 /**
  * Main action of the plugin.
@@ -19,7 +20,6 @@ class LinkTrackerAction : AnAction() {
 
     override fun actionPerformed(event: AnActionEvent) {
         val currentProject: Project? = event.getData(PlatformDataKeys.PROJECT)
-
         if (currentProject == null) {
             Messages.showErrorDialog(
                 "Please open a project to run the link tracking plugin.",
@@ -38,30 +38,20 @@ class LinkTrackerAction : AnAction() {
          * Static execution is needed to be able to trigger scanning from other classes.
          */
         fun run(project: Project) {
-
             // Initialize all services
-            val historyService: HistoryService = HistoryService.getInstance(project)
             val linkService: LinkRetrieverService = LinkRetrieverService.getInstance(project)
             val linkUpdateService: LinkUpdaterService = LinkUpdaterService.getInstance(project)
-            val uiService: UIService = UIService.getInstance(project)
-            val gitOperationManager =
-                GitOperationManager(project)
 
             // Initialize task
             val dataParsingTask = DataParsingTask(
                 currentProject = project,
                 myLinkService = linkService,
-                myHistoryService = historyService,
-                myGitOperationManager = gitOperationManager,
                 myLinkUpdateService = linkUpdateService,
-                myChangeTrackerService = ChangeTrackerServiceImpl(
+                myChangeTrackerService = ChangeTrackerImpl(
                     project,
                     FeatureSwitchSettings.getCorrespondentChangeTrackingPolicy()
-                ),
-                myUiService = uiService,
-                dryRun = true
+                )
             )
-
             FileDocumentManager.getInstance().saveAllDocuments()
             // Run task
             ProgressManager.getInstance().run(dataParsingTask)
