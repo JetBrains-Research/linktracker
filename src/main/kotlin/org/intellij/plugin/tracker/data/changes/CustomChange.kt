@@ -144,8 +144,8 @@ data class CustomChange(
             return CustomChange(
                 changeType,
                 afterPathString,
-                beforeContent = change.beforeRevision?.content as CharSequence,
-                afterContent = change.afterRevision?.content as CharSequence
+                beforeContent = change.beforeRevision?.content as CharSequence?,
+                afterContent = change.afterRevision?.content as CharSequence?
             )
         }
     }

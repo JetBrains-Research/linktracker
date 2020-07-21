@@ -19,7 +19,7 @@ class LineTracker {
             link: Link,
             linesToTrack: MutableList<Int>,
             fileChange: CustomChange,
-            diffOutputList: MutableList<DiffOutput>,
+            diffOutputList: List<DiffOutput>,
             originalLinesContents: List<String>
         ) {
             for ((index: Int, line: Int) in linesToTrack.withIndex()) {
@@ -132,7 +132,7 @@ class LineTracker {
 
         fun trackLines(
             link: Link,
-            diffOutputList: MutableList<DiffOutput>,
+            diffOutputList: List<DiffOutput>,
             fileChange: CustomChange,
             originalLinesContents: List<String>
         ): LinesChange {
@@ -236,7 +236,7 @@ class LineTracker {
             link: Link,
             fileChange: CustomChange,
             originalLineContent: String,
-            diffOutputList: MutableList<DiffOutput>,
+            diffOutputList: List<DiffOutput>,
             givenLineToTrack: Int = -1
         ): LineChange {
             val trimmedOriginalContent: String = originalLineContent.trim()

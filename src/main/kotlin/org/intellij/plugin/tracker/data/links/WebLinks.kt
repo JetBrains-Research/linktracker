@@ -4,7 +4,7 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinesChange
-import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.core.change.ChangeTracker
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Pattern
@@ -51,7 +51,7 @@ data class WebLinkToDirectory(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalDirectoryChanges(this)
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
@@ -126,7 +126,7 @@ data class WebLinkToFile(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalFileChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -194,7 +194,7 @@ data class WebLinkToLine(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLineChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -251,7 +251,7 @@ data class WebLinkToLines(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLinesChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLinesChanges(this)
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter

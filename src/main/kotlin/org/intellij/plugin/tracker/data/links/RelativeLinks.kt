@@ -7,7 +7,7 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinesChange
-import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.core.change.ChangeTracker
 import org.intellij.plugin.tracker.utils.LinkPatterns
 
 /**
@@ -46,7 +46,7 @@ data class RelativeLinkToDirectory(
     override val path: String
         get() = relativePath
 
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalDirectoryChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalDirectoryChanges(this)
 
     /**
      * Generate a new equivalent link based on the passed in change
@@ -115,7 +115,7 @@ data class RelativeLinkToFile(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalFileChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalFileChanges(this)
 
     /**
      * Generate a new equivalent link based on the passed in change
@@ -181,7 +181,7 @@ data class RelativeLinkToLine(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLineChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLineChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -248,7 +248,7 @@ data class RelativeLinkToLines(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change = visitor.getLocalLinesChanges(this)
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLinesChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path

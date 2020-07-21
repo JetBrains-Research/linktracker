@@ -7,7 +7,7 @@ import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.services.ChangeTrackerService
+import org.intellij.plugin.tracker.core.change.ChangeTracker
 import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.core.update.LinkElement
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
@@ -80,7 +80,7 @@ abstract class Link(
      * Retrieve the changes of a specific link by passing in an
      * implementation of the ChangeTrackerService interface
      */
-    abstract fun visit(visitor: ChangeTrackerService): Change
+    abstract fun visit(visitor: ChangeTracker): Change
 
     /**
      * Performs a deep copy of the link and changes the after path of
@@ -271,7 +271,7 @@ data class NotSupportedLink(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun visit(visitor: ChangeTrackerService): Change = throw UnsupportedOperationException()
+    override fun visit(visitor: ChangeTracker): Change = throw UnsupportedOperationException()
 
     override fun markdownFileMoved(afterPath: String): Boolean = throw UnsupportedOperationException()
 }
