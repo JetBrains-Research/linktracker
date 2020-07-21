@@ -9,6 +9,7 @@ import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.intellij.plugin.tracker.data.*
+import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.DiffOutput
@@ -17,9 +18,12 @@ import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
+import org.intellij.plugin.tracker.utils.*
 import org.intellij.plugin.tracker.utils.extractChangeType
+import org.intellij.plugin.tracker.utils.matchAndGetOverridingWorkingTreeChange
 import org.intellij.plugin.tracker.utils.parseContent
 import org.intellij.plugin.tracker.utils.processDiffOutputLines
+import org.intellij.plugin.tracker.utils.processUncommittedRename
 import org.intellij.plugin.tracker.utils.processWorkingTreeChanges
 import java.io.File
 import kotlin.math.min
@@ -29,7 +33,7 @@ import kotlin.math.min
  * processing the outputs (of the git commands) and returning it.
  */
 
-class GitOperationManager(private val project: Project) {
+class GitOperationManager(private val project: Project) : ChangeSource() {
 
     /**
      * Main, git service class. It is needed for running all of the git commands,
@@ -57,6 +61,49 @@ class GitOperationManager(private val project: Project) {
         }
     }
 
+    override fun getChangeForFile(link: Link): Change {
+        val workingTreeChange: CustomChange? = checkWorkingTreeChanges(link)
+        // this file has just been added and is not tracked by git, but the link is considered valid
+        if (workingTreeChange != null && workingTreeChange.customChangeType == CustomChangeType.ADDED) {
+            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
+            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
+            return workingTreeChange
+        }
+        val change: CustomChange = getGitHistoryChangeForFile(link)
+        try {
+            if (workingTreeChange == null) return getWorkingTreeChangeOfNewPath(link, change)
+            return matchAndGetOverridingWorkingTreeChange(workingTreeChange, change)
+        } catch (e: FileChangeGatheringException) {
+            // this might be the case when a link corresponds to an uncommitted rename
+            // git log history will have no changes when using the new name
+            // but the working tree change will capture the rename, so we want to return it
+            return processUncommittedRename(workingTreeChange, e.message)
+        }
+    }
+
+    /**
+     * So far we have only checked `git log` with the commit that is pointing to HEAD.
+     * but we want to also check non-committed changes for file changes.
+     * at this point, link was found and a new change has been correctly identified.
+     * working tree change can be null (might be because we have first calculated the working tree change
+     * using the unchanged path that was retrieved from the markdown file -- this path might have been invalid
+     * but now we have a new path that corresponds to the original retrieved path
+     * we want to check whether there is any non-committed change that affects this new path
+     */
+    private fun getWorkingTreeChangeOfNewPath(link: Link, change: CustomChange): Change {
+        val newLink: Link = link.copyWithAfterPath(link, change.afterPathString)
+        val currentChange: CustomChange = checkWorkingTreeChanges(newLink) ?: return change
+        // new change identified (from checking working tree). Use this newly-found change instead.
+        change.fileHistoryList.add(
+            FileHistory(
+                path = currentChange.afterPathString,
+                fromWorkingTree = true
+            )
+        )
+        currentChange.fileHistoryList = change.fileHistoryList
+        return currentChange
+    }
+
     /**
      * Get the contents of a directory at a specific commit
      *
@@ -81,18 +128,43 @@ class GitOperationManager(private val project: Project) {
      *
      * Throw an exception of the requested line do not exist in the version of file at <path> and <commitSHA>
      */
-    @Throws(VcsException::class)
-    fun getContentsOfLineInFileAtCommit(commitSHA: String, path: String, lineNumber: Int): String {
+    override fun getLines(link: Link): List<String>? {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
-        gitLineHandler.addParameters("$commitSHA:$path")
+        gitLineHandler.addParameters("${link.specificCommit}:${link.path}")
         val result: GitCommandResult = git.runCommand(gitLineHandler)
-        if (result.exitCode == 0) {
-            val lines: List<String> = result.output
-            if (lines.size >= lineNumber) return lines[lineNumber - 1]
-        }
-        throw OriginalLineContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        return result.getOutputOrThrow().lines()
     }
 
+    override fun getDirectoryInfo(link: Link): DirectoryInfo {
+        val startCommit = getLinkStartCommit(this, link, CommitSHAIsNullDirectoryException())
+        link.specificCommit = startCommit
+        val directoryContents = getDirectoryContentsAtCommit(link.path, startCommit)
+        if (directoryContents == null || directoryContents.size == 0) {
+            throw LocalDirectoryNeverExistedException()
+        }
+        return DirectoryInfo(determineMovedFiles(link, directoryContents), directoryContents.size)
+    }
+
+    /**
+     * For each file identified as content of a directory at at specific commit,
+     * track that file individually through-out git history, identifying thus
+     * the set of moved out-files from the directory and the set of deleted files from the directory.
+     */
+    private fun determineMovedFiles(link: Link, directoryContents: List<String>): List<String> {
+        val movedFiles: MutableList<String> = mutableListOf()
+        for (filePath: String in directoryContents) {
+            try {
+                val fileChange =
+                    getChangeForFile(convertDirectoryLinkToFileLink(link, filePath)) as CustomChange
+                if (fileChange.customChangeType == CustomChangeType.MOVED) {
+                    movedFiles.add(fileChange.afterPathString)
+                }
+            } catch (e: Exception) {
+                throw UnableToFetchLocalDirectoryChangesException("Error while fetching file changes: ${e.message}")
+            }
+        }
+        return movedFiles
+    }
 
     /**
      * Gets the contents of multiple, consecutive lines from a file, at a specified commit
@@ -117,7 +189,7 @@ class GitOperationManager(private val project: Project) {
             val lines: List<String> = result.output
             if (lines.size >= endLineNumber) return lines.subList(startLineNumber - 1, endLineNumber)
         }
-        throw OriginalLinesContentsNotFoundException(fileChange = CustomChange(CustomChangeType.INVALID, ""))
+        throw OriginalLinesContentsNotFoundException()
     }
 
     /**
@@ -567,7 +639,14 @@ class GitOperationManager(private val project: Project) {
                     fileHistoryList.add(FileHistory("Commit: $specificCommit", linkPath))
                 }
 
-                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
+                return traverseGitHistoryForFile(
+                    lookUpContent,
+                    fileHistoryList,
+                    lookUpIndex,
+                    linkPath,
+                    changeList,
+                    specificCommit
+                )
             }
 
             additionList = additionList.reversed()
@@ -576,12 +655,19 @@ class GitOperationManager(private val project: Project) {
                 val lookUpIndex: Int = pair.first
                 val lookUpContent: String = pair.second
 
-                return traverseGitHistoryForFile(lookUpContent, fileHistoryList, lookUpIndex, linkPath, changeList, specificCommit)
+                return traverseGitHistoryForFile(
+                    lookUpContent,
+                    fileHistoryList,
+                    lookUpIndex,
+                    linkPath,
+                    changeList,
+                    specificCommit
+                )
             }
         }
 
         return checkFileExistsOnDisk(linkPath, specificCommit)
-            ?:throw ReferencedFileNotFoundException()
+            ?: throw ReferencedFileNotFoundException()
     }
 
     /**
@@ -633,7 +719,7 @@ class GitOperationManager(private val project: Project) {
      * between the file at a commit and a path (before) and the file at another commit and path (after)
      * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
      */
-    fun getDiffOutput(fileChange: CustomChange): MutableList<DiffOutput> {
+    override fun getDiffOutput(fileChange: CustomChange): List<DiffOutput> {
         val diffOutputList: MutableList<DiffOutput> = mutableListOf()
         val fileHistoryList = fileChange.fileHistoryList
         if (fileHistoryList.size >= 2) {
