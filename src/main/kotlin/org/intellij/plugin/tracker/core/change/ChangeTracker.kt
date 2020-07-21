@@ -1,4 +1,4 @@
-package org.intellij.plugin.tracker.services
+package org.intellij.plugin.tracker.core.change
 
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
@@ -11,7 +11,7 @@ enum class ChangeTrackingPolicy { HISTORY, LOCAL }
  * This interface declares common behaviour of a service that retrieves changes for links
  * depending on the environment in which the software is running
  */
-interface ChangeTrackerService {
+interface ChangeTracker {
 
     /**
      * Get the changes for (relative) links to files that correspond to the currently open project
