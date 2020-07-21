@@ -7,8 +7,6 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.RelativeLinkToDirectory
-import org.intellij.plugin.tracker.data.links.WebLinkToDirectory
 import org.intellij.plugin.tracker.utils.calculateDirectorySimilarityAndDetermineChange
 import org.intellij.plugin.tracker.utils.checkCurrentDirectoryContents
 import org.intellij.plugin.tracker.utils.getLinkStartCommit

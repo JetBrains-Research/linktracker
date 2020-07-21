@@ -1,6 +1,5 @@
 package org.intellij.plugin.tracker.data.changes
 
-import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.data.diff.FileHistory
 
 /**
@@ -130,23 +129,39 @@ data class CustomChange(
 
     companion object {
         fun convertChangeToCustomChange(
-            project: Project,
-            change: com.intellij.openapi.vcs.changes.Change
+            projectBasePath: String?,
+            change: com.intellij.openapi.vcs.changes.Change,
+            linkPath: String? = null
         ): CustomChange {
             val changeType: CustomChangeType = when (change.type) {
                 com.intellij.openapi.vcs.changes.Change.Type.MODIFICATION -> CustomChangeType.MODIFIED
                 com.intellij.openapi.vcs.changes.Change.Type.NEW -> CustomChangeType.ADDED
                 com.intellij.openapi.vcs.changes.Change.Type.DELETED -> CustomChangeType.DELETED
-                com.intellij.openapi.vcs.changes.Change.Type.MOVED -> CustomChangeType.MOVED
+                com.intellij.openapi.vcs.changes.Change.Type.MOVED -> checkMovedPath(
+                    projectBasePath,
+                    linkPath,
+                    change.afterRevision?.file?.path
+                )
             }
-            val afterPathString =
-                change.afterRevision?.file?.path?.removePrefix("${project.basePath}/" as CharSequence) ?: ""
             return CustomChange(
                 changeType,
-                afterPathString,
+                removeProjectBasePath(projectBasePath, change.afterRevision?.file?.path),
                 beforeContent = change.beforeRevision?.content as CharSequence?,
                 afterContent = change.afterRevision?.content as CharSequence?
             )
         }
+
+        private fun checkMovedPath(projectBasePath: String?, linkPath: String?, newPath: String?): CustomChangeType {
+            if (linkPath != null) {
+                val trimmedNewPath = removeProjectBasePath(projectBasePath, newPath)
+                if (linkPath == trimmedNewPath) {
+                    return CustomChangeType.MODIFIED
+                }
+            }
+            return CustomChangeType.MOVED
+        }
+
+        private fun removeProjectBasePath(projectBasePath: String?, path: String?) =
+            path?.removePrefix("$projectBasePath/" as CharSequence) ?: ""
     }
 }

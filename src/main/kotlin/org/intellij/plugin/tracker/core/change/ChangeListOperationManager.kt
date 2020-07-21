@@ -29,7 +29,7 @@ class ChangeListOperationManager(val project: Project): ChangeSource() {
             if (File(project.basePath, filePath).exists()) return CustomChange(CustomChangeType.ADDED, filePath)
             throw FileNotFoundInChangeListsException()
         }
-        return CustomChange.convertChangeToCustomChange(project, change)
+        return CustomChange.convertChangeToCustomChange(project.basePath, change, link.path)
     }
 
     private fun getChangeCorrespondingToPath(
@@ -38,16 +38,27 @@ class ChangeListOperationManager(val project: Project): ChangeSource() {
     ): com.intellij.openapi.vcs.changes.Change? {
         for (change in changeList) {
             val beforePath = change.beforeRevision?.file?.path?.removePrefix(project.basePath as CharSequence)
-            if (beforePath == path) {
-                return change
-            }
-            if (beforePath != null && beforePath.startsWith("/")) {
-                if (beforePath.removePrefix("/") == path) {
-                    return change
-                }
-            }
+            if (checkEqualPath(beforePath, path)) return change
+            val afterPath = change.afterRevision?.file?.path?.removePrefix(project.basePath as CharSequence)
+            if (checkEqualPath(afterPath, path)) return change
         }
         return null
+    }
+
+    /**
+     * `path1` is a before / after path taken from change lists, whereas `path2` is a
+     * path given by the user in the link path
+     */
+    private fun checkEqualPath(path1: String?, path2: String): Boolean {
+        if (path1 == path2) {
+            return true
+        }
+        if (path1 != null && path1.startsWith("/")) {
+            if (path1.removePrefix("/") == path2) {
+                return true
+            }
+        }
+        return false
     }
 
     override fun getDiffOutput(fileChange: CustomChange): MutableList<DiffOutput> {
@@ -85,11 +96,8 @@ class ChangeListOperationManager(val project: Project): ChangeSource() {
 
     override fun getLines(link: Link): List<String>? {
         val fileChange = getChangeForFile(link) as CustomChange
-        return if (fileChange.customChangeType == CustomChangeType.MODIFIED) {
-            fileChange.beforeContent?.lines()
-        } else {
-            File(project.basePath, fileChange.afterPathString).readText().lines()
-        }
+        return fileChange.beforeContent?.lines()
+            ?: File(project.basePath, fileChange.afterPathString).readText().lines()
     }
 
     override fun getDirectoryInfo(link: Link): DirectoryInfo {
@@ -102,7 +110,7 @@ class ChangeListOperationManager(val project: Project): ChangeSource() {
 
     private fun getChangesForDirectory(directoryPath: String): List<Change> {
         return getChangesCorrespondingToPath(directoryPath, changeListManager.allChanges)
-            .map { change -> CustomChange.convertChangeToCustomChange(project, change) }
+            .map { change -> CustomChange.convertChangeToCustomChange(project.basePath, change) }
     }
 
     private fun getChangesCorrespondingToPath(
@@ -112,16 +120,28 @@ class ChangeListOperationManager(val project: Project): ChangeSource() {
         val filteredChangeList = mutableListOf<com.intellij.openapi.vcs.changes.Change>()
         for (change in changeList) {
             val beforePath = change.beforeRevision?.file?.path?.removePrefix(project.basePath as CharSequence)
-            if (beforePath != null) {
-                if (beforePath.startsWith(path)) {
-                    filteredChangeList.add(change)
-                } else if (beforePath.startsWith("/")) {
-                    if (beforePath.removePrefix("/").startsWith(path)) {
-                        filteredChangeList.add(change)
-                    }
-                }
+            if (checkDirectoryPathsMatching(beforePath, path)) {
+                filteredChangeList.add(change)
+                continue
+            }
+            val afterPath = change.afterRevision?.file?.path?.removePrefix(project.basePath as CharSequence)
+            if (checkDirectoryPathsMatching(afterPath, path)) {
+                filteredChangeList.add(change)
             }
         }
         return filteredChangeList
+    }
+
+    private fun checkDirectoryPathsMatching(path1: String?, path2: String): Boolean {
+        if (path1 != null) {
+            if (path1.startsWith(path2)) {
+                return true
+            } else if (path1.startsWith("/")) {
+                if (path1.removePrefix("/").startsWith(path2)) {
+                    return true
+                }
+            }
+        }
+        return false
     }
 }
