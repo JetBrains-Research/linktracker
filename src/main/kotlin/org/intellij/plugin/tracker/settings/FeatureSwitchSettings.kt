@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.settings
 
 import com.intellij.ide.util.PropertiesComponent
-import org.intellij.plugin.tracker.services.ChangeTrackingPolicy
+import org.intellij.plugin.tracker.core.change.ChangeTrackingPolicy
 
 /**
  * Data class responsible for the logic associated with the feature switch settings values, checking whether

@@ -7,9 +7,7 @@ import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
 import org.intellij.plugin.tracker.data.diff.FileHistory
-import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.data.links.WebLink
-import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
+import org.intellij.plugin.tracker.data.links.*
 import java.io.File
 
 /**
@@ -66,31 +64,11 @@ internal fun matchAndGetOverridingWorkingTreeChange(
     }
 }
 
-/**
- * So far we have only checked `git log` with the commit that is pointing to HEAD.
- * but we want to also check non-committed changes for file changes.
- * at this point, link was found and a new change has been correctly identified.
- * working tree change can be null (might be because we have first calculated the working tree change
- * using the unchanged path that was retrieved from the markdown file -- this path might have been invalid
- * but now we have a new path that corresponds to the original retrieved path
- * we want to check whether there is any non-committed change that affects this new path
- */
-internal fun getWorkingTreeChangeOfNewPath(
-    gitOperationManager: GitOperationManager,
-    link: Link,
-    change: CustomChange
-): Change {
-    val newLink: Link = link.copyWithAfterPath(link, change.afterPathString)
-    val currentChange: CustomChange =
-        gitOperationManager.checkWorkingTreeChanges(newLink) ?: return change
-
-    // new change identified (from checking working tree). Use this newly-found change instead.
-    change.fileHistoryList.add(
-        FileHistory(
-            path = currentChange.afterPathString,
-            fromWorkingTree = true
-        )
-    )
-    currentChange.fileHistoryList = change.fileHistoryList
-    return currentChange
+internal fun convertDirectoryLinkToFileLink(link: Link, filePath: String): Link {
+    return if (link is RelativeLinkToDirectory) {
+        link.convertToFileLink(filePath)
+    } else {
+        link as WebLinkToDirectory
+        link.convertToFileLink(filePath)
+    }
 }

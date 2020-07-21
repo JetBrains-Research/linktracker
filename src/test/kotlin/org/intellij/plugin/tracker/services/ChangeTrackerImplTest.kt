@@ -3,6 +3,8 @@ package org.intellij.plugin.tracker.services
 import com.intellij.openapi.vcs.Executor
 import com.intellij.openapi.vfs.VirtualFile
 import com.nhaarman.mockitokotlin2.mock
+import org.intellij.plugin.tracker.core.change.ChangeTrackerImpl
+import org.intellij.plugin.tracker.core.change.ChangeTrackingPolicy
 import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
 import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
 import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
@@ -40,15 +42,18 @@ import kotlin.test.assertFailsWith
  * In order to create tests with a new project instance per test
  * it is necessary to create a different instance of this class for each test case.
  */
-class ChangeTrackerServiceImplTest : GitSingleRepoTest() {
+class ChangeTrackerImplTest : GitSingleRepoTest() {
 
-    private lateinit var changeTracker: ChangeTrackerServiceImpl
+    private lateinit var changeTracker: ChangeTrackerImpl
     private lateinit var defaultLink: Link
 
     override fun setUp() {
         super.setUp()
 
-        changeTracker = ChangeTrackerServiceImpl(project, ChangeTrackingPolicy.HISTORY)
+        changeTracker = ChangeTrackerImpl(
+            project,
+            ChangeTrackingPolicy.HISTORY
+        )
         defaultLink = RelativeLinkToFile(
             LinkInfo(
                 fileName = "file.md",
