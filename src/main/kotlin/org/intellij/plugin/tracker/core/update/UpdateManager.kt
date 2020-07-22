@@ -40,7 +40,7 @@ class UpdateManager {
         try {
             ApplicationManager.getApplication().runWriteAction {
                 WriteCommandAction.runWriteCommandAction(project) {
-                    myLinkUpdaterService.updateLinks(acceptedChanges, commitSHA)
+                    myLinkUpdaterService.batchUpdateLinks(acceptedChanges, commitSHA)
                     removeUpdatedLinks(linksAndChanges, acceptedChanges, project)
                 }
             }

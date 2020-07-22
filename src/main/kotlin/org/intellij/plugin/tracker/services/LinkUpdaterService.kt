@@ -38,19 +38,20 @@ class LinkUpdaterService(val project: Project) {
      *
      * @param links the collection of link data necessary for the update
      */
-    fun updateLinks(links: MutableCollection<Pair<Link, Change>>, newCommit: String?): UpdateResult {
+    fun batchUpdateLinks(links: MutableCollection<Pair<Link, Change>>, newCommit: String?): UpdateResult {
         val startTime = System.currentTimeMillis()
         val updated = mutableListOf<Link>()
         val failed = mutableListOf<Link>()
-        val listWithElements = getLinkElements(links)
-        for (triple in listWithElements) {
+        for (pair in links) {
+            val link = pair.first
+            val change = pair.second
             try {
                 when {
-                    updateLink(triple.first, triple.second, triple.third, newCommit) -> updated.add(triple.first)
-                    else -> failed.add(triple.first)
+                    updateSingleLink(link, change, newCommit) -> updated.add(link)
+                    else -> failed.add(link)
                 }
             } catch (e: NotImplementedError) {
-                failed.add(triple.first)
+                failed.add(link)
             }
         }
         val timeElapsed = System.currentTimeMillis() - startTime
@@ -64,31 +65,25 @@ class LinkUpdaterService(val project: Project) {
      * @param change the LinkChange object according to which to update the link
      */
     @Suppress("UNCHECKED_CAST")
-    private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
+    fun updateSingleLink(link: Link, change: Change, newCommit: String?, index: Int = 0): Boolean {
         var afterPath: String? = null
         if (link is RelativeLink<*>) {
             val castLink: RelativeLink<Change> = link as RelativeLink<Change>
-            afterPath = castLink.updateLink(change, newCommit)
+            afterPath = castLink.updateLink(change, index, newCommit)
         } else if (link is WebLink<*>) {
             val castLink: WebLink<Change> = link as WebLink<Change>
-            afterPath = castLink.updateLink(change, newCommit)
+            afterPath = castLink.updateLink(change, index, newCommit)
         }
+
+        println("AFTER PATH IS: $afterPath")
+
+        println("HEAD COMMIT SHA IS: $newCommit")
 
         // calculated updated link is null -> something wrong must have happened, return false
         if (afterPath == null) return false
 
         val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
-        element.replace(newElement)
+        link.linkInfo.linkElement.replace(newElement)
         return true
-    }
-
-    /**
-     * Gets the PsiElement corresponding to each input Link.
-     *
-     * @return a List of Triple<Link, FileChange, PsiElement>
-     */
-    private fun getLinkElements(list: MutableCollection<Pair<Link, Change>>):
-            MutableCollection<Triple<Link, Change, LinkElement>> {
-        return list.map { pair -> Triple(pair.first, pair.second, pair.first.linkInfo.linkElement) }.toMutableList()
     }
 }

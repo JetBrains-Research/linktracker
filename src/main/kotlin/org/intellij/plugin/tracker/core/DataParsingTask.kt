@@ -58,7 +58,7 @@ class DataParsingTask(
      */
     override fun run(indicator: ProgressIndicator) {
         ApplicationManager.getApplication().runReadAction {
-            myLinkService.getLinks(myLinkInfoList)
+            myLinkInfoList.addAll(myLinkService.getLinksInProjectScope())
         }
         for (linkInfo: LinkInfo in myLinkInfoList) {
             indicator.text = "Tracking link with path ${linkInfo.linkPath}.."
@@ -96,7 +96,7 @@ class DataParsingTask(
     private fun updateLinks() {
         ApplicationManager.getApplication().invokeLater {
             if (myLinksAndChangesList.size != 0) {
-                myLinkUpdateService.updateLinks(
+                myLinkUpdateService.batchUpdateLinks(
                     myLinksAndChangesList,
                     GitOperationManager(myProject).getHeadCommitSHA()
                 )

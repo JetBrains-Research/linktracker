@@ -51,7 +51,7 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
         val linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
         ApplicationManager.getApplication().runReadAction {
-            linkService.getLinks(linkInfoList)
+            linkInfoList.addAll(linkService.getLinksInProjectScope())
         }
 
         val infoList: MutableList<Triple<String, String, String>> = mutableListOf()

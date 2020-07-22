@@ -1,17 +1,22 @@
 package org.intellij.plugin.tracker.data.links
 
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
-import java.lang.IllegalArgumentException
-import java.nio.file.Paths
-import java.util.regex.Matcher
-import java.util.regex.Pattern
-import org.intellij.plugin.tracker.data.changes.Change
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
 import org.intellij.plugin.tracker.core.change.ChangeTracker
 import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.core.update.LinkElement
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
 import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
+import java.nio.file.Paths
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 /**
  * An enum class for web link reference types
@@ -120,13 +125,14 @@ abstract class RelativeLink<in T : Change>(
     /**
      * Checks whether the markdown file in which this link is located has been moved
      */
-    override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(linkInfo
-        .getAfterPathToOriginalFormat(afterPath)!!, linkInfo.proveniencePath) != afterPath
+    override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(
+        linkInfo.getAfterPathToOriginalFormat(afterPath)!!,
+        linkInfo.proveniencePath) != afterPath
 
     /**
      * Method that, given
      */
-    abstract fun updateLink(change: T, commitSHA: String?): String?
+    abstract fun updateLink(change: T, index: Int, commitSHA: String?): String?
 }
 
 /**
@@ -217,7 +223,7 @@ abstract class WebLink<in T : Change>(
      *
      * Each sub-type of WebLink implements it's own new path generation method
      */
-    fun updateLink(change: T, commitSHA: String?): String? {
+    fun updateLink(change: T, index: Int, commitSHA: String?): String? {
         var newPath: String = linkInfo.linkPath
         if (referenceType == WebLinkReferenceType.COMMIT) {
             if (commitSHA == null) return null
@@ -227,13 +233,13 @@ abstract class WebLink<in T : Change>(
         // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
         if (linkInfo.linkPathPrefix != null) newPath = "${linkInfo.linkPathPrefix}$newPath"
         if (linkInfo.linkPathSuffix != null) newPath = "$newPath${linkInfo.linkPathSuffix}"
-        return generateNewPath(change, newPath)
+        return generateNewPath(change, index, newPath)
     }
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    abstract fun generateNewPath(change: T, newPath: String): String?
+    abstract fun generateNewPath(change: T, index: Int, newPath: String): String?
 
     /**
      * Always return false, web links do not have relative paths and therefore
@@ -337,7 +343,7 @@ data class LinkInfo(
      * Gets the format in which the link appears in the markdown files
      */
     fun getMarkDownSyntaxString(): String {
-        return when  {
+        return when {
             linkElement.getNode()?.elementType == LINK_DESTINATION && inlineLink -> "[$linkText]($linkPath)"
             linkElement.getNode()?.elementType == LINK_DESTINATION && !inlineLink -> "[$linkText]: $linkPath"
             linkElement.getNode()?.elementType == AUTOLINK -> {
@@ -365,5 +371,72 @@ data class LinkInfo(
         } catch (e: IllegalArgumentException) {
             null
         }
+    }
+
+    companion object {
+        fun constructLinkInfoMarkdownLinkDestination(
+            element: PsiElement,
+            document: Document,
+            file: PsiFile,
+            project: Project
+        ): LinkInfo {
+            var inlineLink = true
+            if (element.parent.elementType == MarkdownElementTypes.LINK_DEFINITION) inlineLink = false
+            return LinkInfo(
+                element.parent.firstChild.node.text.replace("[", "").replace("]", ""),
+                element.node.text,
+                getProveniencePath(project.basePath!!, file),
+                document.getLineNumber(element.node.startOffset) + 1,
+                LinkElementImpl(element),
+                file.name,
+                project,
+                inlineLink = inlineLink
+            )
+        }
+
+        fun constructLinkInfoAutoLink(
+            element: PsiElement,
+            document: Document,
+            file: PsiFile,
+            project: Project
+        ): LinkInfo {
+            val linkText = element.node.text.replace("<", "").replace(">", "")
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            return LinkInfo(
+                linkText,
+                linkText,
+                getProveniencePath(project.basePath!!, file),
+                lineNumber,
+                linkElement,
+                file.name,
+                project,
+                "<",
+                ">"
+            )
+        }
+
+        fun constructLinkInfoGfmAutoLink(
+            element: PsiElement,
+            document: Document,
+            file: PsiFile,
+            project: Project
+        ): LinkInfo {
+            val linkText = element.node.text
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            return LinkInfo(
+                linkText,
+                linkText,
+                getProveniencePath(project.basePath!!, file),
+                lineNumber,
+                linkElement,
+                file.name,
+                project
+            )
+        }
+
+        private fun getProveniencePath(projectBasePath: String, file: PsiFile) =
+            file.virtualFile.path.replace("$projectBasePath/", "")
     }
 }
