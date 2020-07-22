@@ -28,8 +28,8 @@
                 description="Track links" icon="AllIcons.Actions.Refresh">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F" remove="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F" replace-all="true"/>
             <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
         </action>
         <action id="Settings" class="org.intellij.plugin.tracker.actions.SettingsAction" text="Settings"
@@ -61,6 +61,15 @@
                 displayName="Token Manager"
                 instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
         />
+
+        <localInspection
+                language="Markdown"
+                displayName="Maintain links to code"
+                groupName="Markdown"
+                groupBundle="messages.InspectionsBundle"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="org.intellij.plugin.tracker.inspection.LinkMaintenanceInspection"/>
     </extensions>
 
 </idea-plugin>
