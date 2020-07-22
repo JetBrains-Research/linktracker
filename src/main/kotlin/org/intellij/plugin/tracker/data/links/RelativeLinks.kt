@@ -51,7 +51,7 @@ data class RelativeLinkToDirectory(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: CustomChange, commitSHA: String?): String? = change.afterPathString
+    override fun updateLink(change: CustomChange, index: Int, commitSHA: String?): String? = change.afterPathString
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -120,7 +120,7 @@ data class RelativeLinkToFile(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: CustomChange, commitSHA: String?): String? =
+    override fun updateLink(change: CustomChange, index: Int, commitSHA: String?): String? =
         linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     /**
@@ -194,7 +194,7 @@ data class RelativeLinkToLine(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: LineChange, commitSHA: String?): String? = change.afterPath[0]
+    override fun updateLink(change: LineChange, index: Int, commitSHA: String?): String? = change.afterPath[index]
 }
 
 /**
@@ -261,7 +261,7 @@ data class RelativeLinkToLines(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: LinesChange, commitSHA: String?): String? = change.selectedAfterPath
+    override fun updateLink(change: LinesChange, index: Int, commitSHA: String?): String? = change.afterPath[index]
 }
 
 /**

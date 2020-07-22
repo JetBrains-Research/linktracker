@@ -56,7 +56,7 @@ data class WebLinkToDirectory(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, index: Int, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     /**
@@ -120,7 +120,7 @@ data class WebLinkToFile(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, index: Int, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     /**
@@ -183,11 +183,11 @@ data class WebLinkToLine(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: LineChange, newPath: String): String? {
+    override fun generateNewPath(change: LineChange, index: Int, newPath: String): String? {
         if (change.newLine == null) return null
         return newPath.replace(
             "$path#L$lineReferenced",
-            "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}"
+            "${change.fileChange.afterPath[index]}#L${change.newLine.lineNumber}"
         )
     }
 
@@ -256,12 +256,12 @@ data class WebLinkToLines(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: LinesChange, newPath: String): String? {
+    override fun generateNewPath(change: LinesChange, index: Int, newPath: String): String? {
         if (change.newLines == null) return null
 
         return newPath.replace(
             "$path#L$referencedStartingLine-L$referencedEndingLine",
-            change.selectedAfterPath!!
+            change.afterPath[index]
         )
     }
 
