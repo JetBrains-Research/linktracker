@@ -12,7 +12,7 @@ import kotlin.math.min
  */
 internal fun processDiffOutputLines(
     lines: List<String?>,
-    contextLinesNumber: Int
+    contextLinesNumber: Int = 3
 ): Pair<MutableList<Line>, MutableList<Line>> {
     val addedLines: MutableList<Line> = mutableListOf()
     val deletedLines: MutableList<Line> = mutableListOf()
