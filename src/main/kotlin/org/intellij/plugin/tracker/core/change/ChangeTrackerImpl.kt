@@ -3,11 +3,8 @@ package org.intellij.plugin.tracker.core.change
 import com.intellij.openapi.project.Project
 import org.intellij.plugin.tracker.core.line.LineTracker
 import org.intellij.plugin.tracker.data.*
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.data.changes.CustomChange
-import org.intellij.plugin.tracker.data.changes.CustomChangeType
+import org.intellij.plugin.tracker.data.changes.*
 import org.intellij.plugin.tracker.data.links.Link
-import org.intellij.plugin.tracker.utils.calculateDirectorySimilarityAndDetermineChange
 import org.intellij.plugin.tracker.utils.checkCurrentDirectoryContents
 import org.intellij.plugin.tracker.utils.getLinkStartCommit
 
@@ -28,11 +25,10 @@ class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : Change
     override fun getLocalFileChanges(link: Link): Change = changeSource.getChangeForFile(link)
 
     override fun getLocalDirectoryChanges(link: Link): Change {
-        val linkPath = link.path
         if (checkCurrentDirectoryContents(myProject, link.path)) {
             return CustomChange(CustomChangeType.ADDED, link.path)
         }
-        return calculateDirectorySimilarityAndDetermineChange(linkPath, changeSource.getDirectoryInfo(link))
+        return changeSource.getChangeForDirectory(link)
     }
 
     /**
@@ -51,24 +47,20 @@ class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : Change
      * the line to it's new location using the generated diff outputs as input.
      */
     override fun getLocalLineChanges(link: Link): Change {
-        val fileChange = getFileChangeForLink(link, CommitSHAIsNullLineException(), FileHasBeenDeletedException())
-        val diffOutputList = changeSource.getDiffOutput(fileChange)
-        val originalLineContent = changeSource.getOriginalLineContents(link)
-        return LineTracker.trackLine(link, fileChange, originalLineContent, diffOutputList)
+        val fileChange = getFileChangeForLink(link, CommitSHAIsNullLineException())
+        if (fileChange.customChangeType != CustomChangeType.DELETED) {
+            val diffOutputList = changeSource.getDiffOutput(fileChange)
+            val originalLineContent = changeSource.getOriginalLineContents(link)
+            return LineTracker.trackLine(link, fileChange, originalLineContent, diffOutputList)
+        }
+        return LineChange(fileChange, LineChangeType.DELETED)
     }
 
-    private fun getFileChangeForLink(
-        link: Link,
-        commitNotFoundException: Throwable,
-        fileDeletedException: Throwable
-    ): CustomChange {
+    private fun getFileChangeForLink(link: Link, commitNotFoundException: Throwable): CustomChange {
         if (myPolicy == ChangeTrackingPolicy.HISTORY) {
-            changeSource as GitOperationManager
-            link.specificCommit = getLinkStartCommit(changeSource, link, commitNotFoundException)
+            link.specificCommit = getLinkStartCommit(changeSource as GitOperationManager, link, commitNotFoundException)
         }
-        val fileChange = getLocalFileChanges(link) as CustomChange
-        if (fileChange.customChangeType == CustomChangeType.DELETED) throw fileDeletedException
-        return fileChange
+        return getLocalFileChanges(link) as CustomChange
     }
 
     /**
@@ -87,9 +79,12 @@ class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : Change
      * the lines to their new locations using the generated diff outputs as input.
      */
     override fun getLocalLinesChanges(link: Link): Change {
-        val fileChange = getFileChangeForLink(link, CommitSHAIsNullLinesException(), FileHasBeenDeletedLinesException())
-        val diffOutputList = changeSource.getDiffOutput(fileChange)
-        val multipleOriginalLinesContents = changeSource.getMultipleOriginalLinesContents(link)
-        return LineTracker.trackLines(link, diffOutputList, fileChange, multipleOriginalLinesContents)
+        val fileChange = getFileChangeForLink(link, CommitSHAIsNullLinesException())
+        if (fileChange.customChangeType != CustomChangeType.DELETED) {
+            val diffOutputList = changeSource.getDiffOutput(fileChange)
+            val multipleOriginalLinesContents = changeSource.getMultipleOriginalLinesContents(link)
+            return LineTracker.trackLines(link, diffOutputList, fileChange, multipleOriginalLinesContents)
+        }
+        return LinesChange(fileChange, LinesChangeType.DELETED)
     }
 }
