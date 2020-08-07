@@ -20,7 +20,7 @@ class LineChangeTest : TestCase() {
             customChangeType = CustomChangeType.DELETED,
             afterPathString = "dummypath.md",
             errorMessage = "dummy message",
-            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", true)),
+            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", fromWorkingTree = true)),
             deletionsAndAdditions = 10
         )
 

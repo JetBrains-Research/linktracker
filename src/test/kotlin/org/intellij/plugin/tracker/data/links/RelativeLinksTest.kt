@@ -50,15 +50,15 @@ class RelativeLinksTest : TestCase() {
             customChangeType = CustomChangeType.ADDED,
             afterPathString = "after path"
         )
-        Assertions.assertEquals(relativeLinkToFile.updateLink(customChange, "sha"), "../after path")
-        Assertions.assertEquals(relativeLinkToDirectory.updateLink(customChange, "sha"), "after path")
+        Assertions.assertEquals(relativeLinkToFile.updateLink(customChange, 0, "sha"), "../after path")
+        Assertions.assertEquals(relativeLinkToDirectory.updateLink(customChange, 0, "sha"), "after path")
 
         val lineChange = LineChange(
             fileChange = customChange,
             lineChangeType = LineChangeType.MOVED,
             newLine = Line(5, "line text")
         )
-        Assertions.assertEquals(relativeLinkToLine.updateLink(lineChange, "sha"), "after path#L5")
+        Assertions.assertEquals(relativeLinkToLine.updateLink(lineChange, 0, "sha"), "after path#L5")
 
         val linesChange = LinesChange(
             fileChange = customChange,
@@ -71,7 +71,7 @@ class RelativeLinksTest : TestCase() {
             ))
         )
         linesChange.selectedAfterPath = "after path#L3-L5"
-        Assertions.assertEquals(relativeLinkToLines.updateLink(linesChange, "sha"), "after path#L3-L5")
+        Assertions.assertEquals(relativeLinkToLines.updateLink(linesChange, 0, "sha"), "after path#L3-L5")
     }
 
     fun testCheckRelativeLink() {

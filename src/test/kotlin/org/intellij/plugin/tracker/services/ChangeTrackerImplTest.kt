@@ -9,8 +9,6 @@ import org.intellij.plugin.tracker.data.CommitSHAIsNullDirectoryException
 import org.intellij.plugin.tracker.data.CommitSHAIsNullLineException
 import org.intellij.plugin.tracker.data.CommitSHAIsNullLinesException
 import org.intellij.plugin.tracker.data.FileChangeGatheringException
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedException
-import org.intellij.plugin.tracker.data.FileHasBeenDeletedLinesException
 import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.ReferencedFileNotFoundException
 import org.intellij.plugin.tracker.data.changes.CustomChange
@@ -612,48 +610,6 @@ class ChangeTrackerImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
     }
 
-    fun `test single line moved with uncommitted file changes and file deleted`() {
-        val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1")
-        createLinkingFile(content = "[link](file.txt#L1)")
-        val initialFileContent = """
-           public static void dummyMethod() {
-                this.value = value;
-                return;
-            }
-        """.trimIndent()
-        val linkedFile = createLinkedFile(content = initialFileContent)
-
-        linkedFile.write(
-            """
-            
-          public void newMethodAddedHere() {
-                doNothing();
-           }
-           
-           /**
-           * New text
-           * here
-           * here and here
-           * dummy text
-           */
-           public static void dummyMethod() {
-                return;
-            }
-        """.trimIndent()
-        )
-
-        repo.delete(linkedFile)
-        repo.add()
-        repo.commit("Delete linked file")
-
-        refresh()
-        updateChangeListManager()
-
-        assertFailsWith<FileHasBeenDeletedException> {
-            changeTracker.getLocalLineChanges(link) as LineChange
-        }
-    }
-
     fun `test single line null commit sha`() {
         val link = createDummyLinkToLine("file.md", "file.md", "file.txt#L1")
 
@@ -1010,48 +966,6 @@ class ChangeTrackerImplTest : GitSingleRepoTest() {
         Assertions.assertEquals(change.fileChange.customChangeType, CustomChangeType.MOVED)
         Assertions.assertEquals(change.fileChange.afterPathString, "mydirectory/file.txt")
         Assertions.assertEquals(change.fileChange.deletionsAndAdditions, 0)
-    }
-
-    fun `test multiple lines fully moved with structure changes with uncommitted file and file deleted`() {
-        val link = createDummyLinkToLines("file.md", "file.md", "file.txt#L1-L5")
-
-        createLinkingFile(content = "[link](file.txt#L1-L5)")
-        val initialFileContent = """
-           public static void dummyMethod() {
-                this.value = value;
-                this.name = name;
-                doSomethingMore();
-            }
-        """.trimIndent()
-        val linkedFile = createLinkedFile(content = initialFileContent)
-
-        linkedFile.write(
-            """
-          
-         class DummyClass {
-            
-            public DummyClass() {
-            }
-            
-            
-           /**
-           * Adding documentation lines
-           * One more lines
-           */
-           public static List<Int> dummyMethod() {
-                this.value = otherValue;
-                doSomethingMuchMuchMore();
-            }
-        """.trimIndent()
-        )
-
-        repo.delete(linkedFile)
-        repo.add()
-        repo.addCommit("Delete linked file")
-
-        assertFailsWith<FileHasBeenDeletedLinesException> {
-            changeTracker.getLocalLinesChanges(link) as LinesChange
-        }
     }
 
     fun `test multiple lines null commit sha`() {

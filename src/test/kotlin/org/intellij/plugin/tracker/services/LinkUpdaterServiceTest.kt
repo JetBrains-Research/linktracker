@@ -113,7 +113,7 @@ class TestRelativeLinkToFile : TestUpdateLinks() {
             Pair(link, change)
         )
         WriteCommandAction.runWriteCommandAction(project) {
-            myLinkUpdateService.updateLinks(list, null)
+            myLinkUpdateService.batchUpdateLinks(list, null)
         }
         myFixture.configureByFile("expected/expectedTestUpdateRelativeLinkToFile.md")
         ApplicationManager.getApplication().runReadAction {
@@ -156,7 +156,7 @@ class TestRelativeLinkToLine : TestUpdateLinks() {
             Pair(link, change)
         )
         WriteCommandAction.runWriteCommandAction(project) {
-            myLinkUpdateService.updateLinks(list, null)
+            myLinkUpdateService.batchUpdateLinks(list, null)
         }
         myFixture.configureByFile("expected/expectedTestUpdateRelativeLinkToLine.md")
         ApplicationManager.getApplication().runReadAction {
@@ -240,7 +240,7 @@ class TestRelativeLinks : TestUpdateLinks() {
             Pair(link3, change3)
         )
         WriteCommandAction.runWriteCommandAction(project) {
-            myLinkUpdateService.updateLinks(list, null)
+            myLinkUpdateService.batchUpdateLinks(list, null)
         }
         myFixture.configureByFile("expected/expectedTestUpdateRelativeLinks.md")
         ApplicationManager.getApplication().runReadAction {
@@ -330,7 +330,7 @@ class TestMultipleLinks : TestUpdateLinks() {
             Pair(linkToDir, linkChangeToDir)
         )
         WriteCommandAction.runWriteCommandAction(project) {
-            myLinkUpdateService.updateLinks(list, null)
+            myLinkUpdateService.batchUpdateLinks(list, null)
         }
         myFixture.configureByFile("expected/expectedTestUpdateMultipleLinks.md")
         ApplicationManager.getApplication().runReadAction {

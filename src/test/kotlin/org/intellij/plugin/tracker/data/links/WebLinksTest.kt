@@ -49,8 +49,8 @@ class WebLinksTest : TestCase() {
             afterPathString = "after path"
         )
         webLinkToFile.referenceType = WebLinkReferenceType.COMMIT
-        Assertions.assertEquals(webLinkToFile.updateLink(customChange, null), null)
-        Assertions.assertEquals(webLinkToFile.updateLink(customChange, "sha"), "https://gitlab.ewi.tudelft.nl/project_owner/project/-/blob/sha/after path")
+        Assertions.assertEquals(webLinkToFile.updateLink(customChange, 0, null), null)
+        Assertions.assertEquals(webLinkToFile.updateLink(customChange, 0, "sha"), "https://gitlab.ewi.tudelft.nl/project_owner/project/-/blob/sha/after path")
     }
 
     fun testLineReferenced() {
@@ -96,15 +96,15 @@ class WebLinksTest : TestCase() {
 
     fun testGenerateNewPath() {
         Assertions.assertEquals(webLinkToFile.generateNewPath(CustomChange(CustomChangeType.MOVED,
-            "dummy.md"), "dummy/README.md"), "dummy/dummy.md")
+            "dummy.md"), 0, "dummy/README.md"), "dummy/dummy.md")
         Assertions.assertEquals(webLinkToDirectory.generateNewPath(CustomChange(CustomChangeType.MOVED,
-            "new directory"), "new/dummy/directory"), "new/new directory")
+            "new directory"), 0, "new/dummy/directory"), "new/new directory")
         Assertions.assertEquals(webLinkToLine.generateNewPath(LineChange(CustomChange(CustomChangeType.MOVED,
-            "dummy.md"), LineChangeType.DELETED), "new path"), null)
+            "dummy.md"), LineChangeType.DELETED), 0, "new path"), null)
         Assertions.assertEquals(webLinkToLine.generateNewPath(LineChange(CustomChange(CustomChangeType.MOVED, "dummy.md"),
             LineChangeType.DELETED, "error",
             Line(3, "line content")
-        ), "new path"), "new path")
+        ), 0, "new path"), "new path")
     }
 
     fun testCopyWithAfterPath() {

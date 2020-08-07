@@ -18,7 +18,7 @@ class CustomChangeTest : TestCase() {
             customChangeType = CustomChangeType.MOVED,
             afterPathString = "dummypath.md",
             errorMessage = "dummy message",
-            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", true)),
+            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", fromWorkingTree = true)),
             deletionsAndAdditions = 10
         )
 
@@ -48,7 +48,7 @@ class CustomChangeTest : TestCase() {
         Assertions.assertEquals(change.customChangeType, CustomChangeType.MOVED)
         Assertions.assertEquals(change.errorMessage, "dummy message")
         Assertions.assertEquals(change.afterPathString, "dummypath.md")
-        Assertions.assertEquals(change.fileHistoryList, mutableListOf(FileHistory("commit sha", "dummy path", true)))
+        Assertions.assertEquals(change.fileHistoryList, mutableListOf(FileHistory("commit sha", "dummy path", fromWorkingTree = true)))
         Assertions.assertEquals(change.deletionsAndAdditions, 10)
     }
 
