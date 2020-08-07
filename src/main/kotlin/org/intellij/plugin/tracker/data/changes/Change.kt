@@ -39,4 +39,6 @@ interface Change {
      * Function that indicates whether a change contains any working tree changes
      */
     fun hasWorkingTreeChanges(): Boolean
+
+    fun isChangeDelete(): Boolean = changes.any { ch -> ch.changeTypeString.contains("DELETED") }
 }
