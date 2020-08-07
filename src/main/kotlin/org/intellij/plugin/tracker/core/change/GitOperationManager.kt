@@ -19,13 +19,6 @@ import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
 import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.*
-import org.intellij.plugin.tracker.utils.extractChangeType
-import org.intellij.plugin.tracker.utils.matchAndGetOverridingWorkingTreeChange
-import org.intellij.plugin.tracker.utils.parseContent
-import org.intellij.plugin.tracker.utils.processDiffOutputLines
-import org.intellij.plugin.tracker.utils.processUncommittedRename
-import org.intellij.plugin.tracker.utils.processWorkingTreeChanges
-import java.io.File
 import kotlin.math.min
 
 /**
@@ -46,6 +39,8 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
      */
     private val gitRepository: GitRepository
 
+    private val changeSourceUtil = ChangeSourceUtil(project)
+
     /**
      * Initializes the git repository property of this class, by fetching all of the repositories
      * that exist in this project and getting the first one that appears in the list
@@ -58,26 +53,6 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
             gitRepository = repositories[0]
         } else {
             throw VcsException("Could not find Git Repository")
-        }
-    }
-
-    override fun getChangeForFile(link: Link): Change {
-        val workingTreeChange: CustomChange? = checkWorkingTreeChanges(link)
-        // this file has just been added and is not tracked by git, but the link is considered valid
-        if (workingTreeChange != null && workingTreeChange.customChangeType == CustomChangeType.ADDED) {
-            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
-            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
-            return workingTreeChange
-        }
-        val change: CustomChange = getGitHistoryChangeForFile(link)
-        try {
-            if (workingTreeChange == null) return getWorkingTreeChangeOfNewPath(link, change)
-            return matchAndGetOverridingWorkingTreeChange(workingTreeChange, change)
-        } catch (e: FileChangeGatheringException) {
-            // this might be the case when a link corresponds to an uncommitted rename
-            // git log history will have no changes when using the new name
-            // but the working tree change will capture the rename, so we want to return it
-            return processUncommittedRename(workingTreeChange, e.message)
         }
     }
 
@@ -104,13 +79,33 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
         return currentChange
     }
 
+    override fun getChangeForFile(link: Link): Change {
+        val workingTreeChange: CustomChange? = checkWorkingTreeChanges(link)
+        // this file has just been added and is not tracked by git, but the link is considered valid
+        if (workingTreeChange != null && workingTreeChange.customChangeType == CustomChangeType.ADDED) {
+            val fileHistory = FileHistory(path = workingTreeChange.afterPathString, fromWorkingTree = true)
+            workingTreeChange.fileHistoryList = mutableListOf(fileHistory)
+            return workingTreeChange
+        }
+        val change: CustomChange = getGitHistoryChangeForFile(link)
+        try {
+            if (workingTreeChange == null) return getWorkingTreeChangeOfNewPath(link, change)
+            return matchAndGetOverridingWorkingTreeChange(workingTreeChange, change)
+        } catch (e: FileChangeGatheringException) {
+            // this might be the case when a link corresponds to an uncommitted rename
+            // git log history will have no changes when using the new name
+            // but the working tree change will capture the rename, so we want to return it
+            return processUncommittedRename(workingTreeChange, e.message)
+        }
+    }
+
     /**
      * Get the contents of a directory at a specific commit
      *
      * Runs git command `git ls-tree --name-only -r <commitSHA> -- <dirPath>`
      * Returns null if the contents cannot be fetched
      */
-    fun getDirectoryContentsAtCommit(directoryPath: String, commitSHA: String): MutableList<String>? {
+    private fun getDirectoryContentsAtCommit(directoryPath: String, commitSHA: String): MutableList<String>? {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.LS_TREE)
         gitLineHandler.addParameters("--name-only", "-r", commitSHA, "--", directoryPath)
         val result: GitCommandResult = git.runCommand(gitLineHandler)
@@ -120,22 +115,7 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
         return null
     }
 
-    /**
-     * Gets the contents of a single line from a file, at a specified commit
-     *
-     * Runs git command `git show <commitSHA>:<path>` that retrieves the contents of the file
-     * at <path> at <commitSHA>. Then the method tries to get the line at `lineNumber`.
-     *
-     * Throw an exception of the requested line do not exist in the version of file at <path> and <commitSHA>
-     */
-    override fun getLines(link: Link): List<String>? {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
-        gitLineHandler.addParameters("${link.specificCommit}:${link.path}")
-        val result: GitCommandResult = git.runCommand(gitLineHandler)
-        return result.getOutputOrThrow().lines()
-    }
-
-    override fun getDirectoryInfo(link: Link): DirectoryInfo {
+    private fun getDirectoryInfo(link: Link): DirectoryInfo {
         val startCommit = getLinkStartCommit(this, link, CommitSHAIsNullDirectoryException())
         link.specificCommit = startCommit
         val directoryContents = getDirectoryContentsAtCommit(link.path, startCommit)
@@ -166,30 +146,89 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
         return movedFiles
     }
 
+    override fun getChangeForDirectory(link: Link): Change =
+        calculateDirectorySimilarityAndDetermineChange(link.path, getDirectoryInfo(link))
+
     /**
-     * Gets the contents of multiple, consecutive lines from a file, at a specified commit
+     * Gets the contents of a single line from a file, at a specified commit
      *
      * Runs git command `git show <commitSHA>:<path>` that retrieves the contents of the file
-     * at <path> at <commitSHA>. Then the method tries to get the lines starting (including)
-     * `startLineNumber` and ending `endLineNumber` (included as well).
+     * at <path> at <commitSHA>. Then the method tries to get the line at `lineNumber`.
      *
-     * Throw an exception of the requested lines do not exist in the version of file at <path> and <commitSHA>
+     * Throw an exception of the requested line do not exist in the version of file at <path> and <commitSHA>
+     */
+    override fun getLines(link: Link): List<String>? {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
+        gitLineHandler.addParameters("${link.specificCommit}:${link.path}")
+        val result: GitCommandResult = git.runCommand(gitLineHandler)
+        return result.getOutputOrThrow().lines()
+    }
+
+    /**
+     * Gets the diff between the version of the file at the last commit
+     * and the working version of the file
+     *
+     * Runs git command `git -U<context_lines_no> diff <path>`
      */
     @Throws(VcsException::class)
-    fun getContentsOfLinesInFileAtCommit(
-        commitSHA: String,
-        path: String,
-        startLineNumber: Int,
-        endLineNumber: Int
-    ): List<String> {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.SHOW)
-        gitLineHandler.addParameters("$commitSHA:$path")
-        val result: GitCommandResult = git.runCommand(gitLineHandler)
-        if (result.exitCode == 0) {
-            val lines: List<String> = result.output
-            if (lines.size >= endLineNumber) return lines.subList(startLineNumber - 1, endLineNumber)
+    fun getDiffWithWorkingVersionOfFile(
+        beforePath: String,
+        afterPath: String,
+        contextLinesNumber: Int = 3
+    ): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
+        gitLineHandler.addParameters(
+            "-U$contextLinesNumber",
+            "HEAD:$beforePath",
+            afterPath
+        )
+        val output = git.runCommand(gitLineHandler)
+        return output.getOutputOrThrow()
+    }
+
+    /**
+     * Runs a git diff command between the version of the file at path `beforePath` at `commit1`
+     * and the version of the file at path `afterPath` at `commit2`.
+     *
+     * Runs command `git diff -U<contextLinesNumber> <commit1>:<beforePath> <commit2:afterPath>`
+     */
+    @Throws(VcsException::class)
+    fun getDiffBetweenCommits(
+        commit1: String,
+        commit2: String,
+        beforePath: String,
+        afterPath: String,
+        contextLinesNumber: Int = 3
+    ): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
+        gitLineHandler.addParameters("-U$contextLinesNumber", "$commit1:$beforePath", "$commit2:$afterPath")
+        val output = git.runCommand(gitLineHandler)
+        return output.getOutputOrThrow()
+    }
+
+    /**
+     * Calls the git diff command -- depending on whether the after commit sha if blank or not,
+     * it will call the method of getting diff between commits if it is not blank and
+     * the method of getting diff with working version of file if the after commit sha is blank.
+     *
+     * It then does some processing of the output of git diff before calling auxiliary methods
+     * of extracting info on the lines of the output
+     */
+    override fun performDiffOutput(before: FileHistory, after: FileHistory): DiffOutput? {
+        val output: String = if (after.revision.isNotBlank()) {
+            getDiffBetweenCommits(before.revision, after.revision, before.path, after.path)
+        } else {
+            getDiffWithWorkingVersionOfFile(before.path, after.path)
         }
-        throw OriginalLinesContentsNotFoundException()
+        // skip the git diff header (first 4 lines)
+        if (output.isEmpty()) return null
+        // filter out all git-added "No newline at end of file" lines
+        val lines: List<String?> = output.lines()
+            .subList(4, output.lines().size)
+            .filterNot { line -> line == "\\ No newline at end of file" }
+
+        val diffOutputResult = processDiffOutputLines(lines)
+        return DiffOutput(before.path, diffOutputResult.first, diffOutputResult.second)
     }
 
     /**
@@ -198,16 +237,8 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
      * This is done by listing all tags in the repository and checking whether `ref` is present in this list
      * Runs git command `git tag -l`
      */
-    fun isRefATag(ref: String): Boolean {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.TAG)
-        // list all tags for this project
-        gitLineHandler.addParameters("-l")
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val outputString: String = output.getOutputOrThrow()
-        var tagList: List<String> = outputString.split("\n")
-        tagList = tagList.map { line -> line.trim() }
-        return ref in tagList
-    }
+    fun isRefATag(ref: String): Boolean =
+        ref in processReferenceNamesList(git, GitLineHandler(project, gitRepository.root, GitCommand.TAG))
 
     /**
      * Checks whether a reference name corresponds to a valid branch name (in the repository associated to the open project)
@@ -218,12 +249,7 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
     @Throws(VcsException::class)
     fun isRefABranch(ref: String): Boolean {
         val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.BRANCH)
-        // list all branch names for this project
-        gitLineHandler.addParameters("-l")
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        val outputString: String = output.getOutputOrThrow()
-        var branchList: List<String> = outputString.split("\n")
-        branchList = branchList.map { line -> line.trim() }
+        var branchList = processReferenceNamesList(git, gitLineHandler)
         branchList = branchList.map { line -> line.replace("* ", "") }
         return ref in branchList
     }
@@ -262,6 +288,50 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
             return output.output[0]
         }
         throw VcsException("Cannot get HEAD commit SHA")
+    }
+
+    /**
+     * Get the remote origin url of a git repository
+     *
+     * Runs git command `git config --get remote.origin.url`
+     */
+    fun getRemoteOriginUrl(): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CONFIG)
+        gitLineHandler.addParameters("--get", "remote.origin.url")
+        val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
+        return outputLog.getOutputOrThrow()
+    }
+
+    /**
+     * Gets the commit SHA of the first commit in the currently checked out branch
+     *
+     * Runs git command `git rev-list --max-parents=0 HEAD`
+     */
+    @Throws(VcsException::class)
+    fun getFirstCommitSHA(branchOrTagName: String? = null): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
+        if (branchOrTagName != null)
+            gitLineHandler.addParameters(branchOrTagName)
+        gitLineHandler.addParameters("--max-parents=0")
+        gitLineHandler.addParameters("HEAD")
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        if (output.exitCode == 0) return output.outputAsJoinedString
+        throw VcsException("Could not find first commit SHA of the currently checked-out branch")
+    }
+
+    /**
+     * Gets the commit SHA of the first commit in the currently checked out branch
+     *
+     * Runs git command `git rev-list --max-parents=0 HEAD`
+     */
+    @Throws(VcsException::class)
+    fun getCurrentBranchName(): String {
+        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_PARSE)
+        gitLineHandler.addParameters("--abbrev-ref")
+        gitLineHandler.addParameters("HEAD")
+        val output: GitCommandResult = git.runCommand(gitLineHandler)
+        if (output.exitCode == 0) return output.outputAsJoinedString
+        throw VcsException("Could not find name of currently checked-out branch")
     }
 
     /**
@@ -374,22 +444,6 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
         return null
     }
 
-    /**
-     * Gets the commit SHA of the first commit in the currently checked out branch
-     *
-     * Runs git command `git rev-list --max-parents=0 HEAD`
-     */
-    @Throws(VcsException::class)
-    fun getFirstCommitSHA(branchOrTagName: String? = null): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.REV_LIST)
-        if (branchOrTagName != null)
-            gitLineHandler.addParameters(branchOrTagName)
-        gitLineHandler.addParameters("--max-parents=0")
-        gitLineHandler.addParameters("HEAD")
-        val output: GitCommandResult = git.runCommand(gitLineHandler)
-        if (output.exitCode == 0) return output.outputAsJoinedString
-        throw VcsException("Could not find first commit SHA of the currently checked-out branch")
-    }
 
     /**
      * Get all working tree changes by calling git command `git status --porcelain=v1`
@@ -549,8 +603,7 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
             return linkChange
         }
         val useCommit: String = specificCommit ?: getHeadCommitSHA()
-        return checkFileExistsOnDisk(linkPath, useCommit)
-            ?: throw ReferencedPathNotFoundException(linkPath)
+        return changeSourceUtil.checkFileExistsOnDisk(linkPath, useCommit)
     }
 
     /**
@@ -583,15 +636,6 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
             }
         }
         return lookUpContent
-    }
-
-    private fun checkFileExistsOnDisk(linkPath: String, specificCommit: String?): CustomChange? {
-        if (File("${project.basePath}/$linkPath").exists()) {
-            val fileChange = CustomChange(CustomChangeType.ADDED, afterPathString = linkPath)
-            fileChange.fileHistoryList = mutableListOf(FileHistory("Commit: $specificCommit", linkPath))
-            return fileChange
-        }
-        return null
     }
 
     /**
@@ -665,125 +709,6 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
                 )
             }
         }
-
-        return checkFileExistsOnDisk(linkPath, specificCommit)
-            ?: throw ReferencedFileNotFoundException()
-    }
-
-    /**
-     * Get the remote origin url of a git repository
-     *
-     * Runs git command `git config --get remote.origin.url`
-     */
-    fun getRemoteOriginUrl(): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.CONFIG)
-        gitLineHandler.addParameters("--get", "remote.origin.url")
-        val outputLog: GitCommandResult = git.runCommand(gitLineHandler)
-        return outputLog.getOutputOrThrow()
-    }
-
-    /**
-     * Calls the git diff command -- depending on whether the after commit sha if blank or not,
-     * it will call the method of getting diff between commits if it is not blank and
-     * the method of getting diff with working version of file if the after commit sha is blank.
-     *
-     * It then does some processing of the output of git diff before calling auxiliary methods
-     * of extracting info on the lines of the output
-     */
-    private fun getDiffOutput(
-        before: String,
-        after: String,
-        beforePath: String,
-        afterPath: String,
-        contextLinesNumber: Int = 3
-    ): DiffOutput? {
-        val output: String = if (after.isNotBlank()) {
-            getDiffBetweenCommits(before, after, beforePath, afterPath, contextLinesNumber)
-        } else {
-            getDiffWithWorkingVersionOfFile(beforePath, afterPath, contextLinesNumber)
-        }
-        // skip the git diff header (first 4 lines)
-        if (output.isEmpty()) return null
-        // filter out all git-added "No newline at end of file" lines
-        val lines: List<String?> = output.lines()
-            .subList(4, output.lines().size)
-            .filterNot { line -> line == "\\ No newline at end of file" }
-
-        val diffOutputResult =
-            processDiffOutputLines(lines, contextLinesNumber)
-        return DiffOutput(beforePath, diffOutputResult.first, diffOutputResult.second)
-    }
-
-    /**
-     * Goes over, commit-by-commit (from the list of file history) and calls auxiliary methods of getting git diff
-     * between the file at a commit and a path (before) and the file at another commit and path (after)
-     * It then adds the result to a git diff output list, which is going to be passed to the line tracking module.
-     */
-    override fun getDiffOutput(fileChange: CustomChange): List<DiffOutput> {
-        val diffOutputList: MutableList<DiffOutput> = mutableListOf()
-        val fileHistoryList = fileChange.fileHistoryList
-        if (fileHistoryList.size >= 2) {
-            for (x: Int in 0 until fileHistoryList.size - 1) {
-                val beforeCommitSHA: String = fileHistoryList[x].revision
-                val beforePath: String = fileHistoryList[x].path
-
-                val afterCommitSHA: String = fileHistoryList[x + 1].revision
-                val afterPath: String = fileHistoryList[x + 1].path
-
-                val output: DiffOutput? =
-                    getDiffOutput(
-                        beforeCommitSHA,
-                        afterCommitSHA,
-                        beforePath,
-                        afterPath
-                    )
-                if (output != null) {
-                    diffOutputList.add(output)
-                }
-            }
-        }
-        return diffOutputList
-    }
-
-    /**
-     * Gets the diff between the version of the file at the last commit
-     * and the working version of the file
-     *
-     * Runs git command `git -U<context_lines_no> diff <path>`
-     */
-    @Throws(VcsException::class)
-    fun getDiffWithWorkingVersionOfFile(
-        beforePath: String,
-        afterPath: String,
-        contextLinesNumber: Int = 3
-    ): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
-        gitLineHandler.addParameters(
-            "-U$contextLinesNumber",
-            "HEAD:$beforePath",
-            afterPath
-        )
-        val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
-    }
-
-    /**
-     * Runs a git diff command between the version of the file at path `beforePath` at `commit1`
-     * and the version of the file at path `afterPath` at `commit2`.
-     *
-     * Runs command `git diff -U<contextLinesNumber> <commit1>:<beforePath> <commit2:afterPath>`
-     */
-    @Throws(VcsException::class)
-    fun getDiffBetweenCommits(
-        commit1: String,
-        commit2: String,
-        beforePath: String,
-        afterPath: String,
-        contextLinesNumber: Int = 3
-    ): String {
-        val gitLineHandler = GitLineHandler(project, gitRepository.root, GitCommand.DIFF)
-        gitLineHandler.addParameters("-U$contextLinesNumber", "$commit1:$beforePath", "$commit2:$afterPath")
-        val output = git.runCommand(gitLineHandler)
-        return output.getOutputOrThrow()
+        return changeSourceUtil.checkFileExistsOnDisk(linkPath, specificCommit)
     }
 }
