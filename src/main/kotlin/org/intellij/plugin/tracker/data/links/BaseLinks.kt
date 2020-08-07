@@ -126,8 +126,8 @@ abstract class RelativeLink<in T : Change>(
      * Checks whether the markdown file in which this link is located has been moved
      */
     override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(
-        linkInfo.getAfterPathToOriginalFormat(afterPath)!!,
-        linkInfo.proveniencePath) != afterPath
+            linkInfo.getAfterPathToOriginalFormat(afterPath)!!,
+            linkInfo.proveniencePath) != afterPath
 
     /**
      * Method that, given
@@ -158,8 +158,7 @@ abstract class WebLink<in T : Change>(
         get() {
             if (field == null) {
                 val ref: String = referencingName
-                val gitOperationManager =
-                    GitOperationManager(linkInfo.project)
+                val gitOperationManager = GitOperationManager(linkInfo.project)
                 try {
                     val result: WebLinkReferenceType = when {
                         gitOperationManager.isRefABranch(ref) -> WebLinkReferenceType.BRANCH
@@ -374,66 +373,32 @@ data class LinkInfo(
     }
 
     companion object {
-        fun constructLinkInfoMarkdownLinkDestination(
-            element: PsiElement,
-            document: Document,
-            file: PsiFile,
-            project: Project
-        ): LinkInfo {
+        fun constructLinkInfoMarkdownLinkDestination(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
             var inlineLink = true
-            if (element.parent.elementType == MarkdownElementTypes.LINK_DEFINITION) inlineLink = false
-            return LinkInfo(
-                element.parent.firstChild.node.text.replace("[", "").replace("]", ""),
-                element.node.text,
-                getProveniencePath(project.basePath!!, file),
-                document.getLineNumber(element.node.startOffset) + 1,
-                LinkElementImpl(element),
-                file.name,
-                project,
-                inlineLink = inlineLink
-            )
+            if (element.parent.elementType == MarkdownElementTypes.LINK_DEFINITION) {
+                inlineLink = false
+            }
+            val linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, element.node.text, provPath, lineNumber, linkElement, file.name, project, inlineLink = inlineLink)
         }
 
-        fun constructLinkInfoAutoLink(
-            element: PsiElement,
-            document: Document,
-            file: PsiFile,
-            project: Project
-        ): LinkInfo {
+        fun constructLinkInfoAutoLink(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
             val linkText = element.node.text.replace("<", "").replace(">", "")
             val lineNumber = document.getLineNumber(element.node.startOffset) + 1
             val linkElement = LinkElementImpl(element)
-            return LinkInfo(
-                linkText,
-                linkText,
-                getProveniencePath(project.basePath!!, file),
-                lineNumber,
-                linkElement,
-                file.name,
-                project,
-                "<",
-                ">"
-            )
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, linkText, provPath, lineNumber, linkElement, file.name, project, "<", ">")
         }
 
-        fun constructLinkInfoGfmAutoLink(
-            element: PsiElement,
-            document: Document,
-            file: PsiFile,
-            project: Project
-        ): LinkInfo {
+        fun constructLinkInfoGfmAutoLink(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
             val linkText = element.node.text
             val lineNumber = document.getLineNumber(element.node.startOffset) + 1
             val linkElement = LinkElementImpl(element)
-            return LinkInfo(
-                linkText,
-                linkText,
-                getProveniencePath(project.basePath!!, file),
-                lineNumber,
-                linkElement,
-                file.name,
-                project
-            )
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, linkText, provPath, lineNumber, linkElement, file.name, project)
         }
 
         private fun getProveniencePath(projectBasePath: String, file: PsiFile) =
