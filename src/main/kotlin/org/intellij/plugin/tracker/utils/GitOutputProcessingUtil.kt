@@ -1,5 +1,8 @@
 package org.intellij.plugin.tracker.utils
 
+import git4idea.commands.Git
+import git4idea.commands.GitCommandResult
+import git4idea.commands.GitLineHandler
 import org.intellij.plugin.tracker.data.ChangeTypeExtractionException
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -102,4 +105,11 @@ internal fun processWorkingTreeChanges(linkPath: String, changes: String): Custo
         }
     }
     return null
+}
+
+internal fun processReferenceNamesList(git: Git, gitLineHandler: GitLineHandler): List<String> {
+    gitLineHandler.addParameters("-l")
+    val output: GitCommandResult = git.runCommand(gitLineHandler)
+    val outputString: String = output.getOutputOrThrow()
+    return outputString.split("\n").map { line -> line.trim() }
 }
