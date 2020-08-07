@@ -39,16 +39,6 @@ class LinkRetrieverService(private val project: Project?) {
             else -> null
         }
 
-    private fun isElementMarkdownLinkDestination(element: PsiElement): Boolean =
-        element.javaClass == MarkdownLinkDestinationImpl::class.java && element.node.elementType === LINK_DESTINATION
-
-    private fun isElementGfmAutoLink(element: PsiElement): Boolean =
-        element.javaClass == LeafPsiElement::class.java &&
-        (element.node.elementType === MarkdownElementType.platformType(GFM_AUTOLINK) && element.parent.node.elementType !== LINK_DESTINATION)
-
-    private fun isElementAutoLink(element: PsiElement): Boolean =
-        element.javaClass == ASTWrapperPsiElement::class.java && element.node.elementType === AUTOLINK
-
     fun getLinkInfoFromLinkElement(file: PsiFile, element: PsiElement): LinkInfo? {
         val document = PsiDocumentManager.getInstance(project!!).getDocument(file)!!
         return classifyLinkElementAndExtractInfo(element, document, file)
@@ -73,5 +63,15 @@ class LinkRetrieverService(private val project: Project?) {
     companion object {
         fun getInstance(project: Project): LinkRetrieverService =
             ServiceManager.getService(project, LinkRetrieverService::class.java)
+
+        fun isElementMarkdownLinkDestination(element: PsiElement): Boolean =
+            element.javaClass == MarkdownLinkDestinationImpl::class.java && element.node.elementType === LINK_DESTINATION
+
+        fun isElementGfmAutoLink(element: PsiElement): Boolean =
+            element.javaClass == LeafPsiElement::class.java &&
+                    (element.node.elementType === MarkdownElementType.platformType(GFM_AUTOLINK) && element.parent.node.elementType !== LINK_DESTINATION)
+
+        fun isElementAutoLink(element: PsiElement): Boolean =
+            element.javaClass == ASTWrapperPsiElement::class.java && element.node.elementType === AUTOLINK
     }
 }
