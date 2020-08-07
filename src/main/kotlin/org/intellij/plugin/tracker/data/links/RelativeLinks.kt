@@ -51,7 +51,8 @@ data class RelativeLinkToDirectory(
     /**
      * Generate a new equivalent link based on the passed in change
      */
-    override fun updateLink(change: CustomChange, index: Int, commitSHA: String?): String? = change.afterPathString
+    override fun updateLink(change: CustomChange, index: Int, commitSHA: String?): String? =
+        linkInfo.getAfterPathToOriginalFormat(change.afterPathString)
 
     /**
      * Deep copy this link and return the copied link with a new after path
