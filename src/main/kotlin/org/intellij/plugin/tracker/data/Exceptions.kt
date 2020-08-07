@@ -92,31 +92,11 @@ class OriginalLinesContentsNotFoundException(
 /**
  * The file change that has been retrieved has an invalid file change type while retrieving file changes.
  */
-class InvalidFileChangeTypeException(
-    override val message: String?
-) : FileChangeGatheringException(message)
+class InvalidFileChangeTypeException(override val message: String?) : FileChangeGatheringException(message)
 
 class FileWebLinkNotCorrespondingToLocalProjectException(
     override val message: String? = "The web link to file does not correspond to the currently open project"
 ) : FileChangeGatheringException(message)
-
-/**
- * If the file in which a line is located is deleted, then the line cannot be tracked further
- */
-class FileHasBeenDeletedException(
-    override val message: String? = "File has been deleted. Line can not be tracked.",
-    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
-) : LineChangeGatheringException(message, fileChange)
-
-class FileHasBeenDeletedLinesException(
-    override val message: String? = "File has been deleted. Lines can not be tracked.",
-    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
-) : LinesChangeGatheringException(message, fileChange)
-
-class InvalidFileChangeException(
-    override val message: String? = "There was an error gathering the changes for the file",
-    override val fileChange: CustomChange
-) : LineChangeGatheringException(message, fileChange)
 
 /**
  * The file in the path existed in git history, but the full path has not.
@@ -152,23 +132,6 @@ class ChangeTypeExtractionException(
 ) : FileChangeGatheringException(message)
 
 /**
- * A directory referenced by a web link that does not correspond
- * to the currently open project has never existed
- */
-class RemoteDirectoryNeverExistedException(
-    override val message: String? = "Directory never existed"
-) : DirectoryChangeGatheringException(message)
-
-/**
- * Exception encountered while fetching directory changes from a web-hosted repository
- */
-class UnableToFetchRemoteDirectoryChangesException(
-    override val message: String?
-) : DirectoryChangeGatheringException(
-    "There was a problem in gathering the directory changes from remote repository: $message"
-)
-
-/**
  * Exception thrown in the case where a referenced directory never existed in the
  * currently open project
  */
@@ -182,9 +145,4 @@ class LocalDirectoryNeverExistedException(
 class UnableToFetchLocalDirectoryChangesException(
     override val message: String?
 ) : DirectoryChangeGatheringException(
-    "There was a problem in gathering the directory changes from local directory: $message"
-)
-
-class FileNotFoundInChangeListsException(
-    override val message: String? = "Referenced file does not exist"
-) : FileChangeGatheringException(message)
+    "There was a problem in gathering the directory changes from local directory: $message")
