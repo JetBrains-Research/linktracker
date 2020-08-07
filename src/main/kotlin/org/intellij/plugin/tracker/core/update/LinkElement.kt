@@ -10,4 +10,6 @@ interface LinkElement {
     fun getText(): String?
 
     fun getNode(): ASTNode?
+
+    fun delete()
 }
