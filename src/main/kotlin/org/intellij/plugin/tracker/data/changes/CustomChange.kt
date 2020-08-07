@@ -65,7 +65,7 @@ data class CustomChange(
     /**
      * The after path
      */
-    val afterPathString: String,
+    val afterPathString: String = "",
 
     /**
      * Error message in case something went wrong while gathering the changes
@@ -125,43 +125,5 @@ data class CustomChange(
 
     override fun toString(): String {
         return "Change type is $customChangeType and after path is $afterPath with error message $errorMessage"
-    }
-
-    companion object {
-        fun convertChangeToCustomChange(
-            projectBasePath: String?,
-            change: com.intellij.openapi.vcs.changes.Change,
-            linkPath: String? = null
-        ): CustomChange {
-            val changeType: CustomChangeType = when (change.type) {
-                com.intellij.openapi.vcs.changes.Change.Type.MODIFICATION -> CustomChangeType.MODIFIED
-                com.intellij.openapi.vcs.changes.Change.Type.NEW -> CustomChangeType.ADDED
-                com.intellij.openapi.vcs.changes.Change.Type.DELETED -> CustomChangeType.DELETED
-                com.intellij.openapi.vcs.changes.Change.Type.MOVED -> checkMovedPath(
-                    projectBasePath,
-                    linkPath,
-                    change.afterRevision?.file?.path
-                )
-            }
-            return CustomChange(
-                changeType,
-                removeProjectBasePath(projectBasePath, change.afterRevision?.file?.path),
-                beforeContent = change.beforeRevision?.content as CharSequence?,
-                afterContent = change.afterRevision?.content as CharSequence?
-            )
-        }
-
-        private fun checkMovedPath(projectBasePath: String?, linkPath: String?, newPath: String?): CustomChangeType {
-            if (linkPath != null) {
-                val trimmedNewPath = removeProjectBasePath(projectBasePath, newPath)
-                if (linkPath == trimmedNewPath) {
-                    return CustomChangeType.MODIFIED
-                }
-            }
-            return CustomChangeType.MOVED
-        }
-
-        private fun removeProjectBasePath(projectBasePath: String?, path: String?) =
-            path?.removePrefix("$projectBasePath/" as CharSequence) ?: ""
     }
 }
