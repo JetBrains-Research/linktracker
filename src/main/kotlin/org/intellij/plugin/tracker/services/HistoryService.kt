@@ -1,11 +1,8 @@
 package org.intellij.plugin.tracker.services
 
-import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.components.State
-import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.*
 import com.intellij.openapi.project.Project
-import org.intellij.plugin.tracker.data.results.RunResult
+import java.sql.Timestamp
 
 /**
  * @author Tommaso Brandirali
@@ -14,25 +11,12 @@ import org.intellij.plugin.tracker.data.results.RunResult
  * on disk, in XML format.
  */
 @State(name = "HistoryServiceData", storages = [Storage("historyServiceData.xml")])
-class HistoryService : PersistentStateComponent<HistoryService.State> {
+class HistoryService(val project: Project) : PersistentStateComponent<HistoryService.State> {
 
-    /**
-     * Used by IDEA to get a reference to the single instance of this class.
-     */
-    companion object {
-        fun getInstance(project: Project): HistoryService =
-            ServiceManager.getService(project, HistoryService::class.java)
-    }
+    private val defaultTimestamp = Timestamp(System.currentTimeMillis()).time
+    private var stateObject = State()
 
-    var stateObject = State()
-
-    data class State(
-        // The listed results are ordered from most recent to last recent.
-        // New results are pushed to the front of the list.
-        var resultsList: ArrayList<RunResult> = ArrayList(),
-
-        var commitSHA: String? = null
-    )
+    data class State(var TIMESTAMP_BY_FILE_AND_LINK: HashMap<String, HashMap<String, Long>> = hashMapOf())
 
     /**
      * Called by IDEA to get the current state of this service, so that it can
@@ -42,40 +26,63 @@ class HistoryService : PersistentStateComponent<HistoryService.State> {
         return stateObject
     }
 
+    private fun cleanup(state: State) {
+        val linkInfoMapByProvPath = LinkRetrieverService.getInstance(project)
+            .getLinksInProjectScope()
+            .groupBy { l -> l.proveniencePath }
+            .mapValues { l -> l.value.map { el -> el.linkPath }}
+        val it = state.TIMESTAMP_BY_FILE_AND_LINK.iterator()
+        while (it.hasNext()) {
+            val entry = it.next()
+            if (!linkInfoMapByProvPath.containsKey(entry.key)) {
+                it.remove()
+            } else {
+                val it2 = entry.value.iterator()
+                while (it2.hasNext()) {
+                    val entry2 = it2.next()
+                    if (!linkInfoMapByProvPath.getValue(entry.key).contains(entry2.key)) {
+                        it2.remove()
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Called by IDEA when new component state is loaded.
      *
      * @param state the state retrieved from disk
      */
     override fun loadState(state: State) {
-        this.stateObject = state
+        cleanup(state)
+        stateObject = state
     }
 
-    fun setResultsList(resultsList: ArrayList<RunResult>) {
-        state.resultsList = resultsList
+    fun getTimestamp(markdownFilePath: String, linkPath: String): Long {
+        val timestampByLinkMap = state.TIMESTAMP_BY_FILE_AND_LINK[markdownFilePath]
+        if (timestampByLinkMap == null) {
+            val newMap: HashMap<String, Long> = hashMapOf()
+            newMap[linkPath] = defaultTimestamp
+            state.TIMESTAMP_BY_FILE_AND_LINK[markdownFilePath] = newMap
+            return defaultTimestamp
+        } else {
+            val savedTimestamp = timestampByLinkMap[linkPath]
+            if (savedTimestamp == null) {
+                timestampByLinkMap[linkPath] = defaultTimestamp
+                return defaultTimestamp
+            }
+            return savedTimestamp
+        }
     }
 
-    fun getResultsList(): ArrayList<RunResult> {
-        return state.resultsList
-    }
-
-    fun saveCommitSHA(commitSHA: String) {
-        stateObject.commitSHA = commitSHA
+    fun saveTimestamp(markdownFilePath: String, linkPath: String, timestamp: Long) {
+        state.TIMESTAMP_BY_FILE_AND_LINK[markdownFilePath]!![linkPath] = timestamp
     }
 
     /**
-     * Returns true if there is data from any previous runs saved on disk, false otherwise.
+     * Used by IDEA to get a reference to the single instance of this class.
      */
-    fun hasHistory(): Boolean {
-        return state.resultsList.size != 0
-    }
-
-    /**
-     * Saves given statistics per project by updating state.
-     *
-     * @param results the data to save on disk
-     */
-    fun saveResults(results: RunResult) {
-        state.resultsList.add(0, results)
+    companion object {
+        fun getInstance(project: Project): HistoryService = ServiceManager.getService(project, HistoryService::class.java)
     }
 }
