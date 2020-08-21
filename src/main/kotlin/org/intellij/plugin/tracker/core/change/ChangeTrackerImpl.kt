@@ -11,7 +11,7 @@ import org.intellij.plugin.tracker.utils.getLinkStartCommit
 /**
  * Implementation of ChangeTrackerService interface, adapted to work in IntelliJ IDEA environment
  */
-class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : ChangeTracker {
+class ChangeTrackerImpl(private val project: Project, private val policy: ChangeTrackingPolicy) : ChangeTracker {
 
     private val changeSource: ChangeSource = if (policy == ChangeTrackingPolicy.HISTORY) {
         GitOperationManager(project)
@@ -19,13 +19,10 @@ class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : Change
         ChangeListOperationManager(project)
     }
 
-    private val myProject = project
-    private val myPolicy = policy
-
     override fun getLocalFileChanges(link: Link): Change = changeSource.getChangeForFile(link)
 
     override fun getLocalDirectoryChanges(link: Link): Change {
-        if (checkCurrentDirectoryContents(myProject, link.path)) {
+        if (checkCurrentDirectoryContents(project, link.path)) {
             return CustomChange(CustomChangeType.ADDED, link.path)
         }
         return changeSource.getChangeForDirectory(link)
@@ -57,7 +54,7 @@ class ChangeTrackerImpl(project: Project, policy: ChangeTrackingPolicy) : Change
     }
 
     private fun getFileChangeForLink(link: Link, commitNotFoundException: Throwable): CustomChange {
-        if (myPolicy == ChangeTrackingPolicy.HISTORY) {
+        if (policy == ChangeTrackingPolicy.HISTORY) {
             link.specificCommit = getLinkStartCommit(changeSource as GitOperationManager, link, commitNotFoundException)
         }
         return getLocalFileChanges(link) as CustomChange
