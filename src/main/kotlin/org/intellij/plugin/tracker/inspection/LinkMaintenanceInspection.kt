@@ -27,9 +27,13 @@ import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.services.LinkUpdaterService
 import org.intellij.plugin.tracker.utils.LinkFactory
 import org.intellij.plugins.markdown.lang.psi.impl.MarkdownFile
+import java.util.logging.Level
+import java.util.logging.Logger
 
 
 class LinkMaintenanceInspection : LocalInspectionTool() {
+
+    private val logger = Logger.getLogger(LinkMaintenanceInspection::class::simpleName.name)
 
     private val REFERENCE_TYPE_BY_LINK: HashMap<String, WebLinkReferenceType> = hashMapOf()
     // TODO: Add listener for branch checkout
@@ -66,7 +70,9 @@ class LinkMaintenanceInspection : LocalInspectionTool() {
                                     }
                                 }
                             } catch (e: ChangeGatheringException) {
+                                logger.log(Level.WARNING, e.message)
                             } catch (e: VcsException) {
+                                logger.log(Level.WARNING, e.message)
                             }
                         }
                     }
@@ -122,6 +128,7 @@ class LinkMaintenanceInspection : LocalInspectionTool() {
     }
 
     internal class QuickLinkFix(link: Link, change: Change, index: Int) : LocalQuickFix {
+        private val logger = Logger.getLogger(QuickLinkFix::class::simpleName.name)
         private val myToFixLink = link
         private val myFixingChange = change
         private val myIndex = index
@@ -137,7 +144,9 @@ class LinkMaintenanceInspection : LocalInspectionTool() {
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
             try {
                 LinkUpdaterService.getInstance(project).updateSingleLink(myToFixLink, myFixingChange, myIndex)
-            } catch (e: VcsException) { }
+            } catch (e: VcsException) {
+                logger.log(Level.WARNING, e.message)
+            }
         }
     }
 }
