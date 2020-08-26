@@ -17,7 +17,6 @@ import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.data.links.WebLinkReferenceType
-import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import org.intellij.plugin.tracker.utils.*
 import kotlin.math.min
 
@@ -501,7 +500,7 @@ class GitOperationManager(private val project: Project) : ChangeSource() {
     @Throws(VcsException::class)
     fun getGitHistoryFileChange(
         link: Link,
-        similarityThreshold: Int = SimilarityThresholdSettings.getSavedFileSimilarity(),
+        similarityThreshold: Int = 60,
         branchOrTagName: String? = null,
         specificCommit: String? = null
     ): CustomChange {

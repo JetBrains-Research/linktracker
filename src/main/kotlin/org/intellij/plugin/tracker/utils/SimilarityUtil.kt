@@ -3,8 +3,6 @@ package org.intellij.plugin.tracker.utils
 import org.intellij.plugin.tracker.core.change.ChangeSource
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
-import org.intellij.plugin.tracker.core.change.ChangeTrackingPolicy
-import org.intellij.plugin.tracker.settings.SimilarityThresholdSettings
 import java.io.File
 
 /**
@@ -37,10 +35,11 @@ internal fun calculateSimilarity(movedFiles: List<String>, addedFilesSize: Int):
 
 internal fun calculateDirectorySimilarityAndDetermineChange(
     linkPath: String,
-    directoryInfo: ChangeSource.DirectoryInfo
+    directoryInfo: ChangeSource.DirectoryInfo,
+    directorySimilarity: Int = 60
 ): CustomChange {
     val similarityPair: Pair<String, Int>? = calculateSimilarity(directoryInfo.movedFiles, directoryInfo.directorySize)
-    if (similarityPair != null && similarityPair.second >= SimilarityThresholdSettings.getSavedDirectorySimilarity()) {
+    if (similarityPair != null && similarityPair.second >= directorySimilarity) {
         return CustomChange(CustomChangeType.MOVED, afterPathString = similarityPair.first)
     }
     return CustomChange(CustomChangeType.DELETED, afterPathString = linkPath)
