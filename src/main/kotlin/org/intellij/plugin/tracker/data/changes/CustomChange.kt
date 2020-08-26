@@ -65,12 +65,16 @@ data class CustomChange(
     /**
      * The after path
      */
-    val afterPathString: String,
+    val afterPathString: String = "",
 
     /**
      * Error message in case something went wrong while gathering the changes
      */
     override val errorMessage: String? = null,
+
+    val beforeContent: CharSequence? = null,
+
+    val afterContent: CharSequence? = null,
 
     /**
      * A list of FileHistory objects for a linked file, containing the paths and revisions

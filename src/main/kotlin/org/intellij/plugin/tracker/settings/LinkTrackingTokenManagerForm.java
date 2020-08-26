@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.settings;
 
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
+import jdk.jfr.Description;
 import kotlin.Pair;
 import org.intellij.plugin.tracker.data.UserInfo;
 import org.intellij.plugin.tracker.utils.CredentialsManager;
@@ -19,6 +20,8 @@ import java.util.Vector;
  *
  * It allows editing and saving tokens for given usernames and platforms.
  */
+@jdk.jfr.Label("Experimental")
+@Description("Remote web links are not supported as of yet")
 public class LinkTrackingTokenManagerForm {
     private JPanel mainPanel;
     private JTable mainTable;

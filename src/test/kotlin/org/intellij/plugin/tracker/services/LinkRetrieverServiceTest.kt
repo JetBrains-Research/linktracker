@@ -4,7 +4,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.nhaarman.mockitokotlin2.mock
 import org.intellij.plugin.tracker.data.links.LinkInfo
-import org.intellij.plugin.tracker.utils.LinkElementImpl
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.junit.jupiter.api.Assertions
 
 /**
@@ -18,7 +18,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
         "testParseWebLink.md",
         "testParseMultipleLinks.md"
     )
-    private var myRetrievedInfo = mutableListOf<LinkInfo>()
+    private var myRetrievedInfo = listOf<LinkInfo>()
 
     override fun getTestDataPath(): String {
         return "src/test/kotlin/org/intellij/plugin/tracker/services/testdata"
@@ -32,7 +32,7 @@ class LinkRetrieverServiceTest : BasePlatformTestCase() {
 
     private fun scan() {
         val linkRetrieverService = LinkRetrieverService.getInstance(project)
-        linkRetrieverService.getLinks(myRetrievedInfo)
+        myRetrievedInfo = linkRetrieverService.getLinksInProjectScope()
     }
 
     private fun getInfoByText(linkText: String) = myRetrievedInfo.first { it.linkText == linkText }

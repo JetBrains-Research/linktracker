@@ -1,6 +1,6 @@
 package org.intellij.plugin.tracker.data.changes
 
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 
 /**
  * Enum class for change types of multiple lines

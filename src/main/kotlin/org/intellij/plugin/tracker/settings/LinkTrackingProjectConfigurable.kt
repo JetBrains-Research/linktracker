@@ -5,13 +5,15 @@ import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import jdk.jfr.Description
+import jdk.jfr.Label
 import org.intellij.plugin.tracker.data.UserInfo
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.WebLink
 import org.intellij.plugin.tracker.services.LinkRetrieverService
 import org.intellij.plugin.tracker.utils.CredentialsManager
-import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.core.change.GitOperationManager
 import org.intellij.plugin.tracker.utils.LinkFactory
 import javax.swing.JComponent
 
@@ -22,6 +24,8 @@ import javax.swing.JComponent
  * It corresponds to the page where a user can manage the tokens for multiple platforms.
  * This class also makes sure that these settings are saved on a project-level.
  */
+@Label("Experimental")
+@Description("Remote web links are not supported as of yet")
 class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigurable {
 
     /**
@@ -47,7 +51,7 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
         val linkInfoList: MutableList<LinkInfo> = mutableListOf()
 
         ApplicationManager.getApplication().runReadAction {
-            linkService.getLinks(linkInfoList)
+            linkInfoList.addAll(linkService.getLinksInProjectScope())
         }
 
         val infoList: MutableList<Triple<String, String, String>> = mutableListOf()
@@ -57,7 +61,9 @@ class LinkTrackingProjectConfigurable(val project: Project) : SearchableConfigur
         ApplicationManager.getApplication().run {
             object : Task.Modal(project, "Retrieving remote origin url", true) {
                 override fun run(indicator: ProgressIndicator) {
-                    remoteOriginUrl = GitOperationManager(project).getRemoteOriginUrl()
+                    remoteOriginUrl = GitOperationManager(
+                        project
+                    ).getRemoteOriginUrl()
                 }
             }
         }

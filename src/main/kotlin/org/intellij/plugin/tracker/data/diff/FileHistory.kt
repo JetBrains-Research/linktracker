@@ -18,6 +18,8 @@ data class FileHistory(
      */
     val path: String,
 
+    val content: String? = null,
+
     /**
      * Boolean indicating whether the path comes from the working tree or not
      */

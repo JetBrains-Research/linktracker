@@ -13,6 +13,7 @@ import org.intellij.plugin.tracker.data.links.WebLinkToFile
 import org.intellij.plugin.tracker.data.links.WebLinkToLine
 import org.intellij.plugin.tracker.data.links.WebLinkToLines
 import org.intellij.plugin.tracker.data.links.checkRelativeLink
+import java.io.File
 
 /**
  * This method contains a static factory method that classifies a link path into a corresponding type,
@@ -87,6 +88,9 @@ class LinkFactory {
                     // directories can also have . in their names
                     // therefore checks their relative paths which do not contain .
                     val relativePath = checkRelativeLink(linkInfo.linkPath, linkInfo.proveniencePath)
+                    if (relativePath.startsWith("#") && !File(linkInfo.project.basePath, relativePath).exists()) {
+                        return NotSupportedLink(linkInfo)
+                    }
                     if (relativePath.lastIndexOf(".") == -1) {
                         return RelativeLinkToDirectory(linkInfo = linkInfo)
                     }

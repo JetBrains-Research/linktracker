@@ -1,7 +1,8 @@
-package org.intellij.plugin.tracker.utils
+package org.intellij.plugin.tracker.core.update
 
 import com.intellij.lang.ASTNode
 import com.intellij.psi.PsiElement
+import org.intellij.plugin.tracker.services.LinkRetrieverService
 
 class LinkElementImpl(private val element: PsiElement) : LinkElement {
 
@@ -20,4 +21,14 @@ class LinkElementImpl(private val element: PsiElement) : LinkElement {
      * Returns the AST node corresponding to the element.
      */
     override fun getNode(): ASTNode? = element.node
+
+    override fun delete() {
+        if (LinkRetrieverService.isElementAutoLink(element) || LinkRetrieverService.isElementGfmAutoLink(element)) {
+            element.delete()
+            return
+        } else if (LinkRetrieverService.isElementMarkdownLinkDestination(element)) {
+            element.parent.delete()
+            element.delete()
+        }
+    }
 }

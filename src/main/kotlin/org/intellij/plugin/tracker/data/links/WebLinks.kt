@@ -1,12 +1,10 @@
 package org.intellij.plugin.tracker.data.links
 
-import org.intellij.plugin.tracker.data.WebLinkReferenceTypeIsInvalidException
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.LineChange
 import org.intellij.plugin.tracker.data.changes.LinesChange
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.GitOperationManager
+import org.intellij.plugin.tracker.core.change.ChangeTracker
 import org.intellij.plugin.tracker.utils.LinkPatterns
 import java.io.File
 import java.util.regex.Pattern
@@ -16,8 +14,9 @@ import java.util.regex.Pattern
  */
 data class WebLinkToDirectory(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern
-) : WebLink<CustomChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToDirectory.pattern,
+    override var specificCommit: String? = null
+) : WebLink<CustomChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * No lines referenced
@@ -52,26 +51,12 @@ data class WebLinkToDirectory(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return when (referenceType) {
-                WebLinkReferenceType.COMMIT -> visitor.getLocalDirectoryChanges(
-                    link = this,
-                    specificCommit = referencingName
-                )
-                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
-                    visitor.getLocalDirectoryChanges(link = this, branchOrTagName = referencingName)
-                else -> throw WebLinkReferenceTypeIsInvalidException()
-            }
-        }
-
-        throw NotImplementedError()
-    }
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalDirectoryChanges(this)
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, index: Int, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     /**
@@ -85,12 +70,8 @@ data class WebLinkToDirectory(
     /**
      * Converts this link to a link to a file, containing the parameterized file path as link path
      */
-    fun convertToFileLink(filePath: String): WebLinkToFile {
-        val linkInfoCopy: LinkInfo = linkInfo.copy(linkPath = filePath)
-        return WebLinkToFile(
-            linkInfo = linkInfoCopy
-        )
-    }
+    fun convertToFileLink(filePath: String): WebLinkToFile =
+        WebLinkToFile(linkInfo = linkInfo.copy(linkPath = filePath), specificCommit = specificCommit)
 }
 
 /**
@@ -98,8 +79,9 @@ data class WebLinkToDirectory(
  */
 data class WebLinkToFile(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToFile.pattern
-) : WebLink<CustomChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToFile.pattern,
+    override var specificCommit: String? = null
+) : WebLink<CustomChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * Get the part part from the URL
@@ -138,27 +120,13 @@ data class WebLinkToFile(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: CustomChange, newPath: String): String? =
+    override fun generateNewPath(change: CustomChange, index: Int, newPath: String): String? =
         newPath.replace(path, change.afterPathString)
 
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return when (referenceType) {
-                WebLinkReferenceType.COMMIT -> visitor.getLocalFileChanges(
-                    link = this,
-                    specificCommit = referencingName
-                )
-                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
-                    visitor.getLocalFileChanges(link = this, branchOrTagName = referencingName)
-                else -> throw WebLinkReferenceTypeIsInvalidException()
-            }
-        }
-
-        throw NotImplementedError("")
-    }
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalFileChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -174,8 +142,9 @@ data class WebLinkToFile(
  */
 data class WebLinkToLine(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToLine.pattern
-) : WebLink<LineChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToLine.pattern,
+    override var specificCommit: String? = null
+) : WebLink<LineChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * Get the path part from the URL
@@ -214,32 +183,18 @@ data class WebLinkToLine(
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: LineChange, newPath: String): String? {
+    override fun generateNewPath(change: LineChange, index: Int, newPath: String): String? {
         if (change.newLine == null) return null
         return newPath.replace(
             "$path#L$lineReferenced",
-            "${change.fileChange.afterPath[0]}#L${change.newLine.lineNumber}"
+            "${change.fileChange.afterPath[index]}#L${change.newLine.lineNumber}"
         )
     }
 
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return when (referenceType) {
-                WebLinkReferenceType.COMMIT -> visitor.getLocalLineChanges(
-                    link = this,
-                    specificCommit = referencingName
-                )
-                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
-                    visitor.getLocalLineChanges(link = this, branchOrTagName = referencingName)
-                else -> throw WebLinkReferenceTypeIsInvalidException()
-            }
-        }
-
-        throw NotImplementedError("")
-    }
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLineChanges(this)
 
     /**
      * Deep copy this link and return the copied link with a new after path
@@ -255,8 +210,9 @@ data class WebLinkToLine(
  */
 data class WebLinkToLines(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern = LinkPatterns.WebLinkToLines.pattern
-) : WebLink<LinesChange>(linkInfo, pattern) {
+    override val pattern: Pattern = LinkPatterns.WebLinkToLines.pattern,
+    override var specificCommit: String? = null
+) : WebLink<LinesChange>(linkInfo, pattern, specificCommit) {
 
     /**
      * Get the path without line-range specifications
@@ -295,31 +251,17 @@ data class WebLinkToLines(
     /**
      * Call the right method in the implementation of ChangeTrackerService
      */
-    override fun visit(visitor: ChangeTrackerService): Change {
-        if (correspondsToLocalProject(GitOperationManager(linkInfo.project).getRemoteOriginUrl())) {
-            return when (referenceType) {
-                WebLinkReferenceType.COMMIT -> visitor.getLocalLinesChanges(
-                    link = this,
-                    specificCommit = referencingName
-                )
-                WebLinkReferenceType.BRANCH, WebLinkReferenceType.TAG ->
-                    visitor.getLocalLinesChanges(link = this, branchOrTagName = referencingName)
-                else -> throw WebLinkReferenceTypeIsInvalidException()
-            }
-        }
-
-        throw NotImplementedError("")
-    }
+    override fun visit(visitor: ChangeTracker): Change = visitor.getLocalLinesChanges(this)
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    override fun generateNewPath(change: LinesChange, newPath: String): String? {
+    override fun generateNewPath(change: LinesChange, index: Int, newPath: String): String? {
         if (change.newLines == null) return null
 
         return newPath.replace(
             "$path#L$referencedStartingLine-L$referencedEndingLine",
-            change.selectedAfterPath!!
+            change.afterPath[index]
         )
     }
 

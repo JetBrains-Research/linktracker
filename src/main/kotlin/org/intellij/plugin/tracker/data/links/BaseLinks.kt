@@ -1,18 +1,22 @@
 package org.intellij.plugin.tracker.data.links
 
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.VcsException
-import org.intellij.markdown.MarkdownElementTypes
-import java.lang.IllegalArgumentException
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.elementType
+import org.intellij.plugin.tracker.core.change.ChangeTracker
+import org.intellij.plugin.tracker.core.change.GitOperationManager
+import org.intellij.plugin.tracker.core.update.LinkElement
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
+import org.intellij.plugin.tracker.data.changes.Change
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
+import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-import org.intellij.plugin.tracker.data.changes.Change
-import org.intellij.plugin.tracker.services.ChangeTrackerService
-import org.intellij.plugin.tracker.utils.GitOperationManager
-import org.intellij.plugin.tracker.utils.LinkElement
-import org.intellij.plugins.markdown.lang.MarkdownElementTypes.AUTOLINK
-import org.intellij.plugins.markdown.lang.MarkdownElementTypes.LINK_DESTINATION
 
 /**
  * An enum class for web link reference types
@@ -37,7 +41,9 @@ abstract class Link(
     /**
      * Pattern that corresponds to a certain type of link (e.g. can be a WebLinkToFile pattern)
      */
-    open val pattern: Pattern? = null
+    open val pattern: Pattern? = null,
+
+    open var specificCommit: String? = null
 ) {
 
     /**
@@ -79,7 +85,7 @@ abstract class Link(
      * Retrieve the changes of a specific link by passing in an
      * implementation of the ChangeTrackerService interface
      */
-    abstract fun visit(visitor: ChangeTrackerService): Change
+    abstract fun visit(visitor: ChangeTracker): Change
 
     /**
      * Performs a deep copy of the link and changes the after path of
@@ -100,8 +106,9 @@ abstract class Link(
  */
 abstract class RelativeLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern? = null
-) : Link(linkInfo, pattern) {
+    override val pattern: Pattern? = null,
+    override var specificCommit: String? = null
+) : Link(linkInfo, pattern, specificCommit) {
 
     override val path: String
         get() = linkInfo.linkPath
@@ -118,13 +125,14 @@ abstract class RelativeLink<in T : Change>(
     /**
      * Checks whether the markdown file in which this link is located has been moved
      */
-    override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(linkInfo
-        .getAfterPathToOriginalFormat(afterPath)!!, linkInfo.proveniencePath) != afterPath
+    override fun markdownFileMoved(afterPath: String): Boolean = checkRelativeLink(
+            linkInfo.getAfterPathToOriginalFormat(afterPath)!!,
+            linkInfo.proveniencePath) != afterPath
 
     /**
      * Method that, given
      */
-    abstract fun updateLink(change: T, commitSHA: String?): String?
+    abstract fun updateLink(change: T, index: Int, commitSHA: String?): String?
 }
 
 /**
@@ -135,8 +143,9 @@ abstract class RelativeLink<in T : Change>(
  */
 abstract class WebLink<in T : Change>(
     override val linkInfo: LinkInfo,
-    override val pattern: Pattern
-) : Link(linkInfo, pattern) {
+    override val pattern: Pattern,
+    override var specificCommit: String? = null
+) : Link(linkInfo, pattern, specificCommit) {
 
     /**
      * Retrieves the reference type of this web link
@@ -213,7 +222,7 @@ abstract class WebLink<in T : Change>(
      *
      * Each sub-type of WebLink implements it's own new path generation method
      */
-    fun updateLink(change: T, commitSHA: String?): String? {
+    fun updateLink(change: T, index: Int, commitSHA: String?): String? {
         var newPath: String = linkInfo.linkPath
         if (referenceType == WebLinkReferenceType.COMMIT) {
             if (commitSHA == null) return null
@@ -223,13 +232,13 @@ abstract class WebLink<in T : Change>(
         // attach link prefix and suffix if specified (e.g. for web links of type <link path>)
         if (linkInfo.linkPathPrefix != null) newPath = "${linkInfo.linkPathPrefix}$newPath"
         if (linkInfo.linkPathSuffix != null) newPath = "$newPath${linkInfo.linkPathSuffix}"
-        return generateNewPath(change, newPath)
+        return generateNewPath(change, index, newPath)
     }
 
     /**
      * Generates a new, equivalent path, based on the change object passed in as a parameter
      */
-    abstract fun generateNewPath(change: T, newPath: String): String?
+    abstract fun generateNewPath(change: T, index: Int, newPath: String): String?
 
     /**
      * Always return false, web links do not have relative paths and therefore
@@ -267,7 +276,7 @@ data class NotSupportedLink(
         return copy(linkInfo = linkInfoCopy)
     }
 
-    override fun visit(visitor: ChangeTrackerService): Change = throw UnsupportedOperationException()
+    override fun visit(visitor: ChangeTracker): Change = throw UnsupportedOperationException()
 
     override fun markdownFileMoved(afterPath: String): Boolean = throw UnsupportedOperationException()
 }
@@ -333,7 +342,7 @@ data class LinkInfo(
      * Gets the format in which the link appears in the markdown files
      */
     fun getMarkDownSyntaxString(): String {
-        return when  {
+        return when {
             linkElement.getNode()?.elementType == LINK_DESTINATION && inlineLink -> "[$linkText]($linkPath)"
             linkElement.getNode()?.elementType == LINK_DESTINATION && !inlineLink -> "[$linkText]: $linkPath"
             linkElement.getNode()?.elementType == AUTOLINK -> {
@@ -361,5 +370,38 @@ data class LinkInfo(
         } catch (e: IllegalArgumentException) {
             null
         }
+    }
+
+    companion object {
+        fun constructLinkInfoMarkdownLinkDestination(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
+            var inlineLink = true
+            if (element.parent.elementType == MarkdownElementTypes.LINK_DEFINITION) {
+                inlineLink = false
+            }
+            val linkText = element.parent.firstChild.node.text.replace("[", "").replace("]", "")
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, element.node.text, provPath, lineNumber, linkElement, file.name, project, inlineLink = inlineLink)
+        }
+
+        fun constructLinkInfoAutoLink(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
+            val linkText = element.node.text.replace("<", "").replace(">", "")
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, linkText, provPath, lineNumber, linkElement, file.name, project, "<", ">")
+        }
+
+        fun constructLinkInfoGfmAutoLink(element: PsiElement, document: Document, file: PsiFile, project: Project): LinkInfo {
+            val linkText = element.node.text
+            val lineNumber = document.getLineNumber(element.node.startOffset) + 1
+            val linkElement = LinkElementImpl(element)
+            val provPath = getProveniencePath(project.basePath!!, file)
+            return LinkInfo(linkText, linkText, provPath, lineNumber, linkElement, file.name, project)
+        }
+
+        private fun getProveniencePath(projectBasePath: String, file: PsiFile) =
+            file.virtualFile.path.replace("$projectBasePath/", "")
     }
 }

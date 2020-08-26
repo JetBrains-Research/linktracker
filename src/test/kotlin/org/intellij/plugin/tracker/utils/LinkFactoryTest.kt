@@ -2,6 +2,7 @@ package org.intellij.plugin.tracker.utils
 
 import com.nhaarman.mockitokotlin2.mock
 import junit.framework.TestCase
+import org.intellij.plugin.tracker.core.update.LinkElementImpl
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.LinkInfo
 import org.intellij.plugin.tracker.data.links.NotSupportedLink

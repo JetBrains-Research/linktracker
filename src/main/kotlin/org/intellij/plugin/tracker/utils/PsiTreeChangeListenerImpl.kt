@@ -2,7 +2,7 @@ package org.intellij.plugin.tracker.utils
 
 import com.intellij.psi.PsiTreeChangeAdapter
 import com.intellij.psi.PsiTreeChangeEvent
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.results.ScanResult
 
 /**
  * A listener for the PsiTree that invalidates specific scan result links

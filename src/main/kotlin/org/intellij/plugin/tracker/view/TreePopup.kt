@@ -3,9 +3,9 @@ package org.intellij.plugin.tracker.view
 import com.intellij.openapi.project.Project
 import javax.swing.JMenuItem
 import javax.swing.JPopupMenu
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.data.results.ScanResult
 import org.intellij.plugin.tracker.data.links.RelativeLink
-import org.intellij.plugin.tracker.utils.UpdateManager
+import org.intellij.plugin.tracker.core.update.UpdateManager
 
 /**
  * [TreePopup] class which is used to accept changes

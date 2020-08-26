@@ -1,33 +1,48 @@
 package org.intellij.plugin.tracker.data
 
-import org.intellij.plugin.tracker.data.changes.CustomChange
+import org.intellij.plugin.tracker.data.changes.*
 
 /**
  * Generic, base exception class for change gathering exceptions
  */
-open class ChangeGatheringException(override val message: String?): Exception(message)
+open class ChangeGatheringException(
+    override val message: String?,
+    open val change: Change
+) : Exception(message)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a file
  */
-open class FileChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
+open class FileChangeGatheringException(
+    override val message: String?,
+    override val change: Change = CustomChange(CustomChangeType.INVALID, "", message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a directory
  */
-open class DirectoryChangeGatheringException(override val message: String?) : ChangeGatheringException(message)
+open class DirectoryChangeGatheringException(
+    override val message: String?,
+    override val change: Change = CustomChange(CustomChangeType.INVALID, "", message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for a single line
  */
-open class LineChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    ChangeGatheringException(message)
+open class LineChangeGatheringException(
+    override val message: String?,
+    open val fileChange: CustomChange,
+    override val change: Change = LineChange(fileChange, LineChangeType.INVALID, message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Base exception for errors that occur during the process of retrieving changes for multiple lines
  */
-open class LinesChangeGatheringException(override val message: String?, open val fileChange: CustomChange) :
-    ChangeGatheringException(message)
+open class LinesChangeGatheringException(
+    override val message: String?,
+    open val fileChange: CustomChange,
+    override val change: Change = LinesChange(fileChange, LinesChangeType.INVALID, message)
+) : ChangeGatheringException(message, change)
 
 /**
  * Exception thrown when the start commit SHA of a link to a line cannot be retrieved
@@ -36,7 +51,7 @@ class CommitSHAIsNullLineException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**
@@ -46,7 +61,7 @@ class CommitSHAIsNullLinesException(
     override val message: String? =
         "Could not find the start commit of the line containing this link, " +
                 "please try to commit the file containing the link and run the plugin again.",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LinesChangeGatheringException(message, fileChange)
 
 /**
@@ -63,7 +78,7 @@ class CommitSHAIsNullDirectoryException(
  */
 class OriginalLineContentsNotFoundException(
     override val message: String? = "Could not find the contents of the line specified in the link",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**
@@ -71,33 +86,17 @@ class OriginalLineContentsNotFoundException(
  */
 class OriginalLinesContentsNotFoundException(
     override val message: String? = "Could not find the contents of the lines specified in the link",
-    override val fileChange: CustomChange
+    override val fileChange: CustomChange = CustomChange(CustomChangeType.INVALID, "")
 ) : LineChangeGatheringException(message, fileChange)
 
 /**
  * The file change that has been retrieved has an invalid file change type while retrieving file changes.
  */
-class InvalidFileChangeTypeException(
-    override val message: String?
+class InvalidFileChangeTypeException(override val message: String?) : FileChangeGatheringException(message)
+
+class FileWebLinkNotCorrespondingToLocalProjectException(
+    override val message: String? = "The web link to file does not correspond to the currently open project"
 ) : FileChangeGatheringException(message)
-
-/**
- * If the file in which a line is located is deleted, then the line cannot be tracked further
- */
-class FileHasBeenDeletedException(
-    override val message: String? = "File has been deleted. Line can not be tracked.",
-    override val fileChange: CustomChange
-) : LineChangeGatheringException(message, fileChange)
-
-class FileHasBeenDeletedLinesException(
-    override val message: String? = "File has been deleted. Lines can not be tracked.",
-    override val fileChange: CustomChange
-) : LinesChangeGatheringException(message, fileChange)
-
-class InvalidFileChangeException(
-    override val message: String? = "There was an error gathering the changes for the file",
-    override val fileChange: CustomChange
-) : LineChangeGatheringException(message, fileChange)
 
 /**
  * The file in the path existed in git history, but the full path has not.
@@ -133,23 +132,6 @@ class ChangeTypeExtractionException(
 ) : FileChangeGatheringException(message)
 
 /**
- * A directory referenced by a web link that does not correspond
- * to the currently open project has never existed
- */
-class RemoteDirectoryNeverExistedException(
-    override val message: String? = "Directory never existed"
-) : DirectoryChangeGatheringException(message)
-
-/**
- * Exception encountered while fetching directory changes from a web-hosted repository
- */
-class UnableToFetchRemoteDirectoryChangesException(
-    override val message: String?
-) : DirectoryChangeGatheringException(
-    "There was a problem in gathering the directory changes from remote repository: $message"
-)
-
-/**
  * Exception thrown in the case where a referenced directory never existed in the
  * currently open project
  */
@@ -163,5 +145,4 @@ class LocalDirectoryNeverExistedException(
 class UnableToFetchLocalDirectoryChangesException(
     override val message: String?
 ) : DirectoryChangeGatheringException(
-    "There was a problem in gathering the directory changes from local directory: $message"
-)
+    "There was a problem in gathering the directory changes from local directory: $message")

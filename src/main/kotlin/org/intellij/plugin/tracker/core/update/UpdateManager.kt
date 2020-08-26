@@ -1,11 +1,11 @@
-package org.intellij.plugin.tracker.utils
+package org.intellij.plugin.tracker.core.update
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import org.intellij.plugin.tracker.LinkTrackerAction
-import org.intellij.plugin.tracker.data.ScanResult
+import org.intellij.plugin.tracker.actions.LinkTrackerAction
+import org.intellij.plugin.tracker.data.results.ScanResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.changes.CustomChange
 import org.intellij.plugin.tracker.data.changes.CustomChangeType
@@ -40,7 +40,7 @@ class UpdateManager {
         try {
             ApplicationManager.getApplication().runWriteAction {
                 WriteCommandAction.runWriteCommandAction(project) {
-                    myLinkUpdaterService.updateLinks(acceptedChanges, commitSHA)
+                    myLinkUpdaterService.batchUpdateLinks(acceptedChanges, commitSHA)
                     removeUpdatedLinks(linksAndChanges, acceptedChanges, project)
                 }
             }
@@ -81,7 +81,10 @@ class UpdateManager {
         // Update view again to remove the updated links
         // after user accepted the changes
         val uiService = UIService.getInstance(project)
-        val newScanResult = ScanResult(myLinkChanges = linkAndChange, myProject = project)
+        val newScanResult = ScanResult(
+            myLinkChanges = linkAndChange,
+            myProject = project
+        )
         uiService.updateView(newScanResult)
     }
 

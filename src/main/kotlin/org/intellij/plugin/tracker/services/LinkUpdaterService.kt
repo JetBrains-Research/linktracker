@@ -2,14 +2,14 @@ package org.intellij.plugin.tracker.services
 
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import org.intellij.plugin.tracker.data.UpdateResult
+import org.intellij.plugin.tracker.data.results.UpdateResult
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLink
 import org.intellij.plugin.tracker.data.links.WebLink
-import org.intellij.plugin.tracker.utils.LinkElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElement
 import org.intellij.plugins.markdown.lang.psi.MarkdownPsiElementFactory
+import java.sql.Timestamp
 
 /**
  * A service to update broken links.
@@ -20,10 +20,21 @@ class LinkUpdaterService(val project: Project) {
      * Used by IDEA to get a reference to the single instance of this class.
      */
     companion object {
-        var workingTreePaths = mutableListOf<RelativeLink<*>>()
 
-        fun getInstance(project: Project): LinkUpdaterService =
-            ServiceManager.getService(project, LinkUpdaterService::class.java)
+        fun getInstance(project: Project): LinkUpdaterService = ServiceManager.getService(project, LinkUpdaterService::class.java)
+
+        @Suppress("UNCHECKED_CAST")
+        fun getNewLinkPath(link: Link, change: Change, index: Int, newCommit: String? = null): String? {
+            var afterPath: String? = null
+            if (link is RelativeLink<*>) {
+                val castLink: RelativeLink<Change> = link as RelativeLink<Change>
+                afterPath = castLink.updateLink(change, index, newCommit)
+            } else if (link is WebLink<*>) {
+                val castLink: WebLink<Change> = link as WebLink<Change>
+                afterPath = castLink.updateLink(change, index, newCommit)
+            }
+            return afterPath
+        }
     }
 
     /**
@@ -38,23 +49,23 @@ class LinkUpdaterService(val project: Project) {
      *
      * @param links the collection of link data necessary for the update
      */
-    fun updateLinks(links: MutableCollection<Pair<Link, Change>>, newCommit: String?): UpdateResult {
+    fun batchUpdateLinks(links: MutableCollection<Pair<Link, Change>>, newCommit: String? = null): UpdateResult {
         val startTime = System.currentTimeMillis()
         val updated = mutableListOf<Link>()
         val failed = mutableListOf<Link>()
-        val listWithElements = getLinkElements(links)
-        for (triple in listWithElements) {
+        for (pair in links) {
+            val link = pair.first
+            val change = pair.second
             try {
                 when {
-                    updateLink(triple.first, triple.second, triple.third, newCommit) -> updated.add(triple.first)
-                    else -> failed.add(triple.first)
+                    updateSingleLink(link, change, newCommit = newCommit) -> updated.add(link)
+                    else -> failed.add(link)
                 }
             } catch (e: NotImplementedError) {
-                failed.add(triple.first)
+                failed.add(link)
             }
         }
-        val timeElapsed = System.currentTimeMillis() - startTime
-        return UpdateResult(updated, failed, timeElapsed)
+        return UpdateResult(updated, failed, System.currentTimeMillis() - startTime)
     }
 
     /**
@@ -63,45 +74,16 @@ class LinkUpdaterService(val project: Project) {
      * @param link the Link object to be updated
      * @param change the LinkChange object according to which to update the link
      */
-    @Suppress("UNCHECKED_CAST")
-    private fun updateLink(link: Link, change: Change, element: LinkElement, newCommit: String?): Boolean {
-
-        if (change.hasWorkingTreeChanges() && link is RelativeLink<*> && !workingTreePaths.contains(link)) {
-            workingTreePaths.add(link)
+    fun updateSingleLink(link: Link, change: Change, index: Int = 0, newCommit: String? = null): Boolean {
+        if (change.isChangeDelete()) {
+            link.linkInfo.linkElement.delete()
+            return true
         }
-
-        var afterPath: String? = null
-        if (link is RelativeLink<*>) {
-            val castLink: RelativeLink<Change> = link as RelativeLink<Change>
-            afterPath = castLink.updateLink(change, newCommit)
-        } else if (link is WebLink<*>) {
-            val castLink: WebLink<Change> = link as WebLink<Change>
-            afterPath = castLink.updateLink(change, newCommit)
-        }
-
         // calculated updated link is null -> something wrong must have happened, return false
-        if (afterPath == null) return false
-
-        // removes the links from tree path list if it is being updated to its version in git history
-        for (treeLink in workingTreePaths) {
-            if (treeLink.path == afterPath && link.linkInfo.fileName == treeLink.linkInfo.fileName &&
-                link.linkInfo.proveniencePath == treeLink.linkInfo.proveniencePath) {
-                workingTreePaths.remove(link)
-            }
-        }
-
+        val afterPath: String = getNewLinkPath(link, change, index, newCommit) ?: return false
         val newElement: MarkdownPsiElement = MarkdownPsiElementFactory.createTextElement(this.project, afterPath)
-        element.replace(newElement)
+        link.linkInfo.linkElement.replace(newElement)
+        HistoryService.getInstance(project).saveTimestamp(link.linkInfo.proveniencePath, afterPath, Timestamp(System.currentTimeMillis()).time)
         return true
-    }
-
-    /**
-     * Gets the PsiElement corresponding to each input Link.
-     *
-     * @return a List of Triple<Link, FileChange, PsiElement>
-     */
-    private fun getLinkElements(list: MutableCollection<Pair<Link, Change>>):
-            MutableCollection<Triple<Link, Change, LinkElement>> {
-        return list.map { pair -> Triple(pair.first, pair.second, pair.first.linkInfo.linkElement) }.toMutableList()
     }
 }

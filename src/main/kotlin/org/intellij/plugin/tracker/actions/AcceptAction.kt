@@ -1,11 +1,11 @@
-package org.intellij.plugin.tracker
+package org.intellij.plugin.tracker.actions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import org.intellij.plugin.tracker.data.changes.Change
 import org.intellij.plugin.tracker.data.links.Link
 import org.intellij.plugin.tracker.data.links.RelativeLink
-import org.intellij.plugin.tracker.utils.UpdateManager
+import org.intellij.plugin.tracker.core.update.UpdateManager
 import org.intellij.plugin.tracker.view.TreeView
 
 /**

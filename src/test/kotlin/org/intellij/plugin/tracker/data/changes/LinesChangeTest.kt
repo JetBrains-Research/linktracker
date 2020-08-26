@@ -1,7 +1,7 @@
 package org.intellij.plugin.tracker.data.changes
 
 import junit.framework.TestCase
-import org.intellij.plugin.tracker.data.Line
+import org.intellij.plugin.tracker.data.diff.Line
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.junit.jupiter.api.Assertions
 
@@ -20,7 +20,7 @@ class LinesChangeTest : TestCase() {
             customChangeType = CustomChangeType.DELETED,
             afterPathString = "dummypath.md",
             errorMessage = "dummy message",
-            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", true)),
+            fileHistoryList = mutableListOf(FileHistory("commit sha", "dummy path", fromWorkingTree = true)),
             deletionsAndAdditions = 10
         )
 
@@ -28,7 +28,12 @@ class LinesChangeTest : TestCase() {
             fileChange = fileChange,
             linesChangeType = LinesChangeType.PARTIAL,
             errorMessage = "dummy message",
-            newLines = mutableListOf(mutableListOf(Line(5, "line text")),
+            newLines = mutableListOf(mutableListOf(
+                Line(
+                    5,
+                    "line text"
+                )
+            ),
                 mutableListOf(Line(3, "other text")), mutableListOf())
         )
 
@@ -58,8 +63,10 @@ class LinesChangeTest : TestCase() {
         val otherLinesChange = LinesChange(
             fileChange = fileChange,
             linesChangeType = LinesChangeType.FULL,
-            newLines = mutableListOf(mutableListOf(Line(5, "line text"),
-                Line(3, "other text")))
+            newLines = mutableListOf(mutableListOf(
+                Line(5, "line text"),
+                Line(3, "other text")
+            ))
         )
         Assertions.assertEquals(linesChange.afterPath, mutableListOf("dummypath.md#L5", "dummypath.md#L3"))
         Assertions.assertEquals(otherChange.afterPath, mutableListOf<String>())
@@ -70,7 +77,12 @@ class LinesChangeTest : TestCase() {
         Assertions.assertEquals(linesChange.fileChange, fileChange)
         Assertions.assertEquals(linesChange.linesChangeType, LinesChangeType.PARTIAL)
         Assertions.assertEquals(linesChange.errorMessage, "dummy message")
-        Assertions.assertEquals(linesChange.newLines, mutableListOf(mutableListOf(Line(5, "line text")),
+        Assertions.assertEquals(linesChange.newLines, mutableListOf(mutableListOf(
+            Line(
+                5,
+                "line text"
+            )
+        ),
             mutableListOf(Line(3, "other text")), mutableListOf()))
     }
 

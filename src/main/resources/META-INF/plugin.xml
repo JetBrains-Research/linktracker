@@ -24,25 +24,24 @@
     <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
 
     <actions>
-        <action id="LinkTracker" class="org.intellij.plugin.tracker.LinkTrackerAction" text="Link Tracker"
-                description="Track links"  icon="AllIcons.Actions.Refresh">
+        <action id="LinkTracker" class="org.intellij.plugin.tracker.actions.LinkTrackerAction" text="Link Tracker"
+                description="Track links" icon="AllIcons.Actions.Refresh">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt F"/>
-            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F"  remove="true"/>
-            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F"  replace-all="true"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="control alt F" remove="true"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="control alt F" replace-all="true"/>
             <mouse-shortcut keymap="$default" keystroke="control button3 doubleClick"/>
         </action>
-        <action id="Settings" class="org.intellij.plugin.tracker.SettingsAction" text="Settings"
-                description="Settings"  icon="AllIcons.Ide.Notification.GearHover">
+        <action id="Settings" class="org.intellij.plugin.tracker.actions.SettingsAction" text="Settings"
+                description="Settings" icon="AllIcons.Ide.Notification.GearHover">
         </action>
-        <action id="AcceptChanges" class="org.intellij.plugin.tracker.AcceptAction" text="Accept Changes"
-                description="Accept Changes Selected"  icon="AllIcons.Actions.Commit">
+        <action id="AcceptChanges" class="org.intellij.plugin.tracker.actions.AcceptAction" text="Accept Changes"
+                description="Accept Changes Selected" icon="AllIcons.Actions.Commit">
         </action>
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <projectService serviceImplementation="org.intellij.plugin.tracker.services.ChangeTrackerServiceImpl"/>
         <projectService serviceImplementation="org.intellij.plugin.tracker.services.HistoryService"/>
         <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkRetrieverService"/>
         <projectService serviceImplementation="org.intellij.plugin.tracker.services.LinkUpdaterService"/>
@@ -56,12 +55,14 @@
                 childrenEPName="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
         />
 
-        <projectConfigurable
-                parentId="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
-                id="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
-                displayName="Token Manager"
-                instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
-        />
+        <localInspection
+                language="Markdown"
+                displayName="Maintain links to code"
+                groupName="Markdown"
+                groupBundle="messages.InspectionsBundle"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="org.intellij.plugin.tracker.inspection.LinkMaintenanceInspection"/>
     </extensions>
 
 </idea-plugin>
