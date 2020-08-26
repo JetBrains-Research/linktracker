@@ -8,16 +8,37 @@ import org.intellij.plugin.tracker.data.diff.DiffOutput
 import org.intellij.plugin.tracker.data.diff.FileHistory
 import org.intellij.plugin.tracker.data.links.Link
 
+/**
+ * Base class for sources of change. Implemented by GitOperationManager and ChangeListOperationManager
+ */
 abstract class ChangeSource {
 
+    /**
+     * Gets the change for a file in the environment it is implemented
+     */
     abstract fun getChangeForFile(link: Link): Change
 
+    /**
+     * Gets the change for a directory in the environment it is implemented
+     */
     abstract fun getChangeForDirectory(link: Link): Change
 
+    /**
+     * Method that retrieves a list of lines (strings) of a file given by a link
+     */
     abstract fun getLines(link: Link): List<String>?
 
+    /**
+     * Method that performs a diff between the versions of a file and retrieves the diff output.
+     * (environment specific).
+     */
     abstract fun performDiffOutput(before: FileHistory, after: FileHistory): DiffOutput?
 
+    /**
+     * Template method for getting a list of diff outputs between versions of a file.
+     * Calls the performDiffOutput abstract method, which defines the environmental specific operations
+     * of performing the diff.
+     */
     fun getDiffOutput(fileChange: CustomChange): List<DiffOutput> {
         val diffOutputList: MutableList<DiffOutput> = mutableListOf()
         val fileHistoryList = fileChange.fileHistoryList
@@ -30,6 +51,9 @@ abstract class ChangeSource {
         return diffOutputList
     }
 
+    /**
+     * Get the original line content of a line that is targeted by a link.
+     */
     fun getOriginalLineContents(link: Link): String {
         val lines = getLines(link)
         val lineNumber = link.lineReferenced
@@ -41,6 +65,9 @@ abstract class ChangeSource {
         throw OriginalLineContentsNotFoundException()
     }
 
+    /**
+     * Get the original lines contents of lines targeted by a link
+     */
     fun getMultipleOriginalLinesContents(link: Link): List<String> {
         val lines = getLines(link)
         val startLine = link.referencedStartingLine
