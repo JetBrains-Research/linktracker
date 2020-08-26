@@ -1,6 +1,11 @@
 package org.intellij.plugin.tracker.settings
 
 import com.intellij.openapi.options.SearchableConfigurable
+import com.intellij.ui.components.CheckBox
+import com.intellij.ui.layout.panel
+import org.intellij.plugin.tracker.settings.FeatureSwitchSettings.Companion.getCurrentFeatureSwitchSettings
+import org.intellij.plugin.tracker.settings.FeatureSwitchSettings.Companion.saveFeatureSwitchSettings
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 
 /**
@@ -12,20 +17,10 @@ import javax.swing.JComponent
  */
 class LinkTrackingConfigurable : SearchableConfigurable {
 
-    /**
-     * Class bound to the form displaying the settings page
-     */
-    private var linkTrackingSettingsForm: LinkTrackingSettingsForm? = null
+    private var historyTraversalCheckbox: JCheckBox? = null
+    private var isHistoryTraversalEnabled: Boolean = getCurrentFeatureSwitchSettings().historyTraversalSwitch
 
-    /**
-     * Get the class bound to the form displaying the settings page
-     */
-    private fun getForm(): LinkTrackingSettingsForm {
-        if (linkTrackingSettingsForm == null) {
-            linkTrackingSettingsForm = LinkTrackingSettingsForm()
-        }
-        return linkTrackingSettingsForm!!
-    }
+    private fun getFeatureSwitchSettings(): FeatureSwitchSettings = FeatureSwitchSettings(isHistoryTraversalEnabled)
 
     /**
      * Set the id name of this settings page
@@ -40,20 +35,38 @@ class LinkTrackingConfigurable : SearchableConfigurable {
     /**
      * Checks whether the settings page has any attributes that have been modified
      */
-    override fun isModified(): Boolean = getForm().isModified
+    override fun isModified(): Boolean = getFeatureSwitchSettings().isModified()
 
     /**
      * Logic to run when the apply button is clicked in the settings page
      */
-    override fun apply() = getForm().saveValues()
+    override fun apply() {
+        isHistoryTraversalEnabled = getFeatureSwitchSettings().historyTraversalSwitch
+        historyTraversalCheckbox?.isSelected = getFeatureSwitchSettings().historyTraversalSwitch
+        saveFeatureSwitchSettings(getFeatureSwitchSettings())
+    }
 
     /**
      * Logic to run when the reset button is clicked in the settings page
      */
-    override fun reset() = getForm().reset()
+    override fun reset() {
+        isHistoryTraversalEnabled = getCurrentFeatureSwitchSettings().historyTraversalSwitch
+        historyTraversalCheckbox?.isSelected = getCurrentFeatureSwitchSettings().historyTraversalSwitch
+    }
 
     /**
      * Creates the UI for this settings page
      */
-    override fun createComponent(): JComponent? = getForm().component
+    override fun createComponent(): JComponent? {
+        return panel {
+            titledRow("History Traversal Settings") { }
+            row {
+                historyTraversalCheckbox = CheckBox("History Traversal", isHistoryTraversalEnabled)
+                row { historyTraversalCheckbox!!() }
+                historyTraversalCheckbox!!.addActionListener{ isHistoryTraversalEnabled = historyTraversalCheckbox!!.isSelected }
+            }
+        }
+    }
 }
+
+
