@@ -55,13 +55,6 @@
                 childrenEPName="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
         />
 
-        <projectConfigurable
-                parentId="org.intellij.plugin.tracker.settings.LinkTrackingConfigurable"
-                id="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
-                displayName="Token Manager"
-                instance="org.intellij.plugin.tracker.settings.LinkTrackingProjectConfigurable"
-        />
-
         <localInspection
                 language="Markdown"
                 displayName="Maintain links to code"
